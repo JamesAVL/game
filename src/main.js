@@ -4,6 +4,7 @@ import { loadAll, startLoop, Scenes } from "./engine/core.js";
 import { unlockAudio } from "./engine/audio.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
+import { initTouch } from "./engine/touch.js";
 
 // debug handle (handy for testing in the console)
 window.__BOOSH = { GS, Scenes };
@@ -19,6 +20,7 @@ window.addEventListener("pointerdown", tryUnlock, { once: false });
 loadAll((n, total) => { boot.textContent = "LOADING THE ZOONIVERSE... " + Math.round((n / total) * 100) + "%"; })
   .then(() => {
     boot.classList.add("hidden");
+    initTouch();
     Scenes.push(new Title());
     startLoop();
   })

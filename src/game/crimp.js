@@ -120,7 +120,9 @@ export class Crimp {
 
     if (this.state === "over") {
       this.overT += dt;
-      if (this.overT > 1.0 && (Input.pressed("confirm") || Input.pressed("cancel"))) {
+      const tapped = Input.pressed("confirm") || Input.pressed("cancel") ||
+        Input.pressed("lane0") || Input.pressed("lane1") || Input.pressed("lane2") || Input.pressed("lane3");
+      if (this.overT > 1.0 && tapped) {
         const cb = this.def.onResult;
         Scenes.pop();
         if (cb) cb(this.result);
@@ -217,7 +219,7 @@ export class Crimp {
       textCentered(ctx, "Accuracy " + acc + "%   Max combo " + this.maxCombo, VIEW_W / 2, 88, { color: "#fff" });
       textCentered(ctx, win ? "You feel the funk flow through you." : "Shake it off and try again.", VIEW_W / 2, 102, { color: "#cfcfe6" });
       if (this.overT > 1.0 && Math.floor(performance.now() / 400) % 2 === 0)
-        textCentered(ctx, "press Z", VIEW_W / 2, 130, { color: "#9a7adf" });
+        textCentered(ctx, "press Z  /  tap a lane", VIEW_W / 2, 130, { color: "#9a7adf" });
     }
   }
 

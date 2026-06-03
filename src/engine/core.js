@@ -47,6 +47,9 @@ export const Input = {
   isDown(a) { return down.has(a); },
   pressed(a) { return pressedThisFrame.has(a); },
   anyPressed() { return pressedThisFrame.size > 0; },
+  // on-screen touch controls feed the same action set as the keyboard
+  _touchDown(a) { if (!down.has(a)) pendingPress.push(a); down.add(a); },
+  _touchUp(a) { down.delete(a); },
   // called once per frame by the loop, after update
   _flip() {
     pressedThisFrame.clear();
