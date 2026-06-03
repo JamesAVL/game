@@ -1,0 +1,58 @@
+# Architecture
+
+A from-scratch HTML5 Canvas game in vanilla ES modules — no framework, no
+bundler. Served as static files. Internal resolution 320×180, integer-scaled
+for crisp pixels, fixed-timestep loop.
+
+## Layout
+```
+index.html              # canvas + boot overlay
+src/
+  main.js               # boot: load assets -> Title scene -> start loop
+  engine/
+    core.js             # config, canvas/scaling, input, asset loader, save, scene stack, loop
+    gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
+    audio.js            # Web Audio chiptune synth + step sequencer + SFX bank
+    tilemap.js          # tile-layer render + collision
+  game/
+    state.js            # GS: flags, inventory, stats/XP, records, progression, save/load
+    world.js            # build a Tilemap + entities from an authored text-map zone
+    player.js           # party: Vince leads, Howard follows a breadcrumb trail
+    overworld.js        # exploration scene: interaction, warps, pickups, bosses, HUD
+    dialogue.js         # typewriter dialogue + portraits + choice menus
+    crimp.js            # the rhythm "crimp-off" battle scene
+    menu.js / title.js  # pause menu / title + intro
+  data/
+    zones.js            # every map (text grid) + entity placements
+    dialogue.js         # all conversation scripts (functions of an `api`)
+    crimps.js           # boss battle definitions (generated note charts + lyrics)
+    music.js            # chiptune track patterns (note strings)
+    items.js            # item metadata + icon indices
+assets/                 # generated PNGs (sprites, tiles, bg, ui, items)
+tools/                  # Python asset generators (see below) + serve.js
+```
+
+## Key contracts
+- **Tile indices** are shared across all tilesets (see `LEGEND` in `world.js` and
+  `gen_tiles.py`): 0 floor, 2 wall, 4 obstacle, 7 water, 9 accent, 11 feature…
+- **Character sheets** are 16×24 frames, rows = [down,up,left,right], 4 walk cols.
+- **Font atlas** (`gen_font.py` ↔ `gfx.js`): ASCII 32–126, 16-wide grid, 6×8 cells.
+- **Zones** are authored as text-map rows built with `blank/rect/scatter` helpers.
+- **Crimp charts** are generated deterministically from a seed (`crimps.js`) and
+  synced to a `music.js` track via bpm.
+- `window.__BOOSH = { GS, Scenes }` is exposed for debugging/testing in the console.
+
+## Asset pipeline (pure Python stdlib)
+- `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,
+  outline, gradients). No Pillow.
+- `tools/artlib.py` — shared palette + parametric `draw_person()` (heroes + NPCs).
+- `tools/gen_*.py` — one generator per asset family; `gen_all.py` runs them all.
+- Audio is not pre-rendered: `engine/audio.js` synthesises everything at runtime.
+
+Run `python3 tools/gen_all.py` to rebuild all PNGs (deterministic).
+
+## Adding content
+- **A world:** add a zone to `data/zones.js`, a tileset palette to `gen_tiles.py`,
+  a boss sprite to `gen_bosses.py`, a crimp to `data/crimps.js` (+ a track in
+  `music.js`), and dialogue to `data/dialogue.js`. Wire progression via the boss
+  entity's `winFlag` / `record` / `unlock` fields.

@@ -1,0 +1,12 @@
+{
+  "name": "mighty-boosh-zooniverse",
+  "version": "1.0.0",
+  "description": "The Mighty Boosh: Journey Through the Zooniverse - a pixel-art crimping adventure RPG.",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "serve": "node tools/serve.js",
+    "assets": "python3 tools/gen_all.py"
+  },
+  "license": "MIT"
+}
