@@ -63,7 +63,7 @@ function worldMap(w, h, decorate) {
 }
 
 const TUNDRA = {
-  id: "tundra", name: "The Frozen Tundra", tileset: "tiles_tundra", music: "amb_cold",
+  id: "tundra", name: "The Frozen Tundra", tileset: "tiles_tundra", music: "amb_cold", weather: "snow", onEnter: "tundra_enter",
   spawn: { x: 9, y: 16, dir: "up" },
   map: worldMap(20, 19, (m) => {
     scatter(m, "O", [[4, 6], [15, 5], [7, 9], [13, 11], [3, 13], [16, 13]]); // ice rocks
@@ -83,7 +83,7 @@ const TUNDRA = {
 };
 
 const SEA = {
-  id: "sea", name: "Old Gregg's Sea", tileset: "tiles_sea", music: "amb_water",
+  id: "sea", name: "Old Gregg's Sea", tileset: "tiles_sea", music: "amb_water", weather: "bubbles", onEnter: "sea_enter",
   spawn: { x: 10, y: 16, dir: "up" },
   map: worldMap(22, 19, (m) => {
     scatter(m, "~", [[3, 4], [4, 4], [18, 5], [19, 5], [3, 11], [18, 12]]); // deep pools
@@ -104,7 +104,7 @@ const SEA = {
 };
 
 const FOREST = {
-  id: "forest", name: "The Forest of Bins", tileset: "tiles_forest", music: "amb_forest",
+  id: "forest", name: "The Forest of Bins", tileset: "tiles_forest", music: "amb_forest", weather: "leaves", onEnter: "forest_enter",
   spawn: { x: 11, y: 17, dir: "up" },
   map: worldMap(24, 20, (m) => {
     scatter(m, "O", [[4, 5], [8, 4], [13, 5], [18, 6], [6, 9], [16, 10], [10, 12], [20, 13], [3, 14]]); // trees
@@ -125,7 +125,7 @@ const FOREST = {
 };
 
 const NIGHT = {
-  id: "night", name: "The Nightosphere", tileset: "tiles_night", music: "amb_dark",
+  id: "night", name: "The Nightosphere", tileset: "tiles_night", music: "amb_dark", weather: "embers", onEnter: "night_enter",
   spawn: { x: 11, y: 16, dir: "up" },
   map: worldMap(22, 19, (m) => {
     scatter(m, "O", [[5, 6], [16, 6], [8, 9], [14, 11], [4, 12], [17, 13]]); // jagged spires
@@ -144,7 +144,7 @@ const NIGHT = {
 };
 
 const MOON = {
-  id: "moon", name: "The Moon", tileset: "tiles_moon", music: "amb_moon",
+  id: "moon", name: "The Moon", tileset: "tiles_moon", music: "amb_moon", weather: "stars", onEnter: "moon_enter",
   spawn: { x: 11, y: 16, dir: "up" },
   map: worldMap(22, 19, (m) => {
     scatter(m, "O", [[5, 8], [16, 9], [8, 12], [14, 13]]);     // craters / rocks
@@ -161,7 +161,7 @@ const MOON = {
 };
 
 const TEMPLE = {
-  id: "temple", name: "Xooberon Temple", tileset: "tiles_temple", music: "amb_temple",
+  id: "temple", name: "Xooberon Temple", tileset: "tiles_temple", music: "amb_temple", weather: "dust", onEnter: "temple_enter",
   spawn: { x: 12, y: 17, dir: "up" },
   map: worldMap(26, 20, (m) => {
     rect(m, 2, 2, 22, 1, "="); // back wall band

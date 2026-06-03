@@ -17,11 +17,30 @@ import { ITEMS, ITEM_INDEX } from "../data/items.js";
 import { TRACKS } from "../data/music.js";
 import { PauseMenu } from "./menu.js";
 
+// per-zone ambient weather (screen-space particles for atmosphere)
+const WEATHER = {
+  hub: "pollen", tundra: "snow", sea: "bubbles", forest: "leaves",
+  night: "embers", moon: "stars", temple: "dust",
+};
+const WEATHER_CFG = {
+  snow: { n: 60, color: "#ffffff", vy: [12, 26], vx: [-8, 8], size: [1, 2], rise: false, sway: 10, alpha: 0.85 },
+  bubbles: { n: 34, color: "#bfeaff", vy: [-22, -10], vx: [-4, 4], size: [1, 3], rise: true, sway: 8, alpha: 0.5 },
+  embers: { n: 40, color: "#ff9a3a", vy: [-30, -14], vx: [-6, 6], size: [1, 2], rise: true, sway: 6, alpha: 0.8 },
+  leaves: { n: 30, color: "#9ad06a", vy: [10, 22], vx: [-14, 14], size: [1, 2], rise: false, sway: 16, alpha: 0.85 },
+  stars: { n: 50, color: "#fff6c0", vy: [-6, -2], vx: [-2, 2], size: [1, 2], rise: true, sway: 4, alpha: 0.9, twinkle: true },
+  dust: { n: 36, color: "#e6d2a0", vy: [-4, 4], vx: [-5, 5], size: [1, 1], rise: false, sway: 6, alpha: 0.4 },
+  pollen: { n: 24, color: "#dfe8a0", vy: [-5, 5], vx: [-6, 6], size: [1, 1], rise: false, sway: 8, alpha: 0.5 },
+};
+
+function rr(a, b) { return a + Math.random() * (b - a); }
+
 export class Overworld {
   constructor() {
     this.cam = new Camera();
     this.toastMsg = ""; this.toastT = 0;
     this.musicKey = null;
+    this.fadeT = 0;
+    this.particles = [];
     this.loadZone(GS.data.zone, GS.data.spawn);
   }
 
@@ -56,6 +75,9 @@ export class Overworld {
     this.entities = z.entities;
     this.cam.setBounds(this.tilemap.pxW, this.tilemap.pxH);
     GS.data.zone = id;
+    this.fadeT = 0.55;                 // fade in on arrival
+    this.weather = z.def.weather || WEATHER[id] || "none";
+    this.particles.length = 0;
     const sp = spawn || z.def.spawn || { x: 2, y: 2, dir: "down" };
     // spawn.y is the tile the character STANDS on; the 24px sprite sits 8px
     // higher so its feet land in that tile (not the tile below).
@@ -194,9 +216,48 @@ export class Overworld {
     }
   }
 
+  updateWeather(dt) {
+    const cfg = WEATHER_CFG[this.weather];
+    if (!cfg) { this.particles.length = 0; return; }
+    // top up
+    while (this.particles.length < cfg.n) {
+      this.particles.push({
+        x: rr(-10, VIEW_W + 10),
+        y: cfg.rise ? rr(0, VIEW_H + 10) : rr(-10, VIEW_H),
+        vx: rr(cfg.vx[0], cfg.vx[1]),
+        vy: rr(cfg.vy[0], cfg.vy[1]),
+        s: Math.round(rr(cfg.size[0], cfg.size[1])),
+        ph: rr(0, Math.PI * 2),
+      });
+    }
+    for (const p of this.particles) {
+      p.ph += dt * 2;
+      p.x += (p.vx + Math.sin(p.ph) * cfg.sway) * dt;
+      p.y += p.vy * dt;
+      if (p.y < -12) { p.y = VIEW_H + 6; p.x = rr(-10, VIEW_W + 10); }
+      else if (p.y > VIEW_H + 12) { p.y = -6; p.x = rr(-10, VIEW_W + 10); }
+      if (p.x < -14) p.x = VIEW_W + 8; else if (p.x > VIEW_W + 14) p.x = -8;
+    }
+  }
+
+  renderWeather(ctx) {
+    const cfg = WEATHER_CFG[this.weather];
+    if (!cfg) return;
+    ctx.fillStyle = cfg.color;
+    for (const p of this.particles) {
+      let a = cfg.alpha;
+      if (cfg.twinkle) a *= 0.4 + 0.6 * Math.abs(Math.sin(p.ph));
+      ctx.globalAlpha = a;
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   update(dt) {
     GS.data.playtime += dt;
     if (this.toastT > 0) this.toastT -= dt;
+    if (this.fadeT > 0) this.fadeT -= dt;
+    this.updateWeather(dt);
 
     if (Input.pressed("pause") || Input.pressed("cancel")) { Scenes.push(new PauseMenu(this)); return; }
     if (Input.pressed("mute")) { import("../engine/audio.js").then((m) => { const muted = m.toggleMute(); this.toast(muted ? "Muted" : "Sound on"); }); }
@@ -270,8 +331,16 @@ export class Overworld {
 
     this.tilemap.renderOver(ctx, this.cam);
 
+    this.renderWeather(ctx);
+
     // ---- HUD ----
     this.renderHud(ctx);
+
+    // fade-in overlay on zone entry
+    if (this.fadeT > 0) {
+      ctx.fillStyle = "rgba(8,6,16," + Math.min(1, this.fadeT / 0.55) + ")";
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
   }
 
   renderHud(ctx) {

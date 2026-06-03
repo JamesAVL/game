@@ -68,6 +68,32 @@ export const DIALOG = {
     F("LOOK just go and do your singing thing and make the place nice again. GO ON. SHOO."),
   ],
 
+  // ---- world entry banter ------------------------------------------------
+  tundra_enter: (api) => [
+    V("Brrr! It's a proper winter wonderland. My hair's gone all static."),
+    H("Stay close, Vince. Somewhere out here is a record. And probably death."),
+  ],
+  sea_enter: (api) => [
+    V("We're under the sea! Look at all the bubbles, Howard."),
+    H("I can't swim, Vince. I can barely stand near a pond. Let's be quick."),
+  ],
+  forest_enter: (api) => [
+    H("Smell that? Damp leaves, bins, and bad decisions. The forest."),
+    V("Something shiny's twitching in the bushes. Keep your wits, Howard."),
+  ],
+  night_enter: (api) => [
+    V("Whoa. The Nightosphere. It's all embers and dread out here."),
+    H("Naboo raised a demon. Of course he did. Let's send it home."),
+  ],
+  moon_enter: (api) => [
+    V("We're on the actual MOON. This is the best quest ever."),
+    H("It's so quiet up here. Peaceful, even. ...Is the moon humming?"),
+  ],
+  temple_enter: (api) => [
+    H("Xooberon Temple. End of the line. The Board of Shaman await."),
+    V("One more crimp-off, Howard. Then we're legends. Let's go."),
+  ],
+
   // ---- tundra ------------------------------------------------------------
   tundra_explorer: (api) => [
     F("I-it's f-f-freezing! Bob Fossil does NOT do cold! My moustache has icicles!"),
