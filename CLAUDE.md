@@ -26,6 +26,7 @@ src/
     particles.js        # pooled additive particles + global screen-shake (Juice)
     light.js            # dynamic 2D lighting (per-zone ambient + light sources)
     midi.js             # optional WebMIDI: a keyboard/pad plays the crimp lanes
+    normalmap.js        # CPU per-pixel normal-mapped sprite lighting (crimp boss)
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
     audio.js            # chiptune synth + sequencer + SFX; music sub-bus, limiter, beat analyser
     tilemap.js          # tile-layer render + collision
@@ -86,10 +87,16 @@ tools/                  # Python asset generators (see below) + serve.js
   crimp by mapping note pitch-class into the four lanes (low→high =
   left→up→down→right) and feeding `Input._touchDown/_touchUp`, so the crimp
   needs no MIDI awareness. No device/permission ⇒ silently inert.
+- **Normal-mapped lighting (`normalmap.js`):** because our sprites are generated,
+  `pnglib.Canvas.normal_map()` derives a companion normal map from each sprite's
+  luma×alpha heightfield; `gen_bosses.save()` writes `boss_*_n.png` alongside the
+  albedo. At runtime `litSprite()` relights the crimp boss per-pixel against that
+  normal map with a light that orbits + flares to the beat — real 2.5D shading on
+  pixel art, uniquely cheap because the art is procedural.
 
 ## Asset pipeline (pure Python stdlib)
 - `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,
-  outline, gradients). No Pillow.
+  outline, gradients, `normal_map()`). No Pillow.
 - `tools/artlib.py` — shared palette + parametric `draw_person()` (heroes + NPCs).
 - `tools/gen_*.py` — one generator per asset family; `gen_all.py` runs them all.
 - Audio is not pre-rendered: `engine/audio.js` synthesises everything at runtime.

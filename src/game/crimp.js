@@ -5,7 +5,8 @@
 import { Scenes, VIEW_W, VIEW_H, ART, Input, img, clamp } from "../engine/core.js";
 import { Particles, Juice } from "../engine/particles.js";
 import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
-import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness } from "../engine/audio.js";
+import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness, getReactive } from "../engine/audio.js";
+import { litSprite } from "../engine/normalmap.js";
 import { GS } from "./state.js";
 
 // parse a "#rrggbb" lane colour to an [r,g,b] triple for particle bursts
@@ -225,7 +226,14 @@ export class Crimp {
       const scale = this.def.bossScale || 2;
       const bw = bim.width * scale, bh = bim.height * scale;
       const bob = Math.sin(this.danceT * 6) * 3 * ART;
-      ctx.drawImage(bim, VIEW_W / 2 - bw / 2 + 40 * ART, 30 * ART + bob - bh / 2 + 30 * ART, bw, bh);
+      // normal-mapped lighting: a light orbits the boss and flares to the beat,
+      // so the surface relief catches highlights in time with the music.
+      const nim = img(this.def.face + "_n");
+      const lx = Math.cos(this.danceT * 1.1) * 0.8;
+      const ly = -0.35 + Math.sin(this.danceT * 0.7) * 0.25;
+      const beat = getReactive().bass;
+      const src = nim ? litSprite(bim, nim, lx, ly, 0.7, 0.42 + beat * 0.22, 1.0, 0.97, 0.9) : bim;
+      ctx.drawImage(src, VIEW_W / 2 - bw / 2 + 40 * ART, 30 * ART + bob - bh / 2 + 30 * ART, bw, bh);
     }
 
     // ---- lanes (directional receptors) ----

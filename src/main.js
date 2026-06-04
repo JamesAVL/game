@@ -5,6 +5,8 @@ import { Renderer } from "./engine/renderer.js";
 import { Particles, Juice } from "./engine/particles.js";
 import { initMidi, midiStatus } from "./engine/midi.js";
 import { unlockAudio, audioDebug, getReactive, duckMusic, setMusicBrightness } from "./engine/audio.js";
+import { Crimp } from "./game/crimp.js";
+import { CRIMPS } from "./data/crimps.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
 import { initTouch } from "./engine/touch.js";
@@ -25,6 +27,7 @@ window.__BOOSH = {
   GS, Scenes, Renderer, Particles, Juice, Input,
   Audio: { debug: audioDebug, getReactive, duckMusic, setMusicBrightness },
   midiStatus,
+  startCrimp: (key = "jazz") => { const c = new Crimp(CRIMPS[key]); Scenes.push(c); c.begin(); return c; },
 };
 
 // optional WebMIDI — play the crimp on a real keyboard/pad if one is present

@@ -13,7 +13,9 @@ OUT = None
 
 def save(cv, name):
     cv.write(os.path.join(OUT, name + ".png"))
-    print("wrote", name)
+    # companion normal map for runtime per-pixel lighting (the crimp boss)
+    cv.normal_map().write(os.path.join(OUT, name + "_n.png"))
+    print("wrote", name, "(+ normal)")
 
 
 def outline_dark(cv, col=(12, 8, 20)):

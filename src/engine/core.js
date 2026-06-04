@@ -124,6 +124,13 @@ export const MANIFEST = {
   boss_nana: "assets/sprites/boss_nana.png",
   boss_moon: "assets/sprites/boss_moon.png",
   boss_tony: "assets/sprites/boss_tony.png",
+  // companion normal maps for per-pixel boss lighting in the crimp
+  boss_jazz_n: "assets/sprites/boss_jazz_n.png",
+  boss_gregg_n: "assets/sprites/boss_gregg_n.png",
+  boss_crackfox_n: "assets/sprites/boss_crackfox_n.png",
+  boss_nana_n: "assets/sprites/boss_nana_n.png",
+  boss_moon_n: "assets/sprites/boss_moon_n.png",
+  boss_tony_n: "assets/sprites/boss_tony_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",
