@@ -30,6 +30,7 @@ src/
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
     audio.js            # chiptune synth + sequencer + SFX; music sub-bus, limiter, beat analyser
     tilemap.js          # tile-layer render + collision
+    touch.js            # native touch: floating joystick + tap + crimp lane taps
   game/
     state.js            # GS: flags, inventory, stats/XP, records, progression, save/load
     world.js            # build a Tilemap + entities from an authored text-map zone
@@ -83,6 +84,13 @@ tools/                  # Python asset generators (see below) + serve.js
   areas together. The crimp drives `setMusicBrightness(combo)` and
   `duckMusic()` on a fluff, so the mix tracks your performance. Still 100%
   synthesised — no samples.
+- **Native touch (`touch.js`):** no on-screen d-pad — gestures act on the game
+  directly. A floating joystick (touch & drag anywhere) feeds the four direction
+  actions; a quick tap fires `confirm` (interact/advance) plus a positional
+  `Input.tap()` (canvas coords, via `clientToCanvas`) that the title + pause
+  menus hit-test for tap-to-pick; in the crimp, tapping a lane column presses
+  that lane. A tiny corner button is the only persistent control (pause). Scenes
+  read the same `Input` actions as the keyboard, so nothing else changes.
 - **WebMIDI (`midi.js`):** best-effort — a connected MIDI keyboard/pad plays the
   crimp by mapping note pitch-class into the four lanes (low→high =
   left→up→down→right) and feeding `Input._touchDown/_touchUp`, so the crimp

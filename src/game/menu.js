@@ -41,6 +41,14 @@ export class PauseMenu {
     if (Input.pressed("up")) { this.sel = (this.sel - 1 + this.items.length) % this.items.length; Sfx.move(); }
     if (Input.pressed("down")) { this.sel = (this.sel + 1) % this.items.length; Sfx.move(); }
     if (Input.pressed("cancel") || Input.pressed("pause")) { if (this.block <= 0) { Sfx.cancel(); Scenes.pop(); } return; }
+    // touch: tap a row to select it (the tap's confirm pulse then activates it)
+    const tap = Input.tap();
+    if (tap) {
+      const w = 140 * ART, h = 110 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+      const i = Math.round((tap.y - (y + 24 * ART)) / (11 * ART));
+      if (i >= 0 && i < this.items.length && tap.x >= x && tap.x <= x + w &&
+          Math.abs(tap.y - (y + 24 * ART + i * 11 * ART)) < 6 * ART) this.sel = i;
+    }
     const choice = this.items[this.sel];
     if (choice === "Difficulty" && (Input.pressed("left") || Input.pressed("right"))) { GS.cycleDifficulty(); Sfx.move(); }
     if (choice === "Visual FX" && (Input.pressed("left") || Input.pressed("right"))) { cycleFx(); Sfx.move(); }

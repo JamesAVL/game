@@ -69,5 +69,5 @@ const fail = (msg) => {
 if (errors.length) fail("errors:\n" + errors.map((e) => "  - " + e).join("\n"));
 if (info.sceneDepth !== 1) fail(`expected a single (title) scene on the stack, got depth ${info.sceneDepth}`);
 if (!info.scene) fail("no active scene after boot");
-if (!info.canvas || info.canvas.w !== 640 || info.canvas.h !== 360) fail(`unexpected canvas ${JSON.stringify(info.canvas)} (want 640x360)`);
+if (!info.canvas || info.canvas.w !== 960 || info.canvas.h !== 540) fail(`unexpected canvas ${JSON.stringify(info.canvas)} (want 960x540)`);
 console.log("SMOKE OK:", url);

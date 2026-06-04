@@ -52,6 +52,13 @@ export class Title {
     this.t += dt;
     if (Input.pressed("up")) { this.sel = (this.sel - 1 + this.items.length) % this.items.length; Sfx.move(); }
     if (Input.pressed("down")) { this.sel = (this.sel + 1) % this.items.length; Sfx.move(); }
+    // touch: tap an item to select it (the tap's confirm pulse then activates it)
+    const tap = Input.tap();
+    if (tap) {
+      const y0 = 112 * ART;
+      const i = Math.round((tap.y - y0) / (14 * ART));
+      if (i >= 0 && i < this.items.length && Math.abs(tap.y - (y0 + i * 14 * ART)) < 9 * ART) this.sel = i;
+    }
     const c = this.items[this.sel];
     if (c === "Difficulty" && (Input.pressed("left") || Input.pressed("right"))) { GS.cycleDifficulty(); Sfx.move(); }
     if (c === "Visual FX" && (Input.pressed("left") || Input.pressed("right"))) { cycleFx(); Sfx.move(); }

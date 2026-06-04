@@ -210,6 +210,11 @@ export class Crimp {
 
   laneX(i) { return this.x0 + i * (LANE_W + GAP); }
 
+  _hint() {
+    const touch = typeof document !== "undefined" && document.documentElement.classList.contains("has-touch");
+    return touch ? "Tap the lanes in time!" : "Hit the ARROW keys in time!";
+  }
+
   render(ctx) {
     // ---- backdrop ----
     const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
@@ -291,7 +296,7 @@ export class Crimp {
       const n = Math.ceil(this.countT);
       const label = n > 0 ? String(n) : "CRIMP!";
       textCentered(ctx, label, VIEW_W / 2, VIEW_H / 2 - 16 * ART, { color: "#ffd86a", scale: 4, shadow: "#000" });
-      textCentered(ctx, "Hit the ARROW keys in time!", VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
+      textCentered(ctx, this._hint(), VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
     }
 
     // graceful lead-in: notes are gliding in but nothing scores yet
