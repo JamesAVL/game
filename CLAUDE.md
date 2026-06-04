@@ -24,6 +24,7 @@ src/
     core.js             # config, canvas/scaling, input, asset loader, save, scene stack, loop
     renderer.js         # WebGL2 presentation + post-FX (bloom/grade/CRT); 2D fallback
     particles.js        # pooled additive particles + global screen-shake (Juice)
+    light.js            # dynamic 2D lighting (per-zone ambient + light sources)
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
     audio.js            # chiptune synth + sequencer + SFX; music sub-bus, limiter, beat analyser
     tilemap.js          # tile-layer render + collision
@@ -69,7 +70,12 @@ tools/                  # Python asset generators (see below) + serve.js
   the whole frame. Used by crimp hit-bursts and overworld pickups.
 - **Audio (`audio.js`):** signal path `music voices → musicFilter → musicGain →
   busIn → comp → limiter → master`; SFX go straight to `busIn` so the crimp can
-  duck/brighten the *music* only. A master `analyser` exposes `getReactive()`
+  duck/brighten the *music* only.
+- **Lighting (`light.js`):** dark zones (`ZONE_LIGHT` in `overworld.js`) are
+  darkened to an ambient level via a multiply pass; `buildLights()` adds a torch
+  on the party plus portal/boss glows that cut pools of light through the gloom.
+  Drawn before the HUD (HUD stays bright); sunlit zones skip it entirely.
+- A master `analyser` exposes `getReactive()`
   ({level,bass}); the loop feeds `bass` to `Renderer.present(beat)` so **bloom
   pulses to the music** — the one bridge that ties the audio and visual focus
   areas together. The crimp drives `setMusicBrightness(combo)` and
