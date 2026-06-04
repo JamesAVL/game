@@ -24,6 +24,7 @@ const PRESETS = {
     bloomThreshold: 0.62,
     bloomKnee: 0.25,
     bloomAmount: 0.55,
+    beatBloom: 0.7, // extra bloom per unit of audio bass energy
     saturation: 1.12,
     contrast: 1.05,
     vignette: 0.28,
@@ -35,6 +36,7 @@ const PRESETS = {
     bloomThreshold: 0.6,
     bloomKnee: 0.25,
     bloomAmount: 0.6,
+    beatBloom: 0.8,
     saturation: 1.15,
     contrast: 1.08,
     vignette: 0.42,
@@ -320,7 +322,8 @@ export const Renderer = {
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   },
 
-  present() {
+  // beat: 0..1 audio energy; pulses bloom so the picture breathes with the music.
+  present(beat = 0) {
     if (this.mode === "2d") {
       this._ctx2d.clearRect(0, 0, this._W, this._H);
       this._ctx2d.drawImage(this._scene, 0, 0);
@@ -394,7 +397,7 @@ export const Renderer = {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, bloomTex);
     gl.uniform1i(f.u.uBloom, 1);
-    gl.uniform1f(f.u.uBloomAmt, fx.bloomAmount);
+    gl.uniform1f(f.u.uBloomAmt, fx.bloomAmount * (1 + beat * (fx.beatBloom || 0)));
     gl.uniform1f(f.u.uSat, fx.saturation);
     gl.uniform1f(f.u.uContrast, fx.contrast);
     gl.uniform1f(f.u.uVignette, fx.vignette);

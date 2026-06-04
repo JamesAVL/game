@@ -5,7 +5,7 @@
 import { Scenes, VIEW_W, VIEW_H, ART, Input, img, clamp } from "../engine/core.js";
 import { Particles, Juice } from "../engine/particles.js";
 import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
-import { Sfx, playMusic, stopMusic, audioTime } from "../engine/audio.js";
+import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness } from "../engine/audio.js";
 import { GS } from "./state.js";
 
 // parse a "#rrggbb" lane colour to an [r,g,b] triple for particle bursts
@@ -120,6 +120,10 @@ export class Crimp {
     else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; Juice.shake(4 * ART, 0.22); }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     if (this.combo > 0 && this.combo % 10 === 0) { this.you += 2; this.boss -= 1; }
+    // interactive mix: a hot combo opens the backing track up; a fluff ducks and
+    // muffles it for a beat, so the music tracks how well you're crimping.
+    if (kind === "miss") { duckMusic(0.5, 0.26); setMusicBrightness(0.5); }
+    else setMusicBrightness(0.8 + Math.min(0.2, this.combo * 0.02));
     this.you = clamp(this.you, 0, 100);
     this.boss = clamp(this.boss, 0, 100);
     this.judgeT = 0.5;

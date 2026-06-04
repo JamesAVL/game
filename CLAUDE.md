@@ -25,7 +25,7 @@ src/
     renderer.js         # WebGL2 presentation + post-FX (bloom/grade/CRT); 2D fallback
     particles.js        # pooled additive particles + global screen-shake (Juice)
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
-    audio.js            # Web Audio chiptune synth + step sequencer + SFX bank
+    audio.js            # chiptune synth + sequencer + SFX; music sub-bus, limiter, beat analyser
     tilemap.js          # tile-layer render + collision
   game/
     state.js            # GS: flags, inventory, stats/XP, records, progression, save/load
@@ -67,6 +67,14 @@ tools/                  # Python asset generators (see below) + serve.js
   fixed-step and drawn into the scene buffer by the loop *before* present —
   so additive particles get bloom glow for free, and one `Juice.shake()` kicks
   the whole frame. Used by crimp hit-bursts and overworld pickups.
+- **Audio (`audio.js`):** signal path `music voices → musicFilter → musicGain →
+  busIn → comp → limiter → master`; SFX go straight to `busIn` so the crimp can
+  duck/brighten the *music* only. A master `analyser` exposes `getReactive()`
+  ({level,bass}); the loop feeds `bass` to `Renderer.present(beat)` so **bloom
+  pulses to the music** — the one bridge that ties the audio and visual focus
+  areas together. The crimp drives `setMusicBrightness(combo)` and
+  `duckMusic()` on a fluff, so the mix tracks your performance. Still 100%
+  synthesised — no samples.
 
 ## Asset pipeline (pure Python stdlib)
 - `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,

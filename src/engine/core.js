@@ -3,6 +3,7 @@
 
 import { Renderer } from "./renderer.js";
 import { Particles, Juice } from "./particles.js";
+import { getReactive } from "./audio.js";
 
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
@@ -211,7 +212,7 @@ export function startLoop() {
     Scenes.render(ctx);
     Particles.draw(ctx);
     ctx.restore();
-    Renderer.present();
+    Renderer.present(getReactive().bass); // bloom pulses to the music
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
