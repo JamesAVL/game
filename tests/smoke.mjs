@@ -41,6 +41,7 @@ const info = await page.evaluate(() => {
     sceneDepth: b.Scenes.size ? b.Scenes.size() : null,
     canvas: cv ? { w: cv.width, h: cv.height } : null,
     difficulty: b.GS?.data?.difficulty ?? null,
+    renderer: b.Renderer?.mode ?? null,
   };
 });
 
@@ -48,7 +49,7 @@ await new Promise((r) => setTimeout(r, 400)); // let a few frames render
 await page.screenshot({ path: shot });
 await browser.close();
 
-console.log("scene:", info.scene, "| depth:", info.sceneDepth, "| canvas:", JSON.stringify(info.canvas), "| difficulty:", info.difficulty);
+console.log("scene:", info.scene, "| depth:", info.sceneDepth, "| canvas:", JSON.stringify(info.canvas), "| difficulty:", info.difficulty, "| renderer:", info.renderer);
 if (warnings.length) console.log("warnings:", warnings.length, warnings.slice(0, 3));
 
 // Assertions are minification-proof (no reliance on class names, which esbuild

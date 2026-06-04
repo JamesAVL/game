@@ -1,6 +1,8 @@
 // core.js — engine primitives: config, canvas, fixed-timestep loop, input,
 // asset loading, save system, and a tiny scene stack.
 
+import { Renderer } from "./renderer.js";
+
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
 // future resolution change is a single edit. CONTRACT: this MUST equal
@@ -13,11 +15,20 @@ export const TILE = 16 * ART;
 // ---------------------------------------------------------------------------
 // Canvas / rendering target
 // ---------------------------------------------------------------------------
+// The visible canvas (#game) is owned by the Renderer (WebGL2, or a 2D
+// fallback). The game itself draws every frame into an offscreen 2D canvas at
+// the fixed internal resolution; the Renderer then presents that frame to the
+// screen, optionally running post-processing during the upscale. Scene code is
+// unchanged — it still receives this same `ctx` in render(ctx).
 export const canvas = document.getElementById("game");
-canvas.width = VIEW_W;
-canvas.height = VIEW_H;
-export const ctx = canvas.getContext("2d");
+
+const sceneCanvas = document.createElement("canvas");
+sceneCanvas.width = VIEW_W;
+sceneCanvas.height = VIEW_H;
+export const ctx = sceneCanvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
+
+Renderer.init(canvas, sceneCanvas, VIEW_W, VIEW_H);
 
 // Fit the 320x180 canvas to the viewport. On desktop we use crisp integer
 // scaling; on touch devices we scale fractionally to fill the width and
@@ -190,6 +201,7 @@ export function startLoop() {
     }
     ctx.clearRect(0, 0, VIEW_W, VIEW_H);
     Scenes.render(ctx);
+    Renderer.present();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
