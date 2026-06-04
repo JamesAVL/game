@@ -4,6 +4,8 @@ import { Scenes, VIEW_W, VIEW_H, ART, Input, img, Save } from "../engine/core.js
 import { drawText, textCentered, panel } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
 import { GS } from "./state.js";
+import { Renderer } from "../engine/renderer.js";
+import { cycleFx, FX_LABELS } from "./menu.js";
 import { Overworld } from "./overworld.js";
 import { Dialogue } from "./dialogue.js";
 import { TRACKS } from "../data/music.js";
@@ -14,7 +16,9 @@ export class Title {
     this.sel = 0;
     this.t = 0;
     this.hasSave = Save.exists();
-    this.items = this.hasSave ? ["Continue", "New Journey", "Difficulty"] : ["New Journey", "Difficulty"];
+    this.items = this.hasSave
+      ? ["Continue", "New Journey", "Difficulty", "Visual FX"]
+      : ["New Journey", "Difficulty", "Visual FX"];
     this.started = false;
   }
 
@@ -23,6 +27,7 @@ export class Title {
       const d = GS.difficulty();
       return "Difficulty: " + d.charAt(0).toUpperCase() + d.slice(1);
     }
+    if (it === "Visual FX") return "Visual FX: " + (FX_LABELS[Renderer.preset] || Renderer.preset);
     return it;
   }
 
@@ -49,9 +54,11 @@ export class Title {
     if (Input.pressed("down")) { this.sel = (this.sel + 1) % this.items.length; Sfx.move(); }
     const c = this.items[this.sel];
     if (c === "Difficulty" && (Input.pressed("left") || Input.pressed("right"))) { GS.cycleDifficulty(); Sfx.move(); }
+    if (c === "Visual FX" && (Input.pressed("left") || Input.pressed("right"))) { cycleFx(); Sfx.move(); }
     if (Input.pressed("confirm")) {
       Sfx.confirm();
       if (c === "Difficulty") { GS.cycleDifficulty(); }
+      else if (c === "Visual FX") { cycleFx(); }
       else this.startGame(c === "New Journey");
     }
   }
@@ -77,7 +84,7 @@ export class Title {
       if (i === this.sel) {
         if (Math.floor(this.t * 3) % 2 === 0) drawText(ctx, ">", VIEW_W / 2 - 52 * ART, yy, { color: "#ffd86a" });
       }
-      const dim = it === "Difficulty";
+      const dim = it === "Difficulty" || it === "Visual FX";
       textCentered(ctx, this.label(it), VIEW_W / 2, yy, { color: i === this.sel ? "#ffd86a" : (dim ? "#7f86a8" : "#9aa0c0"), shadow: "#000" });
     });
 

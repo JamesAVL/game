@@ -22,6 +22,7 @@ src/
   main.js               # boot: load assets -> Title scene -> start loop
   engine/
     core.js             # config, canvas/scaling, input, asset loader, save, scene stack, loop
+    renderer.js         # WebGL2 presentation + post-FX (bloom/grade/CRT); 2D fallback
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
     audio.js            # Web Audio chiptune synth + step sequencer + SFX bank
     tilemap.js          # tile-layer render + collision
@@ -51,7 +52,15 @@ tools/                  # Python asset generators (see below) + serve.js
 - **Zones** are authored as text-map rows built with `blank/rect/scatter` helpers.
 - **Crimp charts** are generated deterministically from a seed (`crimps.js`) and
   synced to a `music.js` track via bpm.
-- `window.__BOOSH = { GS, Scenes }` is exposed for debugging/testing in the console.
+- `window.__BOOSH = { GS, Scenes, Renderer }` is exposed for debugging/testing.
+- **Rendering pipeline:** scenes draw to an offscreen 2D canvas at internal res
+  (`render(ctx)` unchanged); `renderer.js` then presents that frame through
+  WebGL2 — a NEAREST passthrough when FX are `off` (pixel-identical to raw 2D),
+  or a post-processing chain (half-res bloom → grade → vignette → optional CRT
+  scanlines/curvature/aberration). Three presets: `off | soft | crt`, cycled
+  from the title + pause menus and persisted via `Save.opt("fx")`. Falls back to
+  a plain 2D blit if WebGL2 is unavailable. Post-FX are screen-space, so adding
+  one is just another shader pass — no change to scene/draw code.
 
 ## Asset pipeline (pure Python stdlib)
 - `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,

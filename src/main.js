@@ -1,11 +1,14 @@
 // main.js — boot: load assets, gate audio behind first input, run the loop.
 
-import { loadAll, startLoop, Scenes } from "./engine/core.js";
+import { loadAll, startLoop, Scenes, Save } from "./engine/core.js";
 import { Renderer } from "./engine/renderer.js";
 import { unlockAudio } from "./engine/audio.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
 import { initTouch } from "./engine/touch.js";
+
+// restore the saved visual-FX preset (off | soft | crt)
+Renderer.setPreset(Save.optGet("fx", "soft"));
 
 // debug handle (handy for testing in the console)
 window.__BOOSH = { GS, Scenes, Renderer };

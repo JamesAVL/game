@@ -33,6 +33,12 @@ await page.waitForFunction(
   { timeout: 20000 },
 );
 
+// optional: force an FX preset for capture/verification (off | soft | crt)
+if (process.env.SET_FX) {
+  await page.evaluate((p) => window.__BOOSH?.Renderer?.setPreset(p), process.env.SET_FX);
+  await new Promise((r) => setTimeout(r, 200));
+}
+
 const info = await page.evaluate(() => {
   const b = window.__BOOSH;
   const cv = document.getElementById("game");
