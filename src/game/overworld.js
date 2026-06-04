@@ -3,6 +3,7 @@
 // boss crimp-offs). Pausing opens the menu.
 
 import { Scenes, VIEW_W, VIEW_H, TILE, ART, Input, img, Save } from "../engine/core.js";
+import { Particles, Juice } from "../engine/particles.js";
 import { drawText, textCentered, textWidth, panel, drawFrame } from "../engine/gfx.js";
 import { Camera } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
@@ -239,6 +240,10 @@ export class Overworld {
           GS.setFlag(f); GS.addItem(e.item);
           Sfx.pickup(); this.toast("Found " + (ITEMS[e.item] ? ITEMS[e.item].name : e.item) + "!");
           e._gone = true;
+          // upward gold sparkle at the pickup (additive -> bloom glows it)
+          const px = e.px - this.cam.x + 8 * ART, py = e.py - this.cam.y + 8 * ART;
+          Particles.burst(px, py, 18, { color: [255, 224, 130], speed: 70, life: 0.6, size: 1.5 * ART, gravity: -28 * ART, drag: 2 });
+          Juice.shake(2 * ART, 0.14);
           if (e.onGet) this.startDialog(e.onGet);
         }
       }

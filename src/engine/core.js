@@ -2,6 +2,7 @@
 // asset loading, save system, and a tiny scene stack.
 
 import { Renderer } from "./renderer.js";
+import { Particles, Juice } from "./particles.js";
 
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
@@ -196,11 +197,20 @@ export function startLoop() {
     last = now;
     while (acc >= STEP) {
       Scenes.update(STEP);
+      Particles.update(STEP);
+      Juice.update(STEP);
       Input._flip();
       acc -= STEP;
     }
     ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    // global screen-shake kicks the whole frame (HUD included); particles draw
+    // into the scene buffer so the renderer's bloom turns them into glow.
+    const sh = Juice.offset();
+    ctx.save();
+    ctx.translate(Math.round(sh.x), Math.round(sh.y));
     Scenes.render(ctx);
+    Particles.draw(ctx);
+    ctx.restore();
     Renderer.present();
     requestAnimationFrame(frame);
   }

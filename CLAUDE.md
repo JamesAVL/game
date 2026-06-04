@@ -23,6 +23,7 @@ src/
   engine/
     core.js             # config, canvas/scaling, input, asset loader, save, scene stack, loop
     renderer.js         # WebGL2 presentation + post-FX (bloom/grade/CRT); 2D fallback
+    particles.js        # pooled additive particles + global screen-shake (Juice)
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
     audio.js            # Web Audio chiptune synth + step sequencer + SFX bank
     tilemap.js          # tile-layer render + collision
@@ -61,6 +62,11 @@ tools/                  # Python asset generators (see below) + serve.js
   from the title + pause menus and persisted via `Save.opt("fx")`. Falls back to
   a plain 2D blit if WebGL2 is unavailable. Post-FX are screen-space, so adding
   one is just another shader pass — no change to scene/draw code.
+- **Game-feel (`particles.js`):** `Particles` (a pooled, additive-blended
+  particle system) and `Juice` (global screen-shake) are updated in the
+  fixed-step and drawn into the scene buffer by the loop *before* present —
+  so additive particles get bloom glow for free, and one `Juice.shake()` kicks
+  the whole frame. Used by crimp hit-bursts and overworld pickups.
 
 ## Asset pipeline (pure Python stdlib)
 - `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,

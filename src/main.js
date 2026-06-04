@@ -2,6 +2,7 @@
 
 import { loadAll, startLoop, Scenes, Save } from "./engine/core.js";
 import { Renderer } from "./engine/renderer.js";
+import { Particles, Juice } from "./engine/particles.js";
 import { unlockAudio } from "./engine/audio.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
@@ -11,7 +12,7 @@ import { initTouch } from "./engine/touch.js";
 Renderer.setPreset(Save.optGet("fx", "soft"));
 
 // debug handle (handy for testing in the console)
-window.__BOOSH = { GS, Scenes, Renderer };
+window.__BOOSH = { GS, Scenes, Renderer, Particles, Juice };
 
 const boot = document.getElementById("boot");
 
