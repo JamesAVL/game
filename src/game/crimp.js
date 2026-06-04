@@ -77,8 +77,11 @@ export class Crimp {
   now() { return audioTime() - this.startAudio; }
 
   begin() {
-    this.startAudio = audioTime() + 0.001;
-    playMusic(this.def.track);
+    // Graceful lead-in: notes fall from the top for `travel` seconds (now() runs
+    // from -travel up to 0) before the first note reaches the hit line and the
+    // music drops — so you can read the pattern instead of losing points cold.
+    this.startAudio = audioTime() + this.travel;
+    this.musicStarted = false;
     this.state = "play";
   }
 
@@ -134,6 +137,8 @@ export class Crimp {
     }
 
     if (this.state === "play") {
+      // music drops exactly when the first note reaches the line (now() >= 0)
+      if (!this.musicStarted && this.now() >= 0) { playMusic(this.def.track); this.musicStarted = true; }
       // lane input — arrow keys / touch arrows mapped per lane direction
       for (let i = 0; i < this.laneCount; i++) if (Input.pressed(this.dirs[i])) this.tryLane(i);
       const t = this.now();
@@ -239,6 +244,12 @@ export class Crimp {
       const label = n > 0 ? String(n) : "CRIMP!";
       textCentered(ctx, label, VIEW_W / 2, VIEW_H / 2 - 16 * ART, { color: "#ffd86a", scale: 4, shadow: "#000" });
       textCentered(ctx, "Hit the ARROW keys in time!", VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
+    }
+
+    // graceful lead-in: notes are gliding in but nothing scores yet
+    if (this.state === "play" && this.now() < 0) {
+      if (Math.floor(performance.now() / 350) % 2 === 0)
+        textCentered(ctx, "GET READY...", VIEW_W / 2, 40 * ART, { color: "#ffd86a", shadow: "#000" });
     }
 
     if (this.state === "over") {

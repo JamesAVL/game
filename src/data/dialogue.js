@@ -261,6 +261,14 @@ export const DIALOG = {
   search1_temple: (api) => [N("A shaman urn. Inscribed: 'Saboo woz robbed at the crimp-off, 2006.'")],
   search2_temple: (api) => [V("A dusty crate of ceremonial capes. Ooh, this one's got tassels!"), H("Focus, Vince.")],
 
+  // ---- third searchable per zone (extra flavour + XP) -------------------
+  search3_tundra: (api) => [V("A snowman built to look exactly like you, Howard. Worried little face and all."), H("...who keeps DOING this?"), V("It's even got a tiny moustache made of twigs. Art.")],
+  search3_sea: (api) => [H("A bottle with a note inside. It just says 'DO YOU LOVE ME' in wet biro, four hundred times."), V("He's persistent, you've got to give him that.")],
+  search3_forest: (api) => [V("The Crack Fox's shrine: a throne of bin lids and one very smug-looking shoe."), H("He's crowned the shoe, Vince. The shoe is the king.")],
+  search3_night: (api) => [H("A demonic knitting basket. Half-finished cardigan. Pattern reads: 'ETERNAL TORMENT (medium)'."), V("She drops a stitch and a soul in the same row. Efficient.")],
+  search3_moon: (api) => [V("The Moon's private diary. Page one: 'do do dooo'. Page two: 'do do dooo'. It's all do do dooo."), H("Consistent voice, I'll give it that.")],
+  search3_temple: (api) => [N("A shaman scoreboard. Tony Harrison's name is at the top, underlined eleven times, in glitter."), V("Someone's compensating.")],
+
   // ---- side-quest NPC per zone (one-time XP) ----------------------------
   side_tundra: (api) => {
     if (api.flag("sq_tundra")) return [F("Toasty now, ta! Bob Fossil salutes you!")];
