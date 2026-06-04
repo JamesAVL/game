@@ -2,7 +2,7 @@
 Order matches ITEM_INDEX in src/data/items.js."""
 
 import os
-from pnglib import Canvas, shade
+from pnglib import Canvas, shade, CS
 
 T = 32
 CLR = (0, 0, 0, 0)
@@ -11,7 +11,7 @@ CLR = (0, 0, 0, 0)
 def main():
     here = os.path.dirname(__file__)
     out = os.path.join(here, "..", "assets", "items", "items.png")
-    cv = Canvas(T * 11, T, scale=1)
+    cv = Canvas(T * 11, T, cs=CS)
 
     def at(i):
         return i * T
@@ -103,6 +103,7 @@ def main():
     cv.fill_poly([(x + 19, 6), (x + 26, 8), (x + 26, 14), (x + 19, 12)], (90, 220, 255))  # flag
     cv.set(x + 18, 8, (200, 245, 255))
 
+    cv.outline((26, 20, 34))   # crisp dark rim so icons read as world pickups
     cv.write(out)
     print("wrote", out)
 

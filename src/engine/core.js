@@ -8,8 +8,9 @@ import { getReactive } from "./audio.js";
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
 // future resolution change is a single edit. CONTRACT: this MUST equal
-// DEFAULT_SCALE in tools/pnglib.py (both 2) — assets are baked at this scale.
-export const ART = 2;
+// ART in tools/artlib.py (both 3) — assets are baked at this scale. 960x540
+// internal (×2 = 1920×1080 on the desktop integer-scale path).
+export const ART = 3;
 export const VIEW_W = 320 * ART;
 export const VIEW_H = 180 * ART;
 export const TILE = 16 * ART;

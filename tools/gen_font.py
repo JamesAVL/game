@@ -15,7 +15,7 @@ Glyphs are authored as 7 rows of 5 chars ('#' = ink, '.' = empty).
 import os
 from pnglib import Canvas
 
-CELL_W, CELL_H = 12, 16   # base 6x8 cell at ART=2
+CELL_W, CELL_H = 18, 24   # base 6x8 cell at ART=3
 COLS = 16
 FIRST, LAST = 32, 126
 
@@ -123,6 +123,36 @@ def scale2x(grid):
     return out
 
 
+def scale3x(grid):
+    """EPX/Scale3x: triple a 1-bit glyph while smoothing diagonal staircases."""
+    h = len(grid); w = len(grid[0])
+    def at(y, x):
+        return 0 <= y < h and 0 <= x < w and grid[y][x] == "#"
+    out = [[False] * (w * 3) for _ in range(h * 3)]
+    for y in range(h):
+        for x in range(w):
+            A = at(y - 1, x - 1); B = at(y - 1, x); C = at(y - 1, x + 1)
+            D = at(y, x - 1);     E = at(y, x);     F = at(y, x + 1)
+            Gg = at(y + 1, x - 1); H = at(y + 1, x); I = at(y + 1, x + 1)
+            if B != H and D != F:
+                e0 = D if D == B else E
+                e1 = B if ((D == B and E != C) or (B == F and E != A)) else E
+                e2 = F if B == F else E
+                e3 = D if ((D == B and E != Gg) or (D == H and E != A)) else E
+                e4 = E
+                e5 = F if ((B == F and E != I) or (H == F and E != C)) else E
+                e6 = D if D == H else E
+                e7 = H if ((D == H and E != I) or (H == F and E != Gg)) else E
+                e8 = F if H == F else E
+            else:
+                e0 = e1 = e2 = e3 = e4 = e5 = e6 = e7 = e8 = E
+            by, bx = y * 3, x * 3
+            out[by][bx], out[by][bx + 1], out[by][bx + 2] = e0, e1, e2
+            out[by + 1][bx], out[by + 1][bx + 1], out[by + 1][bx + 2] = e3, e4, e5
+            out[by + 2][bx], out[by + 2][bx + 1], out[by + 2][bx + 2] = e6, e7, e8
+    return out
+
+
 def build(out_path):
     n = LAST - FIRST + 1
     rows = (n + COLS - 1) // COLS
@@ -131,7 +161,7 @@ def build(out_path):
         ch = chr(FIRST + i)
         cx = (i % COLS) * CELL_W
         cy = (i // COLS) * CELL_H
-        big = scale2x(glyph_for(ch))   # 10x14
+        big = scale3x(glyph_for(ch))   # 15x21
         for ry, row in enumerate(big):
             for rx, on in enumerate(row):
                 if on:

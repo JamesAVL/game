@@ -1,14 +1,15 @@
 """gen_npcs.py — single-pose 16x24 NPC sprites (face down)."""
 
 import os
-from pnglib import Canvas
+from pnglib import Canvas, CS
 import artlib
 from artlib import PAL
 
 
 def npc(pal, out):
-    cv = Canvas(artlib.FRAME_W, artlib.FRAME_H, scale=1)  # native HD detail
+    cv = Canvas(artlib.FRAME_W, artlib.FRAME_H, cs=1)  # native 48x72 detail
     artlib.draw_person(cv, 0, 0, "down", 0, pal)
+    cv.outline((16, 12, 24))   # crisp dark rim
     cv.write(out)
     print("wrote", out)
 

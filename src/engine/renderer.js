@@ -21,27 +21,27 @@
 const PRESETS = {
   off: null,
   soft: {
-    bloomThreshold: 0.62,
-    bloomKnee: 0.25,
-    bloomAmount: 0.55,
-    beatBloom: 0.7, // extra bloom per unit of audio bass energy
-    saturation: 1.12,
-    contrast: 1.05,
-    vignette: 0.28,
+    bloomThreshold: 0.74,
+    bloomKnee: 0.18,
+    bloomAmount: 0.30,
+    beatBloom: 0.22, // gentle extra bloom per unit of audio bass energy
+    saturation: 1.08,
+    contrast: 1.0,
+    vignette: 0.26,
     scanline: 0.0,
     aberration: 0.0,
     curvature: 0.0,
   },
   crt: {
-    bloomThreshold: 0.6,
-    bloomKnee: 0.25,
-    bloomAmount: 0.6,
-    beatBloom: 0.8,
-    saturation: 1.15,
-    contrast: 1.08,
-    vignette: 0.42,
-    scanline: 0.35,
-    aberration: 0.0018,
+    bloomThreshold: 0.70,
+    bloomKnee: 0.2,
+    bloomAmount: 0.42,
+    beatBloom: 0.3,
+    saturation: 1.12,
+    contrast: 1.05,
+    vignette: 0.4,
+    scanline: 0.32,
+    aberration: 0.0016,
     curvature: 0.12,
   },
 };
@@ -128,13 +128,17 @@ void main() {
     col = texture(uScene, uv).rgb;
   }
 
-  // additive bloom
-  col += texture(uBloom, uv).rgb * uBloomAmt;
-
-  // grade: contrast around 0.5, then saturation
+  // grade the SCENE first (contrast around 0.5, then saturation) so bloom isn't
+  // amplified by the contrast curve
   col = (col - 0.5) * uContrast + 0.5;
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(l), col, uSat);
+
+  // add bloom against the remaining headroom (screen-like): bright pixels can't
+  // blow out to white, so glow spreads into darker surroundings while
+  // characters / mid-tones stay crisp and full-contrast
+  vec3 bloom = texture(uBloom, uv).rgb * uBloomAmt;
+  col += bloom * (1.0 - clamp(col, 0.0, 1.0));
 
   // scanlines
   if (uScan > 0.0) {
@@ -324,6 +328,7 @@ export const Renderer = {
 
   // beat: 0..1 audio energy; pulses bloom so the picture breathes with the music.
   present(beat = 0) {
+    if (beat > 0.7) beat = 0.7; // cap the music pulse so it can't overdrive bloom
     if (this.mode === "2d") {
       this._ctx2d.clearRect(0, 0, this._W, this._H);
       this._ctx2d.drawImage(this._scene, 0, 0);
