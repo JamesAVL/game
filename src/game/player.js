@@ -1,12 +1,12 @@
 // player.js — the party: Vince leads, Howard follows a breadcrumb trail.
 // Handles 4-direction movement, tile collision, and walk animation.
 
-import { Input, TILE } from "../engine/core.js";
+import { Input, TILE, ART } from "../engine/core.js";
 import { drawFrame } from "../engine/gfx.js";
 import { img } from "../engine/core.js";
 
-const SPEED = 70;            // px / second
-const FW = 16, FH = 24;      // character frame size
+const SPEED = 70 * ART;          // px / second
+const FW = 16 * ART, FH = 24 * ART; // character frame size
 const ROW = { down: 0, up: 1, left: 2, right: 3 };
 const ANIM = [0, 1, 2, 3];   // walk frame order
 const FRAME_T = 0.12;
@@ -23,13 +23,13 @@ export class Party {
   }
 
   // feet collision box
-  box() { return { x: this.px + 3, y: this.py + 17, w: 10, h: 6 }; }
-  centerX() { return this.px + 8; }
-  feetY() { return this.py + 23; }
+  box() { return { x: this.px + 3 * ART, y: this.py + 17 * ART, w: 10 * ART, h: 6 * ART }; }
+  centerX() { return this.px + 8 * ART; }
+  feetY() { return this.py + 23 * ART; }
 
   // the tile-center point the player is facing (for interaction)
   interactPoint() {
-    const cx = this.px + 8, cy = this.py + 20;
+    const cx = this.px + 8 * ART, cy = this.py + 20 * ART;
     const d = { up: [0, -TILE], down: [0, TILE], left: [-TILE, 0], right: [TILE, 0] }[this.dir];
     return { x: cx + d[0], y: cy + d[1] };
   }
@@ -56,9 +56,9 @@ export class Party {
       const ny = this.py + dy * SPEED * dt;
       // resolve axes independently against the feet box
       let b = this.box();
-      if (!tm.boxHits(nx + 3, b.y, b.w, b.h)) this.px = nx;
+      if (!tm.boxHits(nx + 3 * ART, b.y, b.w, b.h)) this.px = nx;
       b = this.box();
-      if (!tm.boxHits(b.x, ny + 17, b.w, b.h)) this.py = ny;
+      if (!tm.boxHits(b.x, ny + 17 * ART, b.w, b.h)) this.py = ny;
 
       this.animT += dt;
       if (this.animT >= FRAME_T) { this.animT -= FRAME_T; this.frame = (this.frame + 1) % ANIM.length; }
@@ -75,7 +75,7 @@ export class Party {
   followerPose() {
     const i = this.trail.length - 1 - this.gap;
     if (i >= 0) return this.trail[i];
-    return { x: this.px, y: this.py + 2, dir: this.dir };
+    return { x: this.px, y: this.py + 2 * ART, dir: this.dir };
   }
 
   drawables() {
@@ -85,7 +85,7 @@ export class Party {
     const draws = [];
     // Howard (follower)
     draws.push({
-      y: f.y + 23,
+      y: f.y + 23 * ART,
       draw: (ctx, cam) => drawFrame(ctx, img("howard"), FW, FH, ANIM[hFrame], ROW[f.dir], f.x - cam.x, f.y - cam.y),
     });
     // Vince (lead)

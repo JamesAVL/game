@@ -1,14 +1,14 @@
 // gfx.js — text rendering (tinted bitmap font), sprite frames, camera, panels.
 
-import { img, ctx as mainCtx, VIEW_W, VIEW_H } from "./core.js";
+import { img, ctx as mainCtx, VIEW_W, VIEW_H, ART } from "./core.js";
 
 // ---------------------------------------------------------------------------
 // Bitmap font  (matches tools/gen_font.py layout)
-//   ASCII 32..126, 16 cols, cell 6x8, glyph 5x7.
+//   ASCII 32..126, 16 cols, cell 6x8, glyph 5x7 — all baked at ART scale.
 // ---------------------------------------------------------------------------
-const CELL_W = 6, CELL_H = 8, GLYPH_W = 5, GLYPH_H = 7, COLS = 16, FIRST = 32;
-export const CHAR_W = GLYPH_W + 1; // advance
-export const LINE_H = GLYPH_H + 3;
+const CELL_W = 6 * ART, CELL_H = 8 * ART, GLYPH_W = 5 * ART, GLYPH_H = 7 * ART, COLS = 16, FIRST = 32;
+export const CHAR_W = GLYPH_W + ART;     // advance ((5+1)*ART)
+export const LINE_H = GLYPH_H + 3 * ART; // ((7+3)*ART)
 
 const tintCache = new Map();
 function tinted(color) {
@@ -38,7 +38,7 @@ export function drawText(ctx, str, x, y, opts = {}) {
   const { color = "#f4f4ff", scale = 1, shadow = null, maxWidth = 0 } = opts;
   str = String(str);
   if (maxWidth > 0) str = wrap(str, Math.floor(maxWidth / (CHAR_W * scale)));
-  if (shadow) _draw(ctx, str, x + scale, y + scale, scale, shadow);
+  if (shadow) _draw(ctx, str, x + scale * ART, y + scale * ART, scale, shadow);
   _draw(ctx, str, x, y, scale, color);
   return str;
 }

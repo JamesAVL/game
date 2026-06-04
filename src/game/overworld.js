@@ -2,7 +2,7 @@
 // camera, music, and all interaction (talk, signs, item pickups, warps, and
 // boss crimp-offs). Pausing opens the menu.
 
-import { Scenes, VIEW_W, VIEW_H, TILE, Input, img, Save } from "../engine/core.js";
+import { Scenes, VIEW_W, VIEW_H, TILE, ART, Input, img, Save } from "../engine/core.js";
 import { drawText, textCentered, textWidth, panel, drawFrame } from "../engine/gfx.js";
 import { Camera } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
@@ -79,9 +79,9 @@ export class Overworld {
     this.weather = z.def.weather || WEATHER[id] || "none";
     this.particles.length = 0;
     const sp = spawn || z.def.spawn || { x: 2, y: 2, dir: "down" };
-    // spawn.y is the tile the character STANDS on; the 24px sprite sits 8px
+    // spawn.y is the tile the character STANDS on; the sprite sits 8px (×ART)
     // higher so its feet land in that tile (not the tile below).
-    this.party = new Party(sp.x * TILE, sp.y * TILE - 8, sp.dir || "down");
+    this.party = new Party(sp.x * TILE, sp.y * TILE - 8 * ART, sp.dir || "down");
     this.cam.follow(this.party.centerX(), this.party.feetY());
     this.toast(z.def.name);
     const mk = z.def.music;
@@ -265,15 +265,15 @@ export class Overworld {
       this.particles.push({
         x: rr(-10, VIEW_W + 10),
         y: cfg.rise ? rr(0, VIEW_H + 10) : rr(-10, VIEW_H),
-        vx: rr(cfg.vx[0], cfg.vx[1]),
-        vy: rr(cfg.vy[0], cfg.vy[1]),
-        s: Math.round(rr(cfg.size[0], cfg.size[1])),
+        vx: rr(cfg.vx[0], cfg.vx[1]) * ART,
+        vy: rr(cfg.vy[0], cfg.vy[1]) * ART,
+        s: Math.max(1, Math.round(rr(cfg.size[0], cfg.size[1]) * ART)),
         ph: rr(0, Math.PI * 2),
       });
     }
     for (const p of this.particles) {
       p.ph += dt * 2;
-      p.x += (p.vx + Math.sin(p.ph) * cfg.sway) * dt;
+      p.x += (p.vx + Math.sin(p.ph) * cfg.sway * ART) * dt;
       p.y += p.vy * dt;
       if (p.y < -12) { p.y = VIEW_H + 6; p.x = rr(-10, VIEW_W + 10); }
       else if (p.y > VIEW_H + 12) { p.y = -6; p.x = rr(-10, VIEW_W + 10); }
@@ -319,34 +319,34 @@ export class Overworld {
     if (e.type === "npc") {
       const im = img(e.sprite);
       // draw only the down-idle frame (works for single sprites and sheets)
-      if (im) drawFrame(ctx, im, 16, 24, 0, 0, dx, dy - 8);
+      if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, 0, 0, dx, dy - 8 * ART);
     } else if (e.type === "boss") {
       const im = img(e.sprite);
-      if (im) ctx.drawImage(im, dx + 8 - im.width / 2, dy + 16 - im.height);
+      if (im) ctx.drawImage(im, dx + 8 * ART - im.width / 2, dy + 16 * ART - im.height);
     } else if (e.type === "item") {
       const im = img("items");
       const idx = ITEM_INDEX[e.item] || 0;
-      const bob = Math.sin(performance.now() / 300 + e.px) * 1.5;
+      const bob = Math.sin(performance.now() / 300 + e.px) * 1.5 * ART;
       if (im) ctx.drawImage(im, idx * TILE, 0, TILE, TILE, dx, dy + bob, TILE, TILE);
     } else if (e.type === "search") {
       const im = img("props");
       const idx = PROP_INDEX[e.prop] != null ? PROP_INDEX[e.prop] : PROP_INDEX.crate;
       const done = GS.flag(e.flag || ("srch_" + e.x + "_" + e.y));
       ctx.globalAlpha = done ? 0.45 : 1;
-      if (im) drawFrame(ctx, im, 16, 24, idx, 0, dx, dy - 8);
+      if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, idx, 0, dx, dy - 8 * ART);
       ctx.globalAlpha = 1;
     } else if (e.type === "switch") {
       const im = img("props");
       const on = GS.flag("sw_" + e.gate);
-      if (im) drawFrame(ctx, im, 16, 24, on ? PROP_INDEX.switch_down : PROP_INDEX.switch_up, 0, dx, dy - 8);
+      if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, on ? PROP_INDEX.switch_down : PROP_INDEX.switch_up, 0, dx, dy - 8 * ART);
     } else if (e.type === "gate") {
       const open = GS.flag("sw_" + e.gate);
       const im = img("props");
       ctx.globalAlpha = open ? 0.5 : 1;
-      if (im) drawFrame(ctx, im, 16, 24, open ? PROP_INDEX.gate_open : PROP_INDEX.gate_closed, 0, dx, dy - 8);
+      if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, open ? PROP_INDEX.gate_open : PROP_INDEX.gate_closed, 0, dx, dy - 8 * ART);
       ctx.globalAlpha = 1;
     } else if (e.type === "portal") {
-      const cx = dx + 8, cy = dy + 8;
+      const cx = dx + 8 * ART, cy = dy + 8 * ART;
       const open = GS.isUnlocked(e.to);
       const col = open ? (e.color || "#9fe0ff") : "#555a70";
       const tnow = performance.now() / 1000;
@@ -354,7 +354,7 @@ export class Overworld {
       for (let r = 9; r >= 2; r -= 2) {
         ctx.globalAlpha = open ? (0.18 + 0.12 * Math.sin(tnow * 3 + r)) : 0.12;
         ctx.fillStyle = col;
-        ctx.beginPath(); ctx.arc(cx, cy, r + (open ? Math.sin(tnow * 2 + r) : 0), 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, (r + (open ? Math.sin(tnow * 2 + r) : 0)) * ART, 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalAlpha = 1;
       // sparkles
@@ -363,14 +363,14 @@ export class Overworld {
           const a = tnow * 2 + i * Math.PI / 2;
           ctx.fillStyle = "#ffffff";
           ctx.globalAlpha = 0.6;
-          ctx.fillRect(cx + Math.cos(a) * 7 - 0.5, cy + Math.sin(a) * 7 - 0.5, 1.5, 1.5);
+          ctx.fillRect(cx + Math.cos(a) * 7 * ART - 0.5 * ART, cy + Math.sin(a) * 7 * ART - 0.5 * ART, 1.5 * ART, 1.5 * ART);
         }
         ctx.globalAlpha = 1;
       }
       // label
       const lbl = open ? e.label : "??? (sealed)";
       const w = textWidth(lbl);
-      drawText(ctx, lbl, cx - w / 2, dy - 12, { color: open ? "#fff" : "#888", shadow: "#000" });
+      drawText(ctx, lbl, cx - w / 2, dy - 12 * ART, { color: open ? "#fff" : "#888", shadow: "#000" });
     }
   }
 
@@ -381,7 +381,7 @@ export class Overworld {
     const list = [];
     for (const e of this.entities) {
       if (["npc", "boss", "item", "portal", "search", "switch", "gate"].includes(e.type))
-        list.push({ y: e.py + 16, draw: (c) => this.drawEntity(c, e) });
+        list.push({ y: e.py + 16 * ART, draw: (c) => this.drawEntity(c, e) });
     }
     for (const d of this.party.drawables()) list.push(d);
     list.sort((a, b) => a.y - b.y);
@@ -403,8 +403,8 @@ export class Overworld {
 
   renderHud(ctx) {
     // top status strip
-    drawText(ctx, "Records " + GS.recordCount() + "/6", 6, 5, { color: "#ffd86a", shadow: "#000" });
-    drawText(ctx, "Lv " + GS.data.stats.level, VIEW_W - 36, 5, { color: "#9fd0ff", shadow: "#000" });
+    drawText(ctx, "Records " + GS.recordCount() + "/6", 6 * ART, 5 * ART, { color: "#ffd86a", shadow: "#000" });
+    drawText(ctx, "Lv " + GS.data.stats.level, VIEW_W - 36 * ART, 5 * ART, { color: "#9fd0ff", shadow: "#000" });
 
     // collectible objective for the current zone
     const col = this.def.collect;
@@ -412,21 +412,21 @@ export class Overworld {
       const have = GS.count(col.item);
       const done = have >= col.need;
       textCentered(ctx, (col.label || "Notes") + " " + Math.min(have, col.need) + "/" + col.need,
-        VIEW_W / 2, 5, { color: done ? "#8aff6a" : "#c79aff", shadow: "#000" });
+        VIEW_W / 2, 5 * ART, { color: done ? "#8aff6a" : "#c79aff", shadow: "#000" });
     }
 
     if (this.toastT > 0) {
       const a = Math.min(1, this.toastT);
-      const w = Math.min(VIEW_W - 20, this.toastMsg.length * 6 + 16);
+      const w = Math.min(VIEW_W - 20 * ART, this.toastMsg.length * 6 * ART + 16 * ART);
       ctx.globalAlpha = a;
-      panel(ctx, (VIEW_W - w) / 2, 18, w, 14);
-      textCentered(ctx, this.toastMsg, VIEW_W / 2, 21, { color: "#fff" });
+      panel(ctx, (VIEW_W - w) / 2, 18 * ART, w, 14 * ART);
+      textCentered(ctx, this.toastMsg, VIEW_W / 2, 21 * ART, { color: "#fff" });
       ctx.globalAlpha = 1;
     }
 
     // controls hint (fades after start)
     if (GS.data.playtime < 14) {
-      drawText(ctx, "Arrows/WASD move   Z talk   P menu", 6, VIEW_H - 9, { color: "rgba(220,220,240,0.7)", shadow: "#000" });
+      drawText(ctx, "Arrows/WASD move   Z talk   P menu", 6 * ART, VIEW_H - 9 * ART, { color: "rgba(220,220,240,0.7)", shadow: "#000" });
     }
   }
 }

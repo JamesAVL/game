@@ -1,9 +1,14 @@
 // core.js — engine primitives: config, canvas, fixed-timestep loop, input,
 // asset loading, save system, and a tiny scene stack.
 
-export const VIEW_W = 320;
-export const VIEW_H = 180;
-export const TILE = 16;
+// ART is the global art/render scale. The internal canvas, every layout
+// constant, and the generated PNG assets are all expressed as base * ART so a
+// future resolution change is a single edit. CONTRACT: this MUST equal
+// DEFAULT_SCALE in tools/pnglib.py (both 2) — assets are baked at this scale.
+export const ART = 2;
+export const VIEW_W = 320 * ART;
+export const VIEW_H = 180 * ART;
+export const TILE = 16 * ART;
 
 // ---------------------------------------------------------------------------
 // Canvas / rendering target

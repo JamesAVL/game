@@ -14,13 +14,23 @@ import math
 
 TRANSPARENT = (0, 0, 0, 0)
 
+# Global output scale. Generators author in "logical" pixel coordinates; the
+# final PNG is integer-upscaled by this factor (nearest-neighbour, done once at
+# write() time so every drawing primitive — incl. get()/outline() — keeps
+# operating in logical space).
+# CONTRACT: this MUST equal `ART` in src/engine/core.js (both 2). A generator
+# that authors genuinely higher-detail art at the full device size opts out by
+# constructing its Canvas with scale=1 and doubling its own logical dimensions.
+DEFAULT_SCALE = 2
+
 
 class Canvas:
     """A small RGBA raster with drawing helpers tuned for pixel art."""
 
-    def __init__(self, w, h, fill=TRANSPARENT):
+    def __init__(self, w, h, fill=TRANSPARENT, scale=None):
         self.w = w
         self.h = h
+        self.scale = DEFAULT_SCALE if scale is None else scale
         self.px = bytearray(w * h * 4)
         if fill != (0, 0, 0, 0):
             self.clear(fill)
@@ -194,7 +204,24 @@ class Canvas:
 
     # ---- output ----------------------------------------------------------
     def write(self, path):
-        write_png(path, self.w, self.h, self.px)
+        s = int(self.scale)
+        if s <= 1:
+            write_png(path, self.w, self.h, self.px)
+            return
+        # nearest-neighbour expand each logical pixel into an s×s block
+        W, H = self.w * s, self.h * s
+        out = bytearray(W * H * 4)
+        src = self.px
+        rowbytes = W * 4
+        for y in range(self.h):
+            for x in range(self.w):
+                o = (y * self.w + x) * 4
+                px = src[o:o + 4]
+                for dy in range(s):
+                    base = (y * s + dy) * rowbytes + x * s * 4
+                    for dx in range(s):
+                        out[base + dx * 4:base + dx * 4 + 4] = px
+        write_png(path, W, H, out)
 
 
 # -------- module helpers --------------------------------------------------
