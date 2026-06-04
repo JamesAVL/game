@@ -114,6 +114,7 @@ export const MANIFEST = {
   tiles_moon: "assets/tiles/moon.png",
   tiles_temple: "assets/tiles/temple.png",
   items: "assets/items/items.png",
+  props: "assets/sprites/props.png",
   bg_stars: "assets/bg/stars.png",
   bg_title: "assets/bg/title.png",
 };

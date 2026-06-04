@@ -10,7 +10,7 @@ T = 16
 def main():
     here = os.path.dirname(__file__)
     out = os.path.join(here, "..", "assets", "items", "items.png")
-    cv = Canvas(T * 10, T)
+    cv = Canvas(T * 11, T)
 
     def at(i):
         return i * T
@@ -35,6 +35,12 @@ def main():
     x = at(8); cv.ellipse(x + 5, 6, 3, 3, (220, 190, 110)); cv.ellipse(x + 5, 6, 1, 1, (120, 90, 40)); cv.rect(x + 7, 7, 6, 2, (220, 190, 110)); cv.rect(x + 11, 9, 2, 2, (220, 190, 110))
     # 9 Funk cream jar
     x = at(9); cv.rect(x + 4, 6, 8, 8, (235, 230, 210)); cv.rect(x + 4, 4, 8, 2, (190, 150, 90)); cv.rect(x + 5, 8, 6, 2, (200, 120, 180)); cv.set(x + 6, 9, (240, 160, 220))
+    # 10 Crimp note (collectible)
+    x = at(10)
+    cv.ellipse(x + 6, 12, 3, 2, (120, 90, 230)); cv.ellipse(x + 6, 12, 2, 1, (180, 150, 255))
+    cv.rect(x + 8, 3, 2, 9, (90, 220, 255))
+    cv.fill_poly([(x + 10, 3), (x + 13, 4), (x + 13, 7), (x + 10, 6)], (90, 220, 255))
+    cv.set(x + 9, 4, (200, 245, 255))
 
     cv.write(out)
     print("wrote", out)

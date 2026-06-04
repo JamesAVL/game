@@ -13,7 +13,7 @@ import { Dialogue } from "./dialogue.js";
 import { Crimp } from "./crimp.js";
 import { DIALOG } from "../data/dialogue.js";
 import { CRIMPS } from "../data/crimps.js";
-import { ITEMS, ITEM_INDEX } from "../data/items.js";
+import { ITEMS, ITEM_INDEX, PROP_INDEX } from "../data/items.js";
 import { TRACKS } from "../data/music.js";
 import { PauseMenu } from "./menu.js";
 
@@ -140,6 +140,13 @@ export class Overworld {
       if (ent.requireDialog) this.startDialog(ent.requireDialog);
       return;
     }
+    // collectible-hunt gate: must gather the zone's crimp notes first
+    const col = this.def.collect;
+    if (col && GS.count(col.item) < col.need) {
+      if (col.dialog) this.startDialog(col.dialog);
+      else this.toast("Gather all " + col.need + " " + (col.label || "notes") + " first!");
+      return;
+    }
     const pre = this.buildDialog(ent.dialog);
     const onDone = () => {
       self.beginCrimp(ent.crimp, (win) => {
@@ -189,8 +196,34 @@ export class Overworld {
       if (e.type === "sign") { if (e.dialog) this.startDialog(e.dialog); return true; }
       if (e.type === "boss") { this.doBoss(e); return true; }
       if (e.type === "portal") { this.portalPrompt(e); return true; }
+      if (e.type === "search") { this.doSearch(e); return true; }
     }
     return false;
+  }
+
+  doSearch(e) {
+    const f = e.flag || ("srch_" + e.x + "_" + e.y);
+    if (!GS.flag(f)) {
+      GS.setFlag(f);
+      e._searched = true;
+      if (e.item) { GS.addItem(e.item); this.toast("Found " + (ITEMS[e.item] ? ITEMS[e.item].name : e.item) + "!"); Sfx.pickup(); }
+      else Sfx.confirm();
+      if (e.xp) this.grantXp(e.xp);
+      if (e.dialog) this.startDialog(e.dialog);
+    } else {
+      if (e.emptyDialog) this.startDialog(e.emptyDialog);
+      else { Sfx.cancel(); this.toast(e.emptyText || "Nothing left in there."); }
+    }
+  }
+
+  openGate(gateId) {
+    for (const g of this.entities) {
+      if (g.type === "gate" && g.gate === gateId) {
+        const gx = Math.floor(g.px / TILE), gy = Math.floor(g.py / TILE);
+        if (this.tilemap.solids[gy]) this.tilemap.solids[gy][gx] = false;
+        g._open = true;
+      }
+    }
   }
 
   checkStanding() {
@@ -212,6 +245,14 @@ export class Overworld {
       if (e.type === "trigger" && e.dialog) {
         const f = "trig_" + e.x + "_" + e.y;
         if (!e.once || !GS.flag(f)) { if (e.once) GS.setFlag(f); this.startDialog(e.dialog); }
+      }
+      if (e.type === "switch") {
+        const fk = "sw_" + e.gate;
+        if (!GS.flag(fk)) {
+          GS.setFlag(fk); Sfx.confirm();
+          this.openGate(e.gate);
+          this.toast(e.toast || "Something rumbles open nearby!");
+        }
       }
     }
   }
@@ -287,6 +328,23 @@ export class Overworld {
       const idx = ITEM_INDEX[e.item] || 0;
       const bob = Math.sin(performance.now() / 300 + e.px) * 1.5;
       if (im) ctx.drawImage(im, idx * TILE, 0, TILE, TILE, dx, dy + bob, TILE, TILE);
+    } else if (e.type === "search") {
+      const im = img("props");
+      const idx = PROP_INDEX[e.prop] != null ? PROP_INDEX[e.prop] : PROP_INDEX.crate;
+      const done = GS.flag(e.flag || ("srch_" + e.x + "_" + e.y));
+      ctx.globalAlpha = done ? 0.45 : 1;
+      if (im) drawFrame(ctx, im, 16, 24, idx, 0, dx, dy - 8);
+      ctx.globalAlpha = 1;
+    } else if (e.type === "switch") {
+      const im = img("props");
+      const on = GS.flag("sw_" + e.gate);
+      if (im) drawFrame(ctx, im, 16, 24, on ? PROP_INDEX.switch_down : PROP_INDEX.switch_up, 0, dx, dy - 8);
+    } else if (e.type === "gate") {
+      const open = GS.flag("sw_" + e.gate);
+      const im = img("props");
+      ctx.globalAlpha = open ? 0.5 : 1;
+      if (im) drawFrame(ctx, im, 16, 24, open ? PROP_INDEX.gate_open : PROP_INDEX.gate_closed, 0, dx, dy - 8);
+      ctx.globalAlpha = 1;
     } else if (e.type === "portal") {
       const cx = dx + 8, cy = dy + 8;
       const open = GS.isUnlocked(e.to);
@@ -322,7 +380,7 @@ export class Overworld {
     // y-sorted drawables: entities + party
     const list = [];
     for (const e of this.entities) {
-      if (e.type === "npc" || e.type === "boss" || e.type === "item" || e.type === "portal")
+      if (["npc", "boss", "item", "portal", "search", "switch", "gate"].includes(e.type))
         list.push({ y: e.py + 16, draw: (c) => this.drawEntity(c, e) });
     }
     for (const d of this.party.drawables()) list.push(d);
@@ -347,6 +405,15 @@ export class Overworld {
     // top status strip
     drawText(ctx, "Records " + GS.recordCount() + "/6", 6, 5, { color: "#ffd86a", shadow: "#000" });
     drawText(ctx, "Lv " + GS.data.stats.level, VIEW_W - 36, 5, { color: "#9fd0ff", shadow: "#000" });
+
+    // collectible objective for the current zone
+    const col = this.def.collect;
+    if (col) {
+      const have = GS.count(col.item);
+      const done = have >= col.need;
+      textCentered(ctx, (col.label || "Notes") + " " + Math.min(have, col.need) + "/" + col.need,
+        VIEW_W / 2, 5, { color: done ? "#8aff6a" : "#c79aff", shadow: "#000" });
+    }
 
     if (this.toastT > 0) {
       const a = Math.min(1, this.toastT);

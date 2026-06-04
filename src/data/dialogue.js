@@ -131,14 +131,11 @@ export const DIALOG = {
     { speaker: "Gregg", text: "I'm Old Gregg! I won't crimp with ya unless ya bring me a Bailey's. From a shoe, ideally." },
     V("We'd better find some Bailey's in this watery place first."),
   ],
-  gregg_pre: (api) => ({
-    pages: [
-      { speaker: "Gregg", text: "Is that... a Bailey's? For Old Gregg?" },
-      V("Here you go, Gregg. One creamy treat."),
-      { speaker: "Gregg", text: "Awww. You DO love me. Now we crimp. About the funk. About my mangina. Mostly the funk." },
-    ],
-    onDone: () => api.take("baileys"),
-  }),
+  gregg_pre: (api) => [
+    { speaker: "Gregg", text: "You found all me Crimp Notes! You DO love me!" },
+    V("We've got the notes, Gregg. Time to crimp."),
+    { speaker: "Gregg", text: "Now we crimp. About the funk. About my mangina. Mostly the funk." },
+  ],
   gregg_win: (api) => [
     { speaker: "Gregg", text: "You make Old Gregg feel things. Take the record, ya funky little man." },
     V("Lovely chap once you get past the... everything."),
@@ -158,14 +155,11 @@ export const DIALOG = {
     H("He's twitching. Why is he twitching?"),
     { speaker: "CrackFox", text: "No shiny, no crimp! Bring the Crack Fox a shiny thing! Wheee!" },
   ],
-  crackfox_pre: (api) => ({
-    pages: [
-      { speaker: "CrackFox", text: "Ooooh! Shiny shiny bin lid! For meeee?" },
-      V("All yours, you horrible little fox. Now sing."),
-      { speaker: "CrackFox", text: "Crack crack crack! Faster faster! Can't catch the Crack Fox! CRIMP!" },
-    ],
-    onDone: () => api.take("bin"),
-  }),
+  crackfox_pre: (api) => [
+    { speaker: "CrackFox", text: "Ooooh! Three shiny shiny notes! For meeee?" },
+    V("They're ours, you horrible little fox. Now sing."),
+    { speaker: "CrackFox", text: "Crack crack crack! Faster faster! Can't catch the Crack Fox! CRIMP!" },
+  ],
   crackfox_win: (api) => [
     { speaker: "CrackFox", text: "You is fast. You is funky. Take the record, scuttle scuttle byeeee." },
     H("I need a wash. And a lie down. And possibly an exorcism."),
@@ -232,4 +226,64 @@ export const DIALOG = {
   ],
   tony_lose: (api) => [{ speaker: "Tony", text: "HA! The council prevails! Begone and practice, you crimping amateurs!" }],
   tony_after: (api) => [{ speaker: "Tony", text: "The legendary crimpers return. It is... an acceptable surprise. The wind!" }],
+
+  // ---- hub flavour searches ---------------------------------------------
+  hub_search1: (api) => [V("A crate of Naboo's 'special' incense. Smells of liquorice and regret."), H("Don't light that near the trumpet, Vince.")],
+  hub_search2: (api) => [H("A Zooniverse bin. Bob Fossil's lunch is in here. And his diary."), V("'Dear diary, today I shouted at a heron.' ...riveting stuff.")],
+
+  // ---- collectible hint (boss locked) -----------------------------------
+  collect_tundra: (api) => [N("Three Crimp Notes are frozen out here. Gather all 3 before the Spirit of Jazz will crimp ya.")],
+  collect_sea: (api) => [{ speaker: "Gregg", text: "No notes, no love! Find all 3 Crimp Notes first, ya creamy little men." }],
+  collect_forest: (api) => [{ speaker: "CrackFox", text: "Shiny notes! Bring the Crack Fox all 3 shiny notes, then we crimp! Scuttle!" }],
+  collect_night: (api) => [{ speaker: "Nana", text: "No tea and no crimp until you've collected all 3 notes, dearies. Chop chop." }],
+  collect_moon: (api) => [{ speaker: "Moon", text: "Find me three little notes... then we'll have a dreamy old crimp. Do do dooo." }],
+  collect_temple: (api) => [{ speaker: "Tony", text: "You dare approach with fewer than THREE notes?! An OUTRAGE! Gather them all!" }],
+
+  // ---- chest containing Note C ------------------------------------------
+  chest_tundra: (api) => [V("A Crimp Note, iced over in an old kit-bag. Shiny!")],
+  chest_sea: (api) => [V("A Crimp Note, tucked inside a treasure chest. Bit damp, still funky.")],
+  chest_forest: (api) => [V("A Crimp Note in a chest the Crack Fox forgot about. Result!")],
+  chest_night: (api) => [V("A Crimp Note glowing inside a cursed little chest. Spooky AND shiny.")],
+  chest_moon: (api) => [V("A Crimp Note floating in a moon-chest. It hums to itself.")],
+  chest_temple: (api) => [V("A Crimp Note in an ancient reliquary. Tony's going to be furious.")],
+
+  // ---- searchable scenery (lore + a little XP) --------------------------
+  search1_tundra: (api) => [H("A frozen snow mound. ...There's a tiny igloo with a 'BACK IN 5 MINS' sign."), V("The tundra postman. Classic.")],
+  search2_tundra: (api) => [V("A frosty rock shaped exactly like Howard's worried face."), H("It does not.")],
+  search1_sea: (api) => [V("A giant shell. Put it to your ear..."), H("...it's just Old Gregg going 'do you love me' on a loop. Lovely.")],
+  search2_sea: (api) => [H("A barnacled rock. Someone scratched 'GREGG WOZ ERE' into it. And a little mangina.")],
+  search1_forest: (api) => [V("A bin overflowing with rubbish the Crack Fox calls 'treasure'."), H("A kettle, three odd shoes and... is that a Magnum?")],
+  search2_forest: (api) => [V("A fern with a face. It blinks at you, slowly."), H("Everything in this forest has a face, Vince. Keep moving.")],
+  search1_night: (api) => [H("A demonic urn, still warm. There's a price sticker: 'Nan's Best Casserole'.")],
+  search2_night: (api) => [V("A jagged rock humming a minor chord. The Nightosphere's quite musical, actually.")],
+  search1_moon: (api) => [V("A moon rock. It is, disappointingly, just a rock."), H("On the MOON though, Vince. Context.")],
+  search2_moon: (api) => [H("An abandoned crate of moon-milk. Best before: the dawn of time.")],
+  search1_temple: (api) => [N("A shaman urn. Inscribed: 'Saboo woz robbed at the crimp-off, 2006.'")],
+  search2_temple: (api) => [V("A dusty crate of ceremonial capes. Ooh, this one's got tassels!"), H("Focus, Vince.")],
+
+  // ---- side-quest NPC per zone (one-time XP) ----------------------------
+  side_tundra: (api) => {
+    if (api.flag("sq_tundra")) return [F("Toasty now, ta! Bob Fossil salutes you!")];
+    return { pages: [F("B-Bob Fossil's f-freezing! Do a little dance to warm me up? Go on!"), V("...we did a dance."), F("MARVELLOUS! Have some experience points, you beautiful creatures!")], onDone: () => { api.addXp(15); api.setFlag("sq_tundra"); } };
+  },
+  side_sea: (api) => {
+    if (api.flag("sq_sea")) return [F("Still hiding. Don't tell the merman. Ta though!")];
+    return { pages: [F("Pssst. Bob Fossil here. Tell Old Gregg I think his album's GREAT and I'll give ya a tip."), V("Done."), F("Knew it. Here's some hard-won zoo wisdom. *XP get*")], onDone: () => { api.addXp(18); api.setFlag("sq_sea"); } };
+  },
+  side_forest: (api) => {
+    if (api.flag("sq_forest")) return [N("Cheers for the help. Mind the fox.")];
+    return { pages: [N("Help me re-light these forest candles and I'll share a shaman trick."), V("Consider them lit."), N("Nice one. Have some XP, on the house.")], onDone: () => { api.addXp(22); api.setFlag("sq_forest"); } };
+  },
+  side_night: (api) => {
+    if (api.flag("sq_night")) return [N("The nan's almost contained. Ta.")];
+    return { pages: [N("Quick — chant the counter-spell with me. It's mostly 'oi, nan, behave'."), V("OI, NAN, BEHAVE!"), N("Perfect pitch. Take this XP for your trouble.")], onDone: () => { api.addXp(26); api.setFlag("sq_night"); } };
+  },
+  side_moon: (api) => {
+    if (api.flag("sq_moon")) return [B("...Bollo still got a bad feeling. But thanks.")];
+    return { pages: [B("Bollo followed you to the moon. Bollo does not like the moon's FACE."), V("It's a friendly face, Bollo."), B("...Bollo gives you XP so we can leave sooner.")], onDone: () => { api.addXp(30); api.setFlag("sq_moon"); } };
+  },
+  side_temple: (api) => {
+    if (api.flag("sq_temple")) return [N("You're ready. Go show the council the funk.")];
+    return { pages: [N("Limber up your crimping muscles with me before you face Tony."), H("Scales. Lovely. I do love a scale."), N("You're tuned. Take this XP and go make me proud.")], onDone: () => { api.addXp(34); api.setFlag("sq_temple"); } };
+  },
 };
