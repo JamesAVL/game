@@ -104,18 +104,33 @@ class ParticleSystem {
 }
 
 class ScreenShake {
-  constructor() { this.amp = 0; this.t = 0; this.dur = 0; }
+  constructor() {
+    this.amp = 0; this.t = 0; this.dur = 0;
+    this.freezeT = 0;                 // remaining hit-stop seconds (sim paused)
+    this.flashT = 0; this.flashDur = 0; this.flashCol = "#fff"; this.flashA = 0;
+  }
   // amp in internal pixels; dur in seconds. Stronger/longer wins.
   shake(amp, dur = 0.3) {
     if (amp >= this.amp || this.t <= 0) { this.amp = amp; this.t = dur; this.dur = dur; }
   }
-  update(dt) { if (this.t > 0) this.t = Math.max(0, this.t - dt); }
+  // hit-stop: briefly freeze the simulation for impact (the loop keeps drawing).
+  freeze(sec) { this.freezeT = Math.max(this.freezeT, sec); }
+  frozen() { return this.freezeT > 0; }
+  tickFreeze(dt) { if (this.freezeT > 0) this.freezeT = Math.max(0, this.freezeT - dt); }
+  // a quick full-screen colour flash (drawn by the loop, over everything).
+  flash(color = "#fff", alpha = 0.6, dur = 0.18) { this.flashCol = color; this.flashA = alpha; this.flashT = dur; this.flashDur = dur; }
+  update(dt) {
+    if (this.t > 0) this.t = Math.max(0, this.t - dt);
+    if (this.flashT > 0) this.flashT = Math.max(0, this.flashT - dt);
+  }
   offset() {
     if (this.t <= 0) return { x: 0, y: 0 };
     const k = (this.t / this.dur) * this.amp;
     return { x: (Math.random() - 0.5) * 2 * k, y: (Math.random() - 0.5) * 2 * k };
   }
-  clear() { this.t = 0; this.amp = 0; }
+  // current flash alpha (0 when none); loop multiplies by configured strength.
+  flashAlpha() { return this.flashDur > 0 ? (this.flashT / this.flashDur) * this.flashA : 0; }
+  clear() { this.t = 0; this.amp = 0; this.freezeT = 0; this.flashT = 0; }
 }
 
 export const Particles = new ParticleSystem();

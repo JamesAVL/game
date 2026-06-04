@@ -111,6 +111,12 @@ export class Crimp {
     this.result = win;
     stopMusic();
     if (win) Sfx.win(); else Sfx.lose();
+    // big finish: hit-stop + flash + a burst over the boss
+    Juice.freeze(0.16);
+    Juice.flash(win ? "#fff7d8" : "#ff6a6a", win ? 0.8 : 0.5, 0.3);
+    Juice.shake(win ? 5 * ART : 7 * ART, 0.4);
+    const col = win ? [255, 240, 180] : [255, 110, 110];
+    Particles.burst(VIEW_W / 2 + 40 * ART, VIEW_H / 2 - 10 * ART, 60, { color: col, speed: 170, life: 0.9, size: 2 * ART, gravity: 40 * ART, drag: 1.8 });
   }
 
   judgeHit(kind) {

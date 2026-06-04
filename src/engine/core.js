@@ -194,14 +194,21 @@ export function startLoop() {
   let acc = 0;
   function frame() {
     const now = performance.now() / 1000;
-    acc += Math.min(0.25, now - last);
+    const dt = Math.min(0.25, now - last);
     last = now;
-    while (acc >= STEP) {
-      Scenes.update(STEP);
-      Particles.update(STEP);
-      Juice.update(STEP);
-      Input._flip();
-      acc -= STEP;
+    if (Juice.frozen()) {
+      // hit-stop: hold the simulation for impact, but keep timers + rendering alive
+      Juice.tickFreeze(dt);
+      Juice.update(dt);
+    } else {
+      acc += dt;
+      while (acc >= STEP) {
+        Scenes.update(STEP);
+        Particles.update(STEP);
+        Juice.update(STEP);
+        Input._flip();
+        acc -= STEP;
+      }
     }
     ctx.clearRect(0, 0, VIEW_W, VIEW_H);
     // global screen-shake kicks the whole frame (HUD included); particles draw
@@ -212,6 +219,15 @@ export function startLoop() {
     Scenes.render(ctx);
     Particles.draw(ctx);
     ctx.restore();
+    // impact flash (drawn into the scene buffer so it blooms)
+    const fa = Juice.flashAlpha();
+    if (fa > 0) {
+      ctx.save();
+      ctx.globalAlpha = fa;
+      ctx.fillStyle = Juice.flashCol;
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      ctx.restore();
+    }
     Renderer.present(getReactive().bass); // bloom pulses to the music
     requestAnimationFrame(frame);
   }
