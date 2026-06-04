@@ -40,8 +40,8 @@ function resize() {
   const touch = document.documentElement.classList.contains("has-touch");
   const portrait = window.innerHeight >= window.innerWidth;
   const wrap = document.getElementById("wrap");
-  let reserve = 0;
-  if (touch && portrait) reserve = Math.min(Math.max(window.innerHeight * 0.30, 190), 300);
+  // native touch overlays the game directly (no reserved control band)
+  const reserve = 0;
   const availW = window.innerWidth;
   const availH = window.innerHeight - reserve;
   let scale = Math.min(availW / VIEW_W, availH / VIEW_H);
@@ -75,21 +75,39 @@ const KEYMAP = {
 const down = new Set();
 const pressedThisFrame = new Set();
 let pendingPress = [];
+let pendingTap = null;   // {x,y} in internal-canvas coords, set by a native tap
+let tapThisFrame = null;
 
 export const Input = {
   isDown(a) { return down.has(a); },
   pressed(a) { return pressedThisFrame.has(a); },
   anyPressed() { return pressedThisFrame.size > 0; },
-  // on-screen touch controls feed the same action set as the keyboard
+  // native touch / on-screen controls feed the same action set as the keyboard
   _touchDown(a) { if (!down.has(a)) pendingPress.push(a); down.add(a); },
   _touchUp(a) { down.delete(a); },
+  // a positional tap, in internal-canvas coords, for one frame (like pressed)
+  _touchTap(x, y) { pendingTap = { x, y }; },
+  tap() { return tapThisFrame; },
   // called once per frame by the loop, after update
   _flip() {
     pressedThisFrame.clear();
     for (const a of pendingPress) pressedThisFrame.add(a);
     pendingPress = [];
+    tapThisFrame = pendingTap;
+    pendingTap = null;
   },
 };
+
+// map a client/screen coordinate onto the internal canvas (handles the
+// integer/letterboxed display scaling), so taps hit the right game location.
+export function clientToCanvas(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) return { x: 0, y: 0 };
+  return {
+    x: (clientX - r.left) / r.width * VIEW_W,
+    y: (clientY - r.top) / r.height * VIEW_H,
+  };
+}
 
 function actionsFor(code) {
   return KEYMAP[code] || [];

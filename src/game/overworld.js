@@ -463,9 +463,11 @@ export class Overworld {
       ctx.globalAlpha = 1;
     }
 
-    // controls hint (fades after start)
+    // controls hint (fades after start) — adapts to touch vs keyboard
     if (GS.data.playtime < 14) {
-      drawText(ctx, "Arrows/WASD move   Z talk   P menu", 6 * ART, VIEW_H - 9 * ART, { color: "rgba(220,220,240,0.7)", shadow: "#000" });
+      const touch = typeof document !== "undefined" && document.documentElement.classList.contains("has-touch");
+      const hint = touch ? "Drag to move   Tap to talk" : "Arrows/WASD move   Z talk   P menu";
+      drawText(ctx, hint, 6 * ART, VIEW_H - 9 * ART, { color: "rgba(220,220,240,0.7)", shadow: "#000" });
     }
   }
 }
