@@ -105,7 +105,7 @@ export class Overworld {
 
   grantXp(n) {
     const ups = GS.addXp(n);
-    if (ups.length) this.toast("Level up! Now level " + ups[ups.length - 1]);
+    if (ups.length) this.toast("Level up! Lv " + ups[ups.length - 1] + " - crimps get kinder!");
   }
 
   buildDialog(id) {
