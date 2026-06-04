@@ -74,6 +74,13 @@ def jazz():
     for (wx, wy) in [(cx - 16, 28), (cx + 18, 20), (cx - 14, 12), (cx + 14, 60), (cx - 18, 68)]:
         cv.ellipse(wx, wy, 2, 2, (150, 150, 170, 150))
         cv.set(wx + 2, wy - 2, (110, 110, 130, 110))
+    # ---- fine detail: pinstripes, trumpet valves, hat sheen, lapel highlights
+    for px in range(cx - 8, cx + 9, 3):
+        cv.vline(px, 37, 15, shade(body, 0.06))
+    for vx in (cx + 13, cx + 16, cx + 19):
+        cv.set(vx, 43, golddk); cv.set(vx, 42, goldhi)
+    cv.set(cx - 6, 10, (255, 150, 150)); cv.set(cx + 5, 10, (255, 150, 150))  # band sheen
+    cv.line(cx - 5, 37, cx - 1, 45, hi); cv.line(cx + 4, 37, cx + 1, 45, hi)  # lapel edges
     outline_dark(cv)
     save(cv, "boss_jazz")
 
@@ -109,6 +116,15 @@ def gregg():
     for (hx, off) in [(-12, 0), (-6, -2), (0, -4), (6, -2), (12, 0)]:
         cv.line(cx + hx, 14 + off, cx + hx + (2 if hx < 0 else -2), 2, dk)
         cv.set(cx + hx, 13 + off, mid)
+    # ---- fine detail: gill slits, belly sheen, extra scales, fin ribs, eye shine
+    for gy in (50, 54, 58):
+        cv.hline(cx - 16, gy, 4, dk); cv.hline(cx + 13, gy, 4, dk)
+    cv.line(cx - 2, 44, cx - 2, 60, greenhi)            # belly highlight
+    for (sx, sy) in [(cx + 2, 58), (cx - 6, 50), (cx + 9, 60), (cx - 10, 56)]:
+        cv.set(sx, sy, dk); cv.set(sx + 1, sy, greenhi)
+    for rx in (-7, 0, 7):
+        cv.line(cx + rx, 78, cx, 70, greenhi)           # tail fin ribs
+    cv.set(cx - 8, 22, (255, 255, 255)); cv.set(cx + 4, 22, (255, 255, 255))  # eye shine
     save_with_outline(cv, "boss_gregg")
 
 
@@ -143,6 +159,15 @@ def crackfox():
     # jagged grin
     for gx in range(cx - 24, cx - 10, 3):
         cv.vline(gx, 30, 3, white)
+    # ---- fine detail: whiskers, fur tufts, claws, ear innards, tail flecks
+    for (wy) in (27, 29, 31):
+        cv.line(cx - 28, wy, cx - 34, wy - 1, white)
+    for fx in range(cx - 18, cx + 19, 5):
+        cv.set(fx, 28 + (fx % 3), furhi)               # fur flecks on the body
+    for lx in (cx - 14, cx - 4, cx + 6, cx + 16):
+        cv.set(lx, 58, (20, 16, 18)); cv.set(lx + 3, 58, (20, 16, 18))  # claws
+    cv.fill_poly([(cx - 19, 15), (cx - 17, 10), (cx - 15, 15)], dk)     # ear inner
+    cv.set(cx + 28, 33, white); cv.set(cx + 32, 30, white)              # tail tuft
     save_with_outline(cv, "boss_crackfox")
 
 
@@ -179,6 +204,14 @@ def nana():
     cv.line(cx - 6, 32, cx + 6, 32, dk)
     for gx in range(cx - 6, cx + 7, 2):
         cv.vline(gx, 31, 2, (245, 245, 245))
+    # ---- fine detail: cardigan knit, brooch, hair wisps, glasses shine
+    for ky in range(42, 55, 3):
+        for kx in range(cx - 10, cx + 9, 4):
+            cv.set(kx, ky, shade(card, 0.12))
+    cv.set(cx - 8, 42, (230, 220, 120)); cv.set(cx - 7, 42, (255, 245, 170))  # brooch
+    for hx in (cx - 8, cx + 8):
+        cv.set(hx, 9, (228, 228, 233)); cv.set(hx + (1 if hx > cx else -1), 8, (244, 244, 248))
+    cv.set(cx - 9, 23, (200, 220, 255)); cv.set(cx + 3, 23, (200, 220, 255))  # glasses glint
     save_with_outline(cv, "boss_nana")
 
 
@@ -199,6 +232,15 @@ def moon():
     cv.fill_poly([(cx - 14, cy + 4), (cx - 18, cy + 10), (cx - 12, cy + 10)], dk)  # big nose
     cv.line(cx - 10, cy + 16, cx + 4, cy + 16, (60, 60, 60))   # gentle mouth
     cv.set(cx + 4, cy + 15, (60, 60, 60)); cv.set(cx - 10, cy + 15, (60, 60, 60))
+    # ---- fine detail: extra small craters, surface speckle, soft cheek shading
+    for (mx, my, r) in [(cx + 20, cy - 2, 2), (cx - 14, cy - 6, 2), (cx + 2, cy + 22, 2), (cx - 22, cy, 2)]:
+        cv.ellipse(mx, my, r, r, dk); cv.set(mx - 1, my - 1, mid)
+    for sp in range(24):
+        ang = sp * 0.62
+        import math as _m
+        px = int(cx + _m.cos(ang) * (10 + sp)); py = int(cy + _m.sin(ang) * (6 + sp * 0.4))
+        cv.set(px, py, mid)
+    cv.ellipse(cx - 12, cy + 6, 3, 2, (255, 235, 200))         # rosy cheek
     save_with_outline(cv, "boss_moon", col=(120, 120, 150))
 
 
@@ -230,6 +272,14 @@ def tony():
     cv.line(cx - 16, 25, cx - 6, 29, dk); cv.line(cx + 16, 25, cx + 6, 29, dk)
     # outraged open mouth
     cv.ellipse(cx, 48, 5, 4, (120, 40, 70)); cv.ellipse(cx, 49, 3, 2, (60, 20, 36))
+    cv.hline(cx - 3, 46, 6, (245, 245, 245))                   # top teeth
+    # ---- fine detail: tentacle suction cups, dome speckle, eye gleam
+    for (tx, sway) in [(-14, -4), (-6, 2), (2, -2), (10, 4), (16, -4)]:
+        for cy2 in (62, 68, 73):
+            cv.set(cx + tx + 2 + sway // 2, cy2, dk)
+    for (sx, sy) in [(cx + 14, 24), (cx - 16, 34), (cx + 8, 52), (cx - 8, 50), (cx + 2, 30)]:
+        cv.set(sx, sy, pinkhi)
+    cv.set(cx - 12, 30, (255, 255, 255)); cv.set(cx + 8, 30, (255, 255, 255))
     save_with_outline(cv, "boss_tony")
 
 
