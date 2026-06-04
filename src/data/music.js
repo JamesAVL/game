@@ -63,6 +63,13 @@ export const TRACKS = {
   ]),
 
   // ---- crimp battle tracks (energetic, drums) ----
+  // tutorial: a relaxed, jazzy practice groove (its own tune, not the hub theme)
+  crimp_tutorial: track(116, [
+    { wave: "square", gain: 0.10, env: E_LEAD, seq: S("C5 - E5 - G5 - E5 - A4 - C5 - E5 - - - D5 - F5 - A5 - F5 - G4 - B4 - D5 - - -") },
+    { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("C3 - G3 - C3 - G3 - A2 - E3 - A2 - E3 - D3 - A3 - D3 - A3 - G2 - D3 - G2 - D3 -") },
+    { wave: "triangle", gain: 0.06, env: E_PLUCK, seq: S("E4 G4 C5 G4 E4 G4 C5 G4 C4 E4 A4 E4 C4 E4 A4 E4 D4 F4 A4 F4 D4 F4 A4 F4 D4 G4 B4 G4 D4 G4 B4 G4") },
+    { wave: "noise", gain: 0.09, seq: D("k . h . s . h . k . h . s . h h k . h . s . h . k . h . s . h h") },
+  ]),
   crimp_jazz: track(140, [
     { wave: "square", gain: 0.11, env: E_LEAD, seq: S("C5 - D#5 F5 - F#5 G5 - A#5 - G5 F5 - D#5 - C5 G4 - A#4 C5 - D#5 - C5 - A#4 - G4 - F4 - -") },
     { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("C3 - G3 - C3 - A#2 - F3 - C4 - F3 - D#3 - G3 - D4 - G3 - F3 - C3 - G3 - C3 - G3 -") },

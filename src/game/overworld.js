@@ -367,10 +367,14 @@ export class Overworld {
         }
         ctx.globalAlpha = 1;
       }
-      // label
-      const lbl = open ? e.label : "??? (sealed)";
-      const w = textWidth(lbl);
-      drawText(ctx, lbl, cx - w / 2, dy - 12 * ART, { color: open ? "#fff" : "#888", shadow: "#000" });
+      // label — only when the party is close, so neighbouring portals don't
+      // overlap their text (you read the destination by walking up to it)
+      const dpx = e.px - this.party.px, dpy = e.py - this.party.py;
+      if (dpx * dpx + dpy * dpy < (TILE * 2.6) * (TILE * 2.6)) {
+        const lbl = open ? e.label : "???";
+        const w = textWidth(lbl);
+        drawText(ctx, lbl, cx - w / 2, dy - 12 * ART, { color: open ? "#fff" : "#888", shadow: "#000" });
+      }
     }
   }
 

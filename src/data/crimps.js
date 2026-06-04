@@ -45,7 +45,7 @@ function crimp(o) {
 
 export const CRIMPS = {
   tutorial: crimp({
-    name: "Naboo", face: "naboo", trackKey: "hub", bpm: 116,
+    name: "Naboo", face: "naboo", trackKey: "crimp_tutorial", bpm: 116,
     bg0: "#1a2040", bg1: "#3a2a6a", bossScale: 2,
     intro: "Just feel the rhythm, you berks...",
     chart: { seed: 7, length: 96, base: 4, runChance: 0, doubleChance: 0 },
