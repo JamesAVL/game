@@ -14,12 +14,26 @@ canvas.height = VIEW_H;
 export const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 
+// Fit the 320x180 canvas to the viewport. On desktop we use crisp integer
+// scaling; on touch devices we scale fractionally to fill the width and
+// reserve a bottom band for the on-screen controls (set as --reserve).
 function resize() {
-  const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H)));
-  canvas.style.width = VIEW_W * scale + "px";
-  canvas.style.height = VIEW_H * scale + "px";
+  const touch = document.documentElement.classList.contains("has-touch");
+  const portrait = window.innerHeight >= window.innerWidth;
+  const wrap = document.getElementById("wrap");
+  let reserve = 0;
+  if (touch && portrait) reserve = Math.min(Math.max(window.innerHeight * 0.30, 190), 300);
+  const availW = window.innerWidth;
+  const availH = window.innerHeight - reserve;
+  let scale = Math.min(availW / VIEW_W, availH / VIEW_H);
+  if (!touch) scale = Math.max(1, Math.floor(scale));   // desktop: crisp integer
+  canvas.style.width = Math.round(VIEW_W * scale) + "px";
+  canvas.style.height = Math.round(VIEW_H * scale) + "px";
+  if (wrap) wrap.style.height = availH + "px";
+  document.documentElement.style.setProperty("--reserve", reserve + "px");
 }
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
 resize();
 
 // ---------------------------------------------------------------------------

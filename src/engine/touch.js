@@ -107,6 +107,9 @@ export function initTouch() {
     b.style.color = LANE_COL[i];
   }
 
+  // controls now exist -> recompute canvas size to reserve the bottom band
+  window.dispatchEvent(new Event("resize"));
+
   // switch layout based on the active scene
   setInterval(() => {
     const top = Scenes.top();
