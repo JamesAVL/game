@@ -96,8 +96,15 @@ tools/                  # Python asset generators (see below) + serve.js
 
 ## Asset pipeline (pure Python stdlib)
 - `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,
-  outline, gradients, `normal_map()`). No Pillow.
-- `tools/artlib.py` — shared palette + parametric `draw_person()` (heroes + NPCs).
+  outline, gradients, `normal_map()`). No Pillow. **Coordinate scale (`cs`):** a
+  Canvas can render logical-coord drawing at `cs×` device pixels (`set()`/shape
+  prims are logical and tile gap-free; `_dset`/`_dget` are device-raw). The
+  engine runs at **`ART=3`** (960×540); `pnglib.ART`/`CS` must match
+  `core.js ART`. Sprites authored natively at the device size (characters
+  48×72) use `cs=1`; others pass `cs=CS` (=1.5) to render their ART=2-authored
+  art crisply at ART=3.
+- `tools/artlib.py` — shared palette + parametric `draw_person()` (heroes + NPCs),
+  authored natively at 48×72 with per-direction faces, hair, clothing + outline.
 - `tools/gen_*.py` — one generator per asset family; `gen_all.py` runs them all.
 - Audio is not pre-rendered: `engine/audio.js` synthesises everything at runtime.
 - `tools/gen_icon.py` draws the 512² PWA app icon (crescent moon) → `assets/ui/icon.png`.
