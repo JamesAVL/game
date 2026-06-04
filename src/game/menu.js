@@ -65,17 +65,22 @@ export class PauseMenu {
   }
 
   renderParty(ctx) {
-    const w = 180 * ART, h = 110 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 188 * ART, h = 124 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
     const s = GS.data.stats;
     textCentered(ctx, "THE PARTY", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
-    drawText(ctx, "Vince Noir  -  rock & roll star", x + 12 * ART, y + 24 * ART, { color: "#9fd0ff" });
-    drawText(ctx, "Howard Moon -  man of jazz", x + 12 * ART, y + 36 * ART, { color: "#e0b070" });
-    drawText(ctx, "Level   " + s.level, x + 12 * ART, y + 54 * ART, { color: "#fff" });
-    drawText(ctx, "XP      " + s.xp + " / " + s.xpNext, x + 12 * ART, y + 66 * ART, { color: "#fff" });
-    drawText(ctx, "Style   " + s.style, x + 12 * ART, y + 78 * ART, { color: "#ff9fd0" });
-    drawText(ctx, "Jazz    " + s.jazz, x + 96 * ART, y + 78 * ART, { color: "#9fd0ff" });
-    drawText(ctx, "Records " + GS.recordCount() + " / 6", x + 12 * ART, y + 92 * ART, { color: "#ffd86a" });
+    drawText(ctx, "Vince Noir  -  rock & roll star", x + 12 * ART, y + 22 * ART, { color: "#9fd0ff" });
+    drawText(ctx, "Howard Moon -  man of jazz", x + 12 * ART, y + 34 * ART, { color: "#e0b070" });
+    drawText(ctx, "Level   " + s.level, x + 12 * ART, y + 50 * ART, { color: "#fff" });
+    drawText(ctx, "XP      " + s.xp + " / " + s.xpNext, x + 12 * ART, y + 62 * ART, { color: "#fff" });
+    drawText(ctx, "Style   " + s.style, x + 12 * ART, y + 74 * ART, { color: "#ff9fd0" });
+    drawText(ctx, "Jazz    " + s.jazz, x + 100 * ART, y + 74 * ART, { color: "#9fd0ff" });
+    // crimp boost earned from levelling (mirrors crimp.js perk caps)
+    const over = Math.max(0, s.level - 1);
+    const hs = Math.round(Math.min(15, over * 1.5));
+    const pw = Math.round(Math.min(35, over * 3.5));
+    drawText(ctx, "Crimp boost  +" + hs + " start  +" + pw + "% power", x + 12 * ART, y + 90 * ART, { color: "#8aff6a" });
+    drawText(ctx, "Records " + GS.recordCount() + " / 6", x + 12 * ART, y + 104 * ART, { color: "#ffd86a" });
     drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 

@@ -36,7 +36,19 @@ export class Crimp {
     this.def = def;
     this.D = DIFF[GS.data.difficulty] || DIFF.normal;
     this.travel = this.D.travel;
-    this.you = this.D.startYou; this.boss = 50;
+
+    // ---- level perks (stack on top of difficulty; all modestly capped) -----
+    // Vince's Style + Howard's Jazz grow as you level, making crimps kinder:
+    // a starting-meter head start, slightly wider hit windows, and a bigger
+    // payoff per landed note. Exploring/levelling before a boss actually helps.
+    const lvl = (GS.data.stats && GS.data.stats.level) || 1;
+    const over = Math.max(0, lvl - 1);
+    this.headStart = Math.min(15, over * 1.5);
+    this.gainMul = 1 + Math.min(0.35, over * 0.035);
+    this.perfWin = this.D.perfWin + Math.min(0.025, over * 0.0025);
+    this.goodWin = this.D.goodWin + Math.min(0.05, over * 0.005);
+
+    this.you = Math.min(80, this.D.startYou + this.headStart); this.boss = 50;
     this.combo = 0; this.maxCombo = 0;
     this.hits = 0; this.perfects = 0;
     this.judge = ""; this.judgeT = 0; this.judgeCol = "#fff";
@@ -94,9 +106,9 @@ export class Crimp {
   }
 
   judgeHit(kind) {
-    const D = this.D;
-    if (kind === "perfect") { this.you += 4.6; this.boss -= 4.8; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
-    else if (kind === "good") { this.you += 3.2; this.boss -= 3.4; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
+    const D = this.D, g = this.gainMul;
+    if (kind === "perfect") { this.you += 4.6 * g; this.boss -= 4.8 * g; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
+    else if (kind === "good") { this.you += 3.2 * g; this.boss -= 3.4 * g; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
     else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; this.shake = 0.2; }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     if (this.combo > 0 && this.combo % 10 === 0) { this.you += 2; this.boss -= 1; }
@@ -115,9 +127,9 @@ export class Crimp {
       if (n.t - t > 0.3) break;
     }
     this.flashLane[lane] = 0.12;
-    if (best && bestD <= this.D.goodWin) {
+    if (best && bestD <= this.goodWin) {
       best.dead = true;
-      this.judgeHit(bestD <= this.D.perfWin ? "perfect" : "good");
+      this.judgeHit(bestD <= this.perfWin ? "perfect" : "good");
     } else {
       // empty/mistimed tap: only breaks the combo (no meter penalty -> forgiving)
       this.combo = 0;
@@ -144,7 +156,7 @@ export class Crimp {
       const t = this.now();
       // missed notes (passed hit line without being struck)
       for (const n of this.notes) {
-        if (!n.dead && n.t < t - this.D.goodWin) { n.dead = true; this.judgeHit("miss"); }
+        if (!n.dead && n.t < t - this.goodWin) { n.dead = true; this.judgeHit("miss"); }
       }
       // resolve: no mid-song loss -- the song always finishes, then you win if
       // you're ahead. An early KO (boss emptied) ends it triumphantly.
