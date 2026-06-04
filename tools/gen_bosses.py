@@ -6,7 +6,7 @@ them up (bossScale) and the overworld draws them at native size, feet-aligned.
 """
 
 import os
-from pnglib import Canvas, shade
+from pnglib import Canvas, shade, CS
 
 OUT = None
 
@@ -29,7 +29,7 @@ def save_with_outline(cv, name, col=(12, 8, 20)):
 
 # --------------------------------------------------------------------------
 def jazz():
-    cv = Canvas(56, 84, scale=1)
+    cv = Canvas(56, 84, cs=CS)
     body = (70, 70, 84); hi = (120, 120, 140); mid = (92, 92, 108); dk = (40, 40, 52)
     cx = 28
     # smoky lower body tapering into wisps
@@ -79,7 +79,7 @@ def jazz():
 
 
 def gregg():
-    cv = Canvas(60, 88, scale=1)
+    cv = Canvas(60, 88, cs=CS)
     green = (96, 168, 120); greenhi = (140, 210, 160); mid = (74, 140, 100); dk = (54, 110, 78)
     cx = 30
     # fish tail
@@ -113,7 +113,7 @@ def gregg():
 
 
 def crackfox():
-    cv = Canvas(68, 60, scale=1)
+    cv = Canvas(68, 60, cs=CS)
     fur = (188, 110, 60); furhi = (224, 156, 96); mid = (150, 88, 48); dk = (120, 66, 36); white = (235, 230, 220)
     cx = 34
     # scruffy low body
@@ -147,7 +147,7 @@ def crackfox():
 
 
 def nana():
-    cv = Canvas(56, 88, scale=1)
+    cv = Canvas(56, 88, cs=CS)
     card = (150, 70, 110); cardhi = (190, 110, 150); mid = (120, 56, 90); skin = (210, 190, 196); dk = (90, 40, 70)
     cx = 28
     # long skirt
@@ -183,7 +183,7 @@ def nana():
 
 
 def moon():
-    cv = Canvas(76, 76, scale=1)
+    cv = Canvas(76, 76, cs=CS)
     white = (244, 244, 220); hi = (255, 255, 240); mid = (224, 224, 200); dk = (200, 200, 175)
     cx, cy = 38, 38
     cv.ellipse(cx, cy, 32, 32, white)
@@ -203,7 +203,7 @@ def moon():
 
 
 def tony():
-    cv = Canvas(76, 88, scale=1)
+    cv = Canvas(76, 88, cs=CS)
     pink = (240, 130, 190); pinkhi = (255, 180, 220); mid = (214, 104, 164); dk = (190, 80, 140)
     cx = 38
     # pedestal

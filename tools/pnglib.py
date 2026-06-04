@@ -23,17 +23,33 @@ TRANSPARENT = (0, 0, 0, 0)
 # constructing its Canvas with scale=1 and doubling its own logical dimensions.
 DEFAULT_SCALE = 2
 
+# Engine render scale (must match src/engine/core.js ART). Generators authored
+# their coordinates at ART=2, so passing cs=CS to a Canvas renders that same art
+# crisply at the current ART. Bumping ART here re-scales the whole pipeline.
+ART = 3
+_AUTHORED_ART = 2
+CS = ART / _AUTHORED_ART  # draw-time coordinate scale (1.5 for ART=3)
+
 
 class Canvas:
     """A small RGBA raster with drawing helpers tuned for pixel art."""
 
-    def __init__(self, w, h, fill=TRANSPARENT, scale=None):
-        self.w = w
-        self.h = h
-        self.scale = DEFAULT_SCALE if scale is None else scale
-        self.px = bytearray(w * h * 4)
+    def __init__(self, w, h, fill=TRANSPARENT, scale=1, cs=1):
+        # cs = draw-time COORDINATE scale. Generators author in "logical" coords
+        # and the canvas renders them crisply at cs× device pixels (e.g. cs=1.5
+        # takes art authored at ART=2 up to ART=3). The shape primitives and the
+        # logical set()/get() take logical coords; _dset()/_dget() are the raw
+        # device-space accessors used internally (outline, normal_map, blit, write).
+        self.cs = cs
+        self.w = int(w * cs + 0.5)   # device dimensions
+        self.h = int(h * cs + 0.5)
+        self.scale = scale
+        self.px = bytearray(self.w * self.h * 4)
         if fill != (0, 0, 0, 0):
             self.clear(fill)
+
+    def _S(self, v):
+        return int(v * self.cs + 0.5)
 
     # ---- low level -------------------------------------------------------
     def clear(self, color):
@@ -45,7 +61,8 @@ class Canvas:
             self.px[o + 2] = b
             self.px[o + 3] = a
 
-    def set(self, x, y, color):
+    def _dset(self, x, y, color):
+        """Raw device-space pixel set (no coordinate scaling)."""
         x = int(x)
         y = int(y)
         if x < 0 or y < 0 or x >= self.w or y >= self.h:
@@ -74,11 +91,27 @@ class Canvas:
                 self.px[o + 2] = int(b * fa + self.px[o + 2] * (1 - fa))
                 self.px[o + 3] = max(a, ba)
 
-    def get(self, x, y):
+    def _dget(self, x, y):
         if x < 0 or y < 0 or x >= self.w or y >= self.h:
             return TRANSPARENT
         o = (y * self.w + x) * 4
         return (self.px[o], self.px[o + 1], self.px[o + 2], self.px[o + 3])
+
+    def set(self, x, y, color):
+        """Logical-space set: fills this logical pixel's device footprint, so
+        contiguous logical draws tile with no gaps at any cs. (cs=1 -> 1 px.)"""
+        x0, x1 = self._S(x), self._S(x + 1)
+        y0, y1 = self._S(y), self._S(y + 1)
+        if x1 <= x0:
+            x1 = x0 + 1
+        if y1 <= y0:
+            y1 = y0 + 1
+        for yy in range(y0, y1):
+            for xx in range(x0, x1):
+                self._dset(xx, yy, color)
+
+    def get(self, x, y):
+        return self._dget(self._S(x), self._S(y))
 
     # ---- shapes ----------------------------------------------------------
     def rect(self, x, y, w, h, color):
@@ -166,13 +199,14 @@ class Canvas:
 
     # ---- compositing -----------------------------------------------------
     def blit(self, src, dx, dy, sx=0, sy=0, sw=None, sh=None):
+        # device-space copy (both canvases already at their device resolution)
         sw = src.w if sw is None else sw
         sh = src.h if sh is None else sh
         for yy in range(sh):
             for xx in range(sw):
-                c = src.get(sx + xx, sy + yy)
+                c = src._dget(sx + xx, sy + yy)
                 if c[3] != 0:
-                    self.set(dx + xx, dy + yy, c)
+                    self._dset(dx + xx, dy + yy, c)
 
     def outline(self, color, where=TRANSPARENT):
         """Draw `color` on transparent pixels that border a non-transparent
@@ -180,15 +214,15 @@ class Canvas:
         adds = []
         for y in range(self.h):
             for x in range(self.w):
-                if self.get(x, y)[3] != 0:
+                if self._dget(x, y)[3] != 0:
                     continue
                 for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-                    c = self.get(nx, ny)
+                    c = self._dget(nx, ny)
                     if c[3] != 0 and c != color:
                         adds.append((x, y))
                         break
         for x, y in adds:
-            self.set(x, y, color)
+            self._dset(x, y, color)
 
     def shade_column(self, x, y, h, top, bottom):
         """Vertical gradient down a 1px column (top->bottom)."""
@@ -209,17 +243,17 @@ class Canvas:
         deterministic — lets our procedural art light per-pixel at runtime."""
         import math
         w, h = self.w, self.h
-        out = Canvas(w, h, fill=(128, 128, 255, 0), scale=1)
+        out = Canvas(w, h, fill=(128, 128, 255, 0), scale=1)  # cs=1 -> set == device
 
         def height(x, y):
-            r, g, b, a = self.get(x, y)
+            r, g, b, a = self._dget(x, y)
             if a == 0:
                 return 0.0
             return (r * 0.299 + g * 0.587 + b * 0.114) / 255.0 * (a / 255.0)
 
         for y in range(h):
             for x in range(w):
-                if self.get(x, y)[3] == 0:
+                if self._dget(x, y)[3] == 0:
                     continue
                 dx = (height(x - 1, y) - height(x + 1, y)) * strength
                 dy = (height(x, y - 1) - height(x, y + 1)) * strength

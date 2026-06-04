@@ -2,7 +2,7 @@
 
 import os
 import math
-from pnglib import Canvas, shade, lerp
+from pnglib import Canvas, shade, lerp, CS
 import gen_font as gf
 
 # logo letters use Scale2x-smoothed glyphs (10x14) drawn at an integer block
@@ -33,7 +33,7 @@ def text_w(s, gs):
 
 
 def logo(out):
-    cv = Canvas(520, 140, scale=1)
+    cv = Canvas(520, 140, cs=CS)
     # "THE MIGHTY" — gold
     t1 = "THE MIGHTY"
     x = (520 - text_w(t1, 2)) // 2
@@ -49,7 +49,7 @@ def logo(out):
 
 
 def starfield(out, w=640, h=360):
-    cv = Canvas(w, h, scale=1)
+    cv = Canvas(w, h, cs=CS)
     # vertical gradient night sky
     for y in range(h):
         t = y / h

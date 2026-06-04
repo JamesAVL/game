@@ -8,9 +8,9 @@ A generic painter draws them from a per-zone palette, with a zone-specific
 """
 
 import os
-from pnglib import Canvas, shade
+from pnglib import Canvas, shade, CS
 
-T = 32   # tiles authored natively at the engine's ART=2 resolution
+T = 32   # tiles authored in ART=2 logical coords; cs=CS renders at engine ART
 
 
 def h(x, y, seed):  # cheap deterministic hash -> 0..1
@@ -119,7 +119,7 @@ def deco(cv, ox, pal, kind="plant"):
 
 
 def make(pal, kind, out):
-    cv = Canvas(T * 12, T, scale=1)
+    cv = Canvas(T * 12, T, cs=CS)
     floor(cv, 0 * T, pal["floor"], pal["floor2"], 1, 0.10)            # 0
     floor(cv, 1 * T, pal["floor"], shade(pal["floor"], -0.12), 2, 0.16)  # 1
     wall(cv, 2 * T, pal["wall"], pal["wall_hi"], shade(pal["wall"], -0.35))  # 2

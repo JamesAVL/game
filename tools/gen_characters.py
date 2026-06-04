@@ -7,7 +7,7 @@ Sheet layout (contract with engine/sprite.js):
 """
 
 import os
-from pnglib import Canvas
+from pnglib import Canvas, CS
 import artlib
 
 DIRS = ["down", "up", "left", "right"]
@@ -16,8 +16,8 @@ NFR = 4
 
 
 def build_sheet(pal, out_path):
-    # scale=1: artlib draws at native (already ART-sized) detail
-    cv = Canvas(FW * NFR, FH * len(DIRS), scale=1)
+    # cs=CS: artlib draws in ART=2 logical coords, rendered crisp at the engine ART
+    cv = Canvas(FW * NFR, FH * len(DIRS), cs=CS)
     for r, d in enumerate(DIRS):
         for f in range(NFR):
             artlib.draw_person(cv, f * FW, r * FH, d, f, pal)

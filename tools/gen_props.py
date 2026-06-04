@@ -10,7 +10,7 @@ Index order is the contract with PROP_INDEX in src/data/items.js.
 """
 
 import os
-from pnglib import Canvas, shade
+from pnglib import Canvas, shade, CS
 
 FW, FH = 32, 48
 N = 12
@@ -142,7 +142,7 @@ PAINTERS = [bin_, snowmound, shell, urn, bush, crate, rock,
 def main():
     here = os.path.dirname(__file__)
     out = os.path.join(here, "..", "assets", "sprites", "props.png")
-    cv = Canvas(FW * len(PAINTERS), FH, scale=1)
+    cv = Canvas(FW * len(PAINTERS), FH, cs=CS)
     for i, paint in enumerate(PAINTERS):
         ox = i * FW
         base_shadow(cv, ox)
