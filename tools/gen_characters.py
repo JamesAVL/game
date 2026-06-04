@@ -16,7 +16,8 @@ NFR = 4
 
 
 def build_sheet(pal, out_path):
-    cv = Canvas(FW * NFR, FH * len(DIRS))
+    # scale=1: artlib draws at native (already ART-sized) detail
+    cv = Canvas(FW * NFR, FH * len(DIRS), scale=1)
     for r, d in enumerate(DIRS):
         for f in range(NFR):
             artlib.draw_person(cv, f * FW, r * FH, d, f, pal)

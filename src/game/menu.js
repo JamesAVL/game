@@ -1,6 +1,6 @@
 // menu.js — pause menu overlay with Resume / Party stats / Save / Quit.
 
-import { Scenes, VIEW_W, VIEW_H, Input } from "../engine/core.js";
+import { Scenes, VIEW_W, VIEW_H, ART, Input } from "../engine/core.js";
 import { drawText, textCentered, panel } from "../engine/gfx.js";
 import { Sfx } from "../engine/audio.js";
 import { GS } from "./state.js";
@@ -54,42 +54,42 @@ export class PauseMenu {
   }
 
   renderMenu(ctx) {
-    const w = 140, h = 98, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 140 * ART, h = 98 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
-    textCentered(ctx, "PAUSED", VIEW_W / 2, y + 8, { color: "#ffd86a" });
+    textCentered(ctx, "PAUSED", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
     this.items.forEach((it, i) => {
-      const yy = y + 24 + i * 11;
-      if (i === this.sel) drawText(ctx, ">", x + 18, yy, { color: "#ffd86a" });
-      drawText(ctx, this.label(it), x + 28, yy, { color: i === this.sel ? "#ffd86a" : "#cfcfe6" });
+      const yy = y + 24 * ART + i * 11 * ART;
+      if (i === this.sel) drawText(ctx, ">", x + 18 * ART, yy, { color: "#ffd86a" });
+      drawText(ctx, this.label(it), x + 28 * ART, yy, { color: i === this.sel ? "#ffd86a" : "#cfcfe6" });
     });
   }
 
   renderParty(ctx) {
-    const w = 180, h = 110, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 180 * ART, h = 110 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
     const s = GS.data.stats;
-    textCentered(ctx, "THE PARTY", VIEW_W / 2, y + 8, { color: "#ffd86a" });
-    drawText(ctx, "Vince Noir  -  rock & roll star", x + 12, y + 24, { color: "#9fd0ff" });
-    drawText(ctx, "Howard Moon -  man of jazz", x + 12, y + 36, { color: "#e0b070" });
-    drawText(ctx, "Level   " + s.level, x + 12, y + 54, { color: "#fff" });
-    drawText(ctx, "XP      " + s.xp + " / " + s.xpNext, x + 12, y + 66, { color: "#fff" });
-    drawText(ctx, "Style   " + s.style, x + 12, y + 78, { color: "#ff9fd0" });
-    drawText(ctx, "Jazz    " + s.jazz, x + 96, y + 78, { color: "#9fd0ff" });
-    drawText(ctx, "Records " + GS.recordCount() + " / 6", x + 12, y + 92, { color: "#ffd86a" });
-    drawText(ctx, "(z/esc back)", x + w - 70, y + h - 11, { color: "#7a7a96" });
+    textCentered(ctx, "THE PARTY", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
+    drawText(ctx, "Vince Noir  -  rock & roll star", x + 12 * ART, y + 24 * ART, { color: "#9fd0ff" });
+    drawText(ctx, "Howard Moon -  man of jazz", x + 12 * ART, y + 36 * ART, { color: "#e0b070" });
+    drawText(ctx, "Level   " + s.level, x + 12 * ART, y + 54 * ART, { color: "#fff" });
+    drawText(ctx, "XP      " + s.xp + " / " + s.xpNext, x + 12 * ART, y + 66 * ART, { color: "#fff" });
+    drawText(ctx, "Style   " + s.style, x + 12 * ART, y + 78 * ART, { color: "#ff9fd0" });
+    drawText(ctx, "Jazz    " + s.jazz, x + 96 * ART, y + 78 * ART, { color: "#9fd0ff" });
+    drawText(ctx, "Records " + GS.recordCount() + " / 6", x + 12 * ART, y + 92 * ART, { color: "#ffd86a" });
+    drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 
   renderItems(ctx) {
-    const w = 180, h = 120, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 180 * ART, h = 120 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
-    textCentered(ctx, "ITEMS", VIEW_W / 2, y + 8, { color: "#ffd86a" });
+    textCentered(ctx, "ITEMS", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
     const list = GS.itemList();
-    if (!list.length) drawText(ctx, "Your pockets are empty.", x + 12, y + 26, { color: "#cfcfe6" });
+    if (!list.length) drawText(ctx, "Your pockets are empty.", x + 12 * ART, y + 26 * ART, { color: "#cfcfe6" });
     list.slice(0, 8).forEach((id, i) => {
       const meta = ITEMS[id] || { name: id, desc: "" };
-      const yy = y + 24 + i * 11;
-      drawText(ctx, "- " + meta.name + " x" + GS.count(id), x + 12, yy, { color: "#fff" });
+      const yy = y + 24 * ART + i * 11 * ART;
+      drawText(ctx, "- " + meta.name + " x" + GS.count(id), x + 12 * ART, yy, { color: "#fff" });
     });
-    drawText(ctx, "(z/esc back)", x + w - 70, y + h - 11, { color: "#7a7a96" });
+    drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 }

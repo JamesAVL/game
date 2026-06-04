@@ -66,8 +66,9 @@ const HUB = {
 function makeWorld(cfg) {
   const W = 30, H = 26;
   const m = blank(W, H);
-  // themed obstacle clusters + deco for a maze-y feel (kept non-sealing)
-  scatter(m, "O", cfg.rocks || [[6, 6], [23, 6], [9, 16], [20, 17], [13, 20], [26, 21]]);
+  // themed obstacle clusters + deco for a maze-y feel (kept non-sealing).
+  // NB: none of these may land on an entity tile (see tools/validate_zones.mjs).
+  scatter(m, "O", cfg.rocks || [[6, 6], [23, 6], [9, 16], [20, 17], [13, 20], [27, 16]]);
   scatter(m, "\"", cfg.deco || [[8, 10], [18, 9], [11, 15], [25, 14], [7, 21]]);
   // branching walls (each has a gap)
   hline(m, 9, 13, 10, "#"); set(m, 13, 13, "."); set(m, 14, 13, ".");

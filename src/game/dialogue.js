@@ -5,14 +5,14 @@
 //                                                    page array spliced in.
 // onDone() fires after the final page.
 
-import { Scenes, VIEW_W, VIEW_H, Input, img } from "../engine/core.js";
+import { Scenes, VIEW_W, VIEW_H, ART, Input, img } from "../engine/core.js";
 import { drawText, textCentered, panel, drawFrame, LINE_H } from "../engine/gfx.js";
 import { Sfx } from "../engine/audio.js";
 
-// speaker face -> sprite source (col/row in a 16x24 sheet, or whole image)
+// speaker face -> sprite source (col/row in a 16x24 (×ART) sheet, or whole image)
 const FACES = {
-  Vince: { key: "vince", col: 0, row: 0, fw: 16, fh: 24 },
-  Howard: { key: "howard", col: 0, row: 0, fw: 16, fh: 24 },
+  Vince: { key: "vince", col: 0, row: 0, fw: 16 * ART, fh: 24 * ART },
+  Howard: { key: "howard", col: 0, row: 0, fw: 16 * ART, fh: 24 * ART },
   Naboo: { key: "naboo", whole: true },
   Bollo: { key: "bollo", whole: true },
   Fossil: { key: "fossil", whole: true },
@@ -100,41 +100,41 @@ export class Dialogue {
   render(ctx) {
     const p = this.cur();
     if (!p) return;
-    const bx = 8, bh = 54, by = VIEW_H - bh - 6, bw = VIEW_W - 16;
+    const bx = 8 * ART, bh = 54 * ART, by = VIEW_H - bh - 6 * ART, bw = VIEW_W - 16 * ART;
     panel(ctx, bx, by, bw, bh);
 
-    let tx = bx + 8;
+    let tx = bx + 8 * ART;
     const face = FACES[p.speaker];
     if (face && img(face.key)) {
-      const fbx = bx + 6, fby = by + 8;
+      const fbx = bx + 6 * ART, fby = by + 8 * ART;
       ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.fillRect(fbx - 1, fby - 1, 34, 38);
+      ctx.fillRect(fbx - 1 * ART, fby - 1 * ART, 34 * ART, 38 * ART);
       const im = img(face.key);
       if (face.whole) {
-        const s = Math.min(32 / im.width, 36 / im.height);
-        ctx.drawImage(im, fbx + (32 - im.width * s) / 2, fby + (36 - im.height * s), im.width * s, im.height * s);
+        const s = Math.min(32 * ART / im.width, 36 * ART / im.height);
+        ctx.drawImage(im, fbx + (32 * ART - im.width * s) / 2, fby + (36 * ART - im.height * s), im.width * s, im.height * s);
       } else {
-        drawFrame(ctx, im, face.fw, face.fh, face.col, face.row, fbx + 8, fby + 6);
+        drawFrame(ctx, im, face.fw, face.fh, face.col, face.row, fbx + 8 * ART, fby + 6 * ART);
       }
-      tx = bx + 46;
+      tx = bx + 46 * ART;
     }
 
-    if (p.speaker) drawText(ctx, p.speaker, tx, by + 6, { color: NAME_COLOR[p.speaker] || "#fff", shadow: "#000" });
+    if (p.speaker) drawText(ctx, p.speaker, tx, by + 6 * ART, { color: NAME_COLOR[p.speaker] || "#fff", shadow: "#000" });
 
     const shown = this.fullText().slice(0, this.typed);
-    const wrapped = drawText(ctx, shown, tx, by + 18, { color: "#f4f4ff", maxWidth: bx + bw - tx - 6, shadow: "#1a1430" });
+    const wrapped = drawText(ctx, shown, tx, by + 18 * ART, { color: "#f4f4ff", maxWidth: bx + bw - tx - 6 * ART, shadow: "#1a1430" });
 
     if (this.isChoice() && this.typed >= this.fullText().length) {
-      const baseY = by + 18 + (wrapped.split("\n").length) * LINE_H + 2;
+      const baseY = by + 18 * ART + (wrapped.split("\n").length) * LINE_H + 2 * ART;
       p.options.forEach((o, k) => {
         const yy = baseY + k * (LINE_H);
         if (k === this.sel) drawText(ctx, ">", tx, yy, { color: "#ffd86a" });
-        drawText(ctx, o.label, tx + 8, yy, { color: k === this.sel ? "#ffd86a" : "#bbbbcc" });
+        drawText(ctx, o.label, tx + 8 * ART, yy, { color: k === this.sel ? "#ffd86a" : "#bbbbcc" });
       });
     } else if (this.typed >= this.fullText().length) {
       // blinking advance arrow
       if (Math.floor(performance.now() / 350) % 2 === 0)
-        drawText(ctx, ">", bx + bw - 12, by + bh - 12, { color: "#ffd86a" });
+        drawText(ctx, ">", bx + bw - 12 * ART, by + bh - 12 * ART, { color: "#ffd86a" });
     }
   }
 }

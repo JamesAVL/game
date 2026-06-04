@@ -1,6 +1,6 @@
 // title.js — title screen + intro narration, then hands off to the overworld.
 
-import { Scenes, VIEW_W, VIEW_H, Input, img, Save } from "../engine/core.js";
+import { Scenes, VIEW_W, VIEW_H, ART, Input, img, Save } from "../engine/core.js";
 import { drawText, textCentered, panel } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
 import { GS } from "./state.js";
@@ -64,23 +64,23 @@ export class Title {
 
     const logo = img("logo");
     if (logo) {
-      const bob = Math.sin(this.t * 1.5) * 2;
-      ctx.drawImage(logo, (VIEW_W - logo.width) / 2, 22 + bob);
+      const bob = Math.sin(this.t * 1.5) * 2 * ART;
+      ctx.drawImage(logo, (VIEW_W - logo.width) / 2, 22 * ART + bob);
     } else {
-      textCentered(ctx, "THE MIGHTY BOOSH", VIEW_W / 2, 40, { color: "#ffd86a", scale: 2 });
+      textCentered(ctx, "THE MIGHTY BOOSH", VIEW_W / 2, 40 * ART, { color: "#ffd86a", scale: 2 });
     }
-    textCentered(ctx, "Journey Through the Zooniverse", VIEW_W / 2, 92, { color: "#c79aff" });
+    textCentered(ctx, "Journey Through the Zooniverse", VIEW_W / 2, 92 * ART, { color: "#c79aff" });
 
-    const y0 = 112;
+    const y0 = 112 * ART;
     this.items.forEach((it, i) => {
-      const yy = y0 + i * 14;
+      const yy = y0 + i * 14 * ART;
       if (i === this.sel) {
-        if (Math.floor(this.t * 3) % 2 === 0) drawText(ctx, ">", VIEW_W / 2 - 52, yy, { color: "#ffd86a" });
+        if (Math.floor(this.t * 3) % 2 === 0) drawText(ctx, ">", VIEW_W / 2 - 52 * ART, yy, { color: "#ffd86a" });
       }
       const dim = it === "Difficulty";
       textCentered(ctx, this.label(it), VIEW_W / 2, yy, { color: i === this.sel ? "#ffd86a" : (dim ? "#7f86a8" : "#9aa0c0"), shadow: "#000" });
     });
 
-    textCentered(ctx, "a crimping adventure", VIEW_W / 2, VIEW_H - 10, { color: "#5a5a7a" });
+    textCentered(ctx, "a crimping adventure", VIEW_W / 2, VIEW_H - 10 * ART, { color: "#5a5a7a" });
   }
 }

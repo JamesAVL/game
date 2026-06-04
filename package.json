@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node tools/serve.js",
     "serve": "node tools/serve.js",
-    "assets": "python3 tools/gen_all.py"
+    "assets": "python3 tools/gen_all.py",
+    "validate": "node tools/validate_zones.mjs"
   },
   "license": "MIT"
 }

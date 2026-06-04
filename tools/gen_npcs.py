@@ -7,7 +7,7 @@ from artlib import PAL
 
 
 def npc(pal, out):
-    cv = Canvas(artlib.FRAME_W, artlib.FRAME_H)
+    cv = Canvas(artlib.FRAME_W, artlib.FRAME_H, scale=1)  # native HD detail
     artlib.draw_person(cv, 0, 0, "down", 0, pal)
     cv.write(out)
     print("wrote", out)
