@@ -10,7 +10,7 @@ A generic painter draws them from a per-zone palette, with a zone-specific
 import os
 from pnglib import Canvas, shade
 
-T = 16
+T = 32   # tiles authored natively at the engine's ART=2 resolution
 
 
 def h(x, y, seed):  # cheap deterministic hash -> 0..1
@@ -21,88 +21,105 @@ def h(x, y, seed):  # cheap deterministic hash -> 0..1
 
 def floor(cv, ox, base, spec, seed, density=0.10):
     cv.rect(ox, 0, T, T, base)
+    spec2 = shade(base, 0.10)
     for y in range(T):
         for x in range(T):
-            if h(x, y, seed) < density:
+            r = h(x, y, seed)
+            if r < density:
                 cv.set(ox + x, y, spec)
+            elif r < density + 0.05:
+                cv.set(ox + x, y, spec2)
 
 
 def wall(cv, ox, base, hi, lo):
     cv.rect(ox, 0, T, T, base)
-    cv.hline(ox, 0, T, hi)
-    cv.hline(ox, T - 1, T, lo)
-    # brick seams
-    for y in (5, 10, 15):
-        cv.hline(ox, y, T, lo)
-    off = 0
-    for y in range(0, T, 5):
-        cv.vline(ox + (8 + off) % T, y, 5, lo)
-        cv.vline(ox + (0 + off) % T, y, 5, lo)
-        off += 8
+    cv.rect(ox, 0, T, 2, hi)
+    cv.rect(ox, T - 2, T, 2, lo)
+    bevel = shade(base, 0.12)
+    for i, ry in enumerate(range(0, T, 8)):     # brick rows
+        cv.hline(ox, ry, T, lo)
+        cv.hline(ox, ry + 1, T, bevel)
+        off = 0 if i % 2 == 0 else 8            # running bond
+        for sx in range(off, T + 1, 16):
+            cv.vline(ox + (sx % T), ry, 8, lo)
 
 
 def obstacle(cv, ox, kind, pal):
     base = pal["feat"]; hi = pal["feat_hi"]; dk = shade(base, -0.35)
-    # transparent bg so floor shows under non-square shapes when placed? tiles are
-    # opaque; paint floor first then the object on top.
     floor(cv, ox, pal["floor"], pal["floor2"], 1, 0.06)
-    cx = ox + 8
+    cx = ox + 16
     if kind == "tree":
-        cv.rect(cx - 1, 9, 3, 6, pal.get("trunk", (90, 65, 40)))
-        cv.ellipse(cx, 6, 6, 5, base)
-        cv.ellipse(cx - 2, 4, 4, 3, hi)
-        cv.ellipse(cx + 3, 7, 3, 3, dk)
+        trunk = pal.get("trunk", (90, 65, 40))
+        cv.rect(cx - 2, 18, 4, 12, trunk); cv.vline(cx - 2, 18, 12, shade(trunk, -0.3))
+        cv.ellipse(cx, 12, 12, 10, base)
+        cv.ellipse(cx - 4, 8, 7, 6, hi)
+        cv.ellipse(cx + 6, 14, 5, 5, dk)
+        for (lx, ly) in [(cx - 8, 6), (cx + 4, 4), (cx + 9, 11), (cx - 9, 14)]:
+            cv.set(lx, ly, hi)
     elif kind == "ice":
-        cv.fill_poly([(cx - 5, 14), (cx - 2, 4), (cx + 1, 8), (cx + 4, 3), (cx + 6, 14)], base)
-        cv.line(cx - 1, 6, cx + 2, 13, hi)
-        cv.set(cx, 5, (255, 255, 255))
+        cv.fill_poly([(cx - 10, 28), (cx - 4, 8), (cx + 2, 16), (cx + 8, 6), (cx + 12, 28)], base)
+        cv.line(cx - 2, 12, cx + 4, 26, hi)
+        cv.line(cx + 6, 10, cx + 9, 24, shade(base, -0.2))
+        cv.ellipse(cx, 10, 2, 2, (255, 255, 255))
     elif kind == "coral":
-        cv.rect(cx - 1, 8, 2, 7, base)
-        cv.rect(cx - 4, 6, 2, 6, base); cv.rect(cx + 3, 5, 2, 8, base)
-        cv.rect(cx - 4, 6, 2, 2, hi); cv.rect(cx + 3, 5, 2, 2, hi)
-        cv.set(cx, 7, hi)
+        cv.rect(cx - 2, 16, 4, 14, base)
+        cv.rect(cx - 8, 12, 4, 12, base); cv.rect(cx + 6, 10, 4, 16, base)
+        cv.rect(cx - 8, 12, 4, 3, hi); cv.rect(cx + 6, 10, 4, 3, hi)
+        cv.ellipse(cx, 14, 3, 3, hi); cv.ellipse(cx - 6, 12, 2, 2, hi)
     elif kind == "spire":
-        cv.fill_poly([(cx - 4, 15), (cx, 2), (cx + 4, 15)], base)
-        cv.fill_poly([(cx - 4, 15), (cx, 2), (cx, 15)], hi)
-        cv.set(cx, 4, pal.get("glow", (220, 120, 240)))
+        cv.fill_poly([(cx - 8, 30), (cx, 4), (cx + 8, 30)], base)
+        cv.fill_poly([(cx - 8, 30), (cx, 4), (cx, 30)], hi)
+        glow = pal.get("glow", (220, 120, 240))
+        cv.ellipse(cx, 9, 2, 3, glow); cv.set(cx, 6, (255, 255, 255))
     elif kind == "crater":
-        cv.ellipse(cx, 11, 6, 4, dk)
-        cv.ellipse(cx, 10, 6, 4, base, fill=False)
-        cv.ellipse(cx, 11, 3, 2, shade(base, -0.2))
+        cv.ellipse(cx, 22, 12, 8, dk)
+        cv.ellipse(cx, 20, 12, 8, base, fill=False)
+        cv.ellipse(cx, 22, 6, 4, shade(base, -0.2))
+        cv.ellipse(cx - 3, 20, 2, 1, hi)
     elif kind == "urn":
-        cv.ellipse(cx, 9, 4, 5, base)
-        cv.rect(cx - 2, 3, 4, 2, hi)
-        cv.ellipse(cx - 1, 8, 2, 3, hi)
+        cv.ellipse(cx, 18, 8, 10, base)
+        cv.rect(cx - 4, 6, 8, 4, hi); cv.rect(cx - 5, 9, 10, 2, shade(base, -0.2))
+        cv.ellipse(cx - 2, 16, 3, 5, hi)
+        cv.set(cx + 3, 14, dk)
     else:  # rock
-        cv.ellipse(cx, 10, 6, 5, base)
-        cv.ellipse(cx - 2, 8, 3, 2, hi)
+        cv.ellipse(cx, 20, 12, 10, base)
+        cv.ellipse(cx - 4, 16, 6, 4, hi)
+        cv.line(cx + 2, 14, cx + 5, 26, dk)
 
 
 def water(cv, ox, deep, shallow, seed):
     cv.rect(ox, 0, T, T, deep)
+    mid = shade(deep, 0.12)
     for y in range(T):
         for x in range(T):
-            if h(x, y, seed) < 0.12:
+            r = h(x, y, seed)
+            if r < 0.10:
                 cv.set(ox + x, y, shallow)
-    cv.hline(ox + 2, 4, 5, shallow)
-    cv.hline(ox + 9, 10, 4, shallow)
+            elif r < 0.18:
+                cv.set(ox + x, y, mid)
+    # ripple lines
+    for (rx, ry, w) in [(4, 8, 10), (18, 14, 9), (8, 22, 11), (20, 27, 7)]:
+        cv.hline(ox + rx, ry, w, shallow)
+        cv.hline(ox + rx + 1, ry + 1, w - 2, mid)
 
 
 def deco(cv, ox, pal, kind="plant"):
     floor(cv, ox, pal["floor"], pal["floor2"], 3, 0.06)
-    cx = ox + 8
-    c = pal.get("deco", (90, 150, 70)); hi = shade(c, 0.3)
+    cx = ox + 16
+    c = pal.get("deco", (90, 150, 70)); hi = shade(c, 0.3); dk = shade(c, -0.3)
     if kind == "plant":
-        for dx in (-2, 0, 2):
-            cv.line(cx + dx, 13, cx + dx + (dx // 2), 8, c)
-        cv.set(cx, 7, hi); cv.set(cx - 2, 9, hi)
+        for dx in (-5, -1, 3, 6):
+            cv.line(cx + dx, 26, cx + dx + (dx // 3), 14, c)
+        cv.line(cx, 27, cx, 12, c)
+        cv.set(cx, 12, hi); cv.set(cx - 4, 16, hi); cv.set(cx + 4, 15, hi)
     else:
-        cv.ellipse(cx, 11, 3, 2, c)
-        cv.set(cx, 9, hi)
+        cv.ellipse(cx, 22, 6, 4, c)
+        cv.ellipse(cx - 2, 20, 2, 1, hi)
+        cv.set(cx + 3, 23, dk)
 
 
 def make(pal, kind, out):
-    cv = Canvas(T * 12, T)
+    cv = Canvas(T * 12, T, scale=1)
     floor(cv, 0 * T, pal["floor"], pal["floor2"], 1, 0.10)            # 0
     floor(cv, 1 * T, pal["floor"], shade(pal["floor"], -0.12), 2, 0.16)  # 1
     wall(cv, 2 * T, pal["wall"], pal["wall_hi"], shade(pal["wall"], -0.35))  # 2
@@ -113,16 +130,19 @@ def make(pal, kind, out):
     water(cv, 7 * T, pal["water"], pal["water_hi"], 5)                # 7
     # 8 door / threshold
     floor(cv, 8 * T, pal["path"], shade(pal["path"], -0.1), 6, 0.05)
-    cv.rect_outline(8 * T + 3, 3, 10, 10, shade(pal["path"], -0.3))
+    cv.rect_outline(8 * T + 6, 6, 20, 20, shade(pal["path"], -0.3))
+    cv.rect_outline(8 * T + 7, 7, 18, 18, shade(pal["path"], -0.15))
     # 9 accent / portal pad
     floor(cv, 9 * T, pal["accent"], shade(pal["accent"], 0.2), 7, 0.08)
-    cv.rect_outline(9 * T + 2, 2, 12, 12, shade(pal["accent"], -0.25))
+    cv.rect_outline(9 * T + 4, 4, 24, 24, shade(pal["accent"], -0.25))
+    cv.ellipse(9 * T + 16, 16, 5, 5, shade(pal["accent"], 0.25))
     deco(cv, 10 * T, pal, "rock")                                     # 10
     # 11 solid feature (building / pillar block)
     cv.rect(11 * T, 0, T, T, pal["wall"])
-    cv.rect(11 * T, 0, T, 3, pal["wall_hi"])
+    cv.rect(11 * T, 0, T, 5, pal["wall_hi"])
     cv.rect_outline(11 * T, 0, T, T, shade(pal["wall"], -0.4))
-    cv.rect(11 * T + 5, 5, 6, 8, shade(pal["wall"], -0.5))
+    cv.rect(11 * T + 9, 9, 14, 16, shade(pal["wall"], -0.5))
+    cv.rect(11 * T + 11, 11, 10, 12, shade(pal["wall"], -0.3))
     cv.write(out)
     print("wrote", out)
 
