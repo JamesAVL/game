@@ -60,8 +60,10 @@ export default defineConfig({
   // relative base so the same build works at the project-pages subpath
   // (https://user.github.io/game/) and at the domain root.
   base: "./",
-  // assets are handled by the plugin above, not Vite's publicDir
-  publicDir: false,
+  // publicDir holds static passthrough files copied to the dist root verbatim
+  // (PWA manifest + service worker); the big generated PNG tree under assets/
+  // is handled by the plugin above instead.
+  publicDir: "public",
   build: {
     outDir: "dist",
     emptyOutDir: true,

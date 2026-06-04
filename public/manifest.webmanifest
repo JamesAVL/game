@@ -1,0 +1,19 @@
+{
+  "name": "The Mighty Boosh — Journey Through the Zooniverse",
+  "short_name": "Boosh",
+  "description": "A pixel-art crimping adventure RPG through the Zooniverse.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#05040c",
+  "theme_color": "#1a1040",
+  "icons": [
+    {
+      "src": "assets/ui/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

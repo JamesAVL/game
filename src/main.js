@@ -11,6 +11,14 @@ import { initTouch } from "./engine/touch.js";
 // restore the saved visual-FX preset (off | soft | crt)
 Renderer.setPreset(Save.optGet("fx", "soft"));
 
+// register the service worker for offline play (production build only — in dev
+// it would shadow Vite's module serving / HMR).
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW registration failed:", e));
+  });
+}
+
 // debug handle (handy for testing in the console)
 window.__BOOSH = {
   GS, Scenes, Renderer, Particles, Juice,

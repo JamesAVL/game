@@ -88,6 +88,15 @@ tools/                  # Python asset generators (see below) + serve.js
 - `tools/artlib.py` — shared palette + parametric `draw_person()` (heroes + NPCs).
 - `tools/gen_*.py` — one generator per asset family; `gen_all.py` runs them all.
 - Audio is not pre-rendered: `engine/audio.js` synthesises everything at runtime.
+- `tools/gen_icon.py` draws the 512² PWA app icon (crescent moon) → `assets/ui/icon.png`.
+
+## PWA (offline)
+`public/` holds passthrough files copied to the dist root: `manifest.webmanifest`
+(installable, standalone, landscape) and `sw.js` (a stale-while-revalidate
+service worker — same-origin GETs are cached, so after the first visit the game
+loads instantly and plays fully offline). The SW is registered from `main.js`
+**only in production** (`import.meta.env.PROD`) so it never shadows Vite's dev
+module serving / HMR.
 
 Run `python3 tools/gen_all.py` to rebuild all PNGs (deterministic).
 
