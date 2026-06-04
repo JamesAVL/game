@@ -25,6 +25,7 @@ src/
     renderer.js         # WebGL2 presentation + post-FX (bloom/grade/CRT); 2D fallback
     particles.js        # pooled additive particles + global screen-shake (Juice)
     light.js            # dynamic 2D lighting (per-zone ambient + light sources)
+    midi.js             # optional WebMIDI: a keyboard/pad plays the crimp lanes
     gfx.js              # tinted bitmap-font text, sprite frames, camera, UI panels
     audio.js            # chiptune synth + sequencer + SFX; music sub-bus, limiter, beat analyser
     tilemap.js          # tile-layer render + collision
@@ -81,6 +82,10 @@ tools/                  # Python asset generators (see below) + serve.js
   areas together. The crimp drives `setMusicBrightness(combo)` and
   `duckMusic()` on a fluff, so the mix tracks your performance. Still 100%
   synthesised — no samples.
+- **WebMIDI (`midi.js`):** best-effort — a connected MIDI keyboard/pad plays the
+  crimp by mapping note pitch-class into the four lanes (low→high =
+  left→up→down→right) and feeding `Input._touchDown/_touchUp`, so the crimp
+  needs no MIDI awareness. No device/permission ⇒ silently inert.
 
 ## Asset pipeline (pure Python stdlib)
 - `tools/pnglib.py` — a minimal PNG encoder + pixel-art `Canvas` (shapes, blit,

@@ -1,8 +1,9 @@
 // main.js — boot: load assets, gate audio behind first input, run the loop.
 
-import { loadAll, startLoop, Scenes, Save } from "./engine/core.js";
+import { loadAll, startLoop, Scenes, Save, Input } from "./engine/core.js";
 import { Renderer } from "./engine/renderer.js";
 import { Particles, Juice } from "./engine/particles.js";
+import { initMidi, midiStatus } from "./engine/midi.js";
 import { unlockAudio, audioDebug, getReactive, duckMusic, setMusicBrightness } from "./engine/audio.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
@@ -21,9 +22,13 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 
 // debug handle (handy for testing in the console)
 window.__BOOSH = {
-  GS, Scenes, Renderer, Particles, Juice,
+  GS, Scenes, Renderer, Particles, Juice, Input,
   Audio: { debug: audioDebug, getReactive, duckMusic, setMusicBrightness },
+  midiStatus,
 };
+
+// optional WebMIDI — play the crimp on a real keyboard/pad if one is present
+initMidi();
 
 const boot = document.getElementById("boot");
 
