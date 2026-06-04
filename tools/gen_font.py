@@ -1,8 +1,12 @@
 """gen_font.py — bake a 5x7 bitmap font into a PNG glyph atlas.
 
-Layout: ASCII 32..126 laid out in a 16-wide grid of 6x8 cells (5x7 glyph
-+ 1px padding). The JS renderer computes a glyph's source rect from its
-char code, so this layout is a fixed contract with engine/bitmapfont.js.
+Layout: ASCII 32..126 laid out in a 16-wide grid of 12x16 cells (10x14 glyph
++ padding) — i.e. the 6x8/5x7 base font at the engine's ART=2 resolution. The
+JS renderer computes a glyph's source rect from its char code, so this layout
+is a fixed contract with engine/gfx.js.
+
+To get crisp HD letterforms (smooth diagonals) rather than a blocky 2x, each
+5x7 glyph is upscaled with Scale2x (EPX), authored natively at scale=1.
 
 Lowercase letters fall back to uppercase glyphs (clean, consistent look).
 Glyphs are authored as 7 rows of 5 chars ('#' = ink, '.' = empty).
@@ -11,7 +15,7 @@ Glyphs are authored as 7 rows of 5 chars ('#' = ink, '.' = empty).
 import os
 from pnglib import Canvas
 
-CELL_W, CELL_H = 6, 8
+CELL_W, CELL_H = 12, 16   # base 6x8 cell at ART=2
 COLS = 16
 FIRST, LAST = 32, 126
 
@@ -97,18 +101,40 @@ def glyph_for(ch):
     return G["?"]
 
 
+def scale2x(grid):
+    """EPX/Scale2x: double a 1-bit glyph while smoothing diagonal staircases."""
+    h = len(grid); w = len(grid[0])
+    def at(y, x):
+        return 0 <= y < h and 0 <= x < w and grid[y][x] == "#"
+    out = [[False] * (w * 2) for _ in range(h * 2)]
+    for y in range(h):
+        for x in range(w):
+            e = at(y, x)
+            b = at(y - 1, x); d = at(y, x - 1); f = at(y, x + 1); g = at(y + 1, x)
+            if b != g and d != f:
+                e0 = d if d == b else e
+                e1 = f if b == f else e
+                e2 = d if d == g else e
+                e3 = f if g == f else e
+            else:
+                e0 = e1 = e2 = e3 = e
+            out[y * 2][x * 2] = e0;     out[y * 2][x * 2 + 1] = e1
+            out[y * 2 + 1][x * 2] = e2; out[y * 2 + 1][x * 2 + 1] = e3
+    return out
+
+
 def build(out_path):
     n = LAST - FIRST + 1
     rows = (n + COLS - 1) // COLS
-    cv = Canvas(COLS * CELL_W, rows * CELL_H)
+    cv = Canvas(COLS * CELL_W, rows * CELL_H, scale=1)  # author natively at ART res
     for i in range(n):
         ch = chr(FIRST + i)
         cx = (i % COLS) * CELL_W
         cy = (i // COLS) * CELL_H
-        grid = glyph_for(ch)
-        for ry, row in enumerate(grid):
-            for rx, c in enumerate(row):
-                if c == "#":
+        big = scale2x(glyph_for(ch))   # 10x14
+        for ry, row in enumerate(big):
+            for rx, on in enumerate(row):
+                if on:
                     cv.set(cx + rx, cy + ry, (255, 255, 255, 255))
     cv.write(out_path)
     print("wrote", out_path)
