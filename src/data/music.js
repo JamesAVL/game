@@ -9,8 +9,10 @@ function n(tok) {
   return m ? (parseInt(m[2]) + 1) * 12 + NOTES[m[1]] : 0;
 }
 function S(str) { return str.trim().split(/\s+/).map(n); }
-// drum string: x = hit, . = rest
-function D(str) { return str.trim().split(/\s+/).map((c) => (c === "x" || c === "X" ? 60 : 0)); }
+// drum string: k = kick, s = snare, h = hat, x = generic hit (snare), . = rest.
+// values feed the engine drum kit (1=kick, 3=hat, else=snare).
+const DRUM = { k: 1, s: 2, h: 3, x: 2, X: 2 };
+function D(str) { return str.trim().split(/\s+/).map((c) => DRUM[c] || 0); }
 
 const E_LEAD = { a: 0.004, d: 0.05, s: 0.5, r: 0.05 };
 const E_PLUCK = { a: 0.002, d: 0.08, s: 0.2, r: 0.04 };
@@ -31,7 +33,7 @@ export const TRACKS = {
   hub: track(124, [
     { wave: "square", gain: 0.11, env: E_LEAD, seq: S("E4 - G4 A4 - G4 E4 - C5 - B4 G4 - A4 - - E4 - G4 A4 - C5 B4 - A4 - G4 - E4 - - -") },
     { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("A2 - A2 - E3 - - - F2 - F2 - C3 - - - G2 - G2 - D3 - - - A2 - E3 - A2 - - -") },
-    { wave: "noise", gain: 0.10, seq: D("x . . . x . x . x . . . x . x . x . . . x . x . x . . . x . x x") },
+    { wave: "noise", gain: 0.12, seq: D("k . h . s . h . k . h . s . h h k . h . s . h . k . h . s . h h") },
   ]),
 
   // ---- ambient zone themes ----
@@ -64,32 +66,32 @@ export const TRACKS = {
   crimp_jazz: track(140, [
     { wave: "square", gain: 0.11, env: E_LEAD, seq: S("C5 - D#5 F5 - F#5 G5 - A#5 - G5 F5 - D#5 - C5 G4 - A#4 C5 - D#5 - C5 - A#4 - G4 - F4 - -") },
     { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("C3 - G3 - C3 - A#2 - F3 - C4 - F3 - D#3 - G3 - D4 - G3 - F3 - C3 - G3 - C3 - G3 -") },
-    { wave: "noise", gain: 0.11, seq: D("x . x x . x . x x . x . x x . x x . x x . x . x x . x . x x x x") },
+    { wave: "noise", gain: 0.12, seq: D("k . h k s . h . k h . k s . h k k . h k s . h . k h . k s . h h") },
   ]),
   crimp_gregg: track(118, [
     { wave: "square", gain: 0.11, env: E_LEAD, seq: S("D4 - - F4 - G4 - A4 - - C5 - A4 - G4 - F4 - - A4 - C5 - D5 - C5 - A4 - G4 - F4") },
     { wave: "sawtooth", gain: 0.12, env: E_BASS, seq: S("D2 - D2 - A2 - - - F2 - F2 - C3 - - - G2 - G2 - D3 - - - D2 - A2 - D2 - - -") },
-    { wave: "noise", gain: 0.10, seq: D("x . . x x . x . x . . x x . x . x . . x x . x . x . . x x . x x") },
+    { wave: "noise", gain: 0.12, seq: D("k . . h s . h . k . k h s . h . k . . h s . h . k . k h s . h h") },
   ]),
   crimp_crackfox: track(156, [
     { wave: "square", gain: 0.10, env: E_PLUCK, seq: S("E5 F5 E5 D5 E5 G5 A5 G5 E5 D5 C5 D5 E5 - B4 - E5 F5 E5 D5 E5 A5 G5 A5 B5 - A5 - E5 - - -") },
     { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("E2 E2 B2 E2 C3 C3 G2 C3 D3 D3 A2 D3 E2 B2 E2 - E2 E2 B2 E2 A2 A2 E2 A2 B2 B2 F#2 B2 E2 - - -") },
-    { wave: "noise", gain: 0.12, seq: D("x x . x x x . x x x . x x . x . x x . x x x . x x x . x x x x x") },
+    { wave: "noise", gain: 0.12, seq: D("k h k h s h k h k h k h s h k h k h s h k h s h k h s h k h s h") },
   ]),
   crimp_nana: track(128, [
     { wave: "sawtooth", gain: 0.10, env: E_LEAD, seq: S("A4 - C5 - E5 - C5 - A4 - G#4 - B4 - G#4 - A4 - C5 - E5 - F5 - E5 - C5 - B4 - A4 -") },
     { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("A2 - A2 - E3 - - - F2 - F2 - C3 - - - E2 - E2 - B2 - - - A2 - E3 - A2 - - -") },
-    { wave: "noise", gain: 0.12, seq: D("x . x . x . x x x . x . x . x x x . x . x . x x x . x . x x x x") },
+    { wave: "noise", gain: 0.12, seq: D("k . h . s . h . k . h k s . h . k . h . s . h . k k h . s . h h") },
   ]),
   crimp_moon: track(92, [
     { wave: "triangle", gain: 0.12, env: E_LEAD, seq: S("C5 - - E5 - - G5 - - E5 - - C5 - - - A4 - - C5 - - E5 - - C5 - - A4 - - -") },
     { wave: "sine", gain: 0.12, env: E_PAD, seq: S("C3 - - - G2 - - - A2 - - - E3 - - - F2 - - - C3 - - - G2 - - - C3 - - -") },
-    { wave: "noise", gain: 0.06, seq: D("x . . . . . x . x . . . . . x . x . . . . . x . x . . . . . x .") },
+    { wave: "noise", gain: 0.08, seq: D("k . . . . . s . . . . . . . s . k . . . . . s . . . . . k . s .") },
   ]),
   crimp_tony: track(150, [
     { wave: "square", gain: 0.11, env: E_LEAD, seq: S("D5 - A4 D5 F5 - D5 A5 - F5 D5 - A4 - D5 - E5 - B4 E5 G5 - E5 B5 - G5 E5 - B4 - E5 -") },
     { wave: "sawtooth", gain: 0.12, env: E_BASS, seq: S("D2 - D2 - A2 - D2 - F2 - C3 - A2 - D2 - E2 - E2 - B2 - E2 - G2 - D3 - B2 - E2 -") },
     { wave: "triangle", gain: 0.08, env: E_PLUCK, seq: S("D4 A4 F4 A4 D4 A4 F4 A4 F4 C5 A4 C5 F4 C5 A4 C5 E4 B4 G4 B4 E4 B4 G4 B4 G4 D5 B4 D5 G4 D5 B4 D5") },
-    { wave: "noise", gain: 0.12, seq: D("x . x x x . x x x . x x x . x x x . x x x . x x x . x x x x x x") },
+    { wave: "noise", gain: 0.12, seq: D("k . k h s . h k k . k h s . h . k h k h s . h k k . k h s h h h") },
   ]),
 };
