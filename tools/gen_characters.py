@@ -16,11 +16,12 @@ NFR = 4
 
 
 def build_sheet(pal, out_path):
-    # cs=CS: artlib draws in ART=2 logical coords, rendered crisp at the engine ART
-    cv = Canvas(FW * NFR, FH * len(DIRS), cs=CS)
+    # cs=1: artlib now authors natively at the engine frame size (48x72) with detail
+    cv = Canvas(FW * NFR, FH * len(DIRS), cs=1)
     for r, d in enumerate(DIRS):
         for f in range(NFR):
             artlib.draw_person(cv, f * FW, r * FH, d, f, pal)
+    cv.outline((16, 12, 24))   # crisp dark rim makes the figures pop
     cv.write(out_path)
     print("wrote", out_path)
 

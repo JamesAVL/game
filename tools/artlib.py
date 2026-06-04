@@ -1,9 +1,10 @@
 """artlib.py — shared palette + a parametric pixel-art character drawer.
 
-draw_person() paints a 16x24 top-down character into a frame for any of the
-4 facing directions and a walk frame, given a palette dict. The heroes
-(Vince, Howard) and the humanoid NPCs all reuse it so the cast looks like it
-belongs to one world; bosses are drawn bespoke in their own generators.
+draw_person() paints a top-down character into a 48x72 frame (native ART=3
+detail) for any of the 4 facing directions and a walk frame, given a palette
+dict. The heroes (Vince, Howard) and the humanoid NPCs all reuse it so the cast
+looks like it belongs to one world; bosses are drawn bespoke in their own
+generators.
 """
 
 from pnglib import Canvas, shade
@@ -38,49 +39,47 @@ PAL = {
 }
 
 # Characters are authored natively at this (higher-detail) frame size. The
-# generators build their Canvas with scale=1 so these pixels map 1:1 to the
-# final PNG (which is already at engine ART resolution).
-FRAME_W, FRAME_H = 32, 48
+# generators build their Canvas with cs=1 so these pixels map 1:1 to the final
+# PNG (which is already at engine ART resolution, 16*ART x 24*ART = 48x72).
+FRAME_W, FRAME_H = 48, 72
 
 TRANSPARENT = (0, 0, 0, 0)
 
 
 def _legs(cv, cx, top_y, frame, leg_col, leg_sh, foot_col):
-    """Draw two legs + boots with a walk offset based on frame (0..3)."""
+    """Two trousered legs + boots with a walk offset based on frame (0..3)."""
     la, ra = 0, 0
     if frame == 1:
-        la, ra = -2, 2
+        la, ra = -3, 3
     elif frame == 3:
-        la, ra = 2, -2
+        la, ra = 3, -3
     leg_hi = shade(leg_col, 0.18)
-    for (x, off) in ((cx - 6, la), (cx + 1, ra)):
-        h = 9 + (1 if off > 0 else 0)
-        cv.rect(x, top_y, 5, h, leg_col)
-        cv.rect(x, top_y, 1, h, leg_sh)        # inner crease shadow
-        cv.rect(x + 4, top_y, 1, h, leg_sh)    # outer edge shadow
-        cv.vline(x + 1, top_y, h - 1, leg_hi)  # subtle highlight
+    boot_hi = shade(foot_col, 0.35)
+    boot_sole = shade(foot_col, -0.45)
+    for (x, off) in ((cx - 9, la), (cx + 2, ra)):
+        h = 13 + (1 if off > 0 else 0)
+        cv.rect(x, top_y, 7, h, leg_col)
+        cv.rect(x, top_y, 2, h, leg_sh)          # inner crease shadow
+        cv.vline(x + 6, top_y, h, leg_sh)         # outer edge shadow
+        cv.vline(x + 2, top_y, h - 1, leg_hi)     # highlight crease
         # boot
-        cv.rect(x - 1, top_y + h, 7, 3, foot_col)
-        cv.hline(x - 1, top_y + h, 7, shade(foot_col, 0.35))
-        cv.hline(x - 1, top_y + h + 2, 7, shade(foot_col, -0.4))
-
-
-def _round(cv, x, y):
-    cv.set(x, y, TRANSPARENT)
+        cv.rect(x - 1, top_y + h, 9, 4, foot_col)
+        cv.hline(x - 1, top_y + h, 9, boot_hi)
+        cv.hline(x - 1, top_y + h + 3, 9, boot_sole)
 
 
 def draw_person(cv, ox, oy, direction, frame, pal):
-    """Paint a detailed character into the 32x48 cell at (ox,oy).
+    """Paint a detailed character into the 48x72 cell at (ox,oy).
 
     pal keys: skin, skin_d, hair, hair_hi, top, top_hi, bottom, shoe,
               hair_style ('vince'|'short'|'turban'|'bald'|'fur'),
               accessory (optional callable(cv,ox,oy,direction)).
     """
-    cx = ox + 16
-    bob = 2 if frame in (1, 3) else 0
+    cx = ox + 24
+    bob = 3 if frame in (1, 3) else 0
     skin = pal["skin"]
     skin_d = pal.get("skin_d", shade(skin, -0.2))
-    skin_hi = shade(skin, 0.18)
+    skin_hi = shade(skin, 0.16)
     hair = pal["hair"]
     hair_hi = pal.get("hair_hi", shade(hair, 0.3))
     top = pal["top"]
@@ -89,87 +88,82 @@ def draw_person(cv, ox, oy, direction, frame, pal):
     bottom = pal["bottom"]
     shoe = pal.get("shoe", PAL["black"])
     style = pal.get("hair_style", "short")
-
-    # ---- soft ground shadow (ellipse) ----
-    for dx in range(-9, 10):
-        a = 90 - abs(dx) * 8
-        if a > 0:
-            cv.set(cx + dx, oy + 45, (0, 0, 0, a))
-            if a > 40:
-                cv.set(cx + dx, oy + 44, (0, 0, 0, a - 40))
-
-    head_y = oy + 7 + bob
-    body_y = oy + 21 + bob
-
-    # ---- legs (behind body) ----
-    _legs(cv, cx, oy + 35, frame, bottom, shade(bottom, -0.32), shoe)
-
-    # ---- arms (behind torso edges) ----
-    arm_swing = 2 if frame == 1 else (-2 if frame == 3 else 0)
-    arm_col = shade(top, -0.12)
-    lay = body_y + 2 + max(0, arm_swing)
-    ray = body_y + 2 + max(0, -arm_swing)
-    cv.rect(cx - 10, lay, 3, 10, arm_col)
-    cv.rect(cx + 7, ray, 3, 10, arm_col)
-    cv.vline(cx - 10, lay, 10, shade(top, -0.3))
-    cv.vline(cx + 9, ray, 10, shade(top, -0.3))
-    # hands
-    cv.rect(cx - 10, lay + 10, 3, 2, skin)
-    cv.rect(cx + 7, ray + 10, 3, 2, skin)
-
-    # ---- torso ----
-    cv.rect(cx - 7, body_y, 14, 15, top)
-    cv.rect(cx - 7, body_y, 4, 15, top_hi)        # left highlight band
-    cv.rect(cx + 5, body_y, 2, 15, top_sh)        # right shadow band
-    cv.hline(cx - 7, body_y + 14, 14, top_sh)     # hem
-    cv.set(cx - 7, body_y, top_sh)
-    cv.set(cx + 6, body_y, top_sh)
-    # neck
-    cv.rect(cx - 2, body_y - 2, 4, 2, skin_d)
-
-    # ---- head ----
-    cv.rect(cx - 6, head_y, 12, 13, skin)
-    cv.rect(cx - 6, head_y, 2, 13, skin_d)        # left cheek shadow
-    cv.vline(cx + 5, head_y, 13, shade(skin, -0.12))  # right edge
-    cv.rect(cx - 5, head_y + 1, 2, 2, skin_hi)    # forehead highlight
-    # round the corners
-    for (rx, ry) in ((cx - 6, head_y), (cx + 5, head_y), (cx - 6, head_y + 12), (cx + 5, head_y + 12)):
-        _round(cv, rx, ry)
-
     ink = PAL["ink"]
     white = PAL["white"]
+
+    # ---- soft ground shadow (ellipse) ----
+    for dx in range(-13, 14):
+        a = 110 - abs(dx) * 7
+        if a > 0:
+            cv.set(cx + dx, oy + 68, (0, 0, 0, min(120, a)))
+            if a > 50:
+                cv.set(cx + dx, oy + 67, (0, 0, 0, a - 50))
+
+    head_y = oy + 10 + bob
+    body_y = oy + 31 + bob
+
+    # ---- legs (behind body) ----
+    _legs(cv, cx, oy + 52, frame, bottom, shade(bottom, -0.32), shoe)
+
+    # ---- arms (behind torso edges) ----
+    arm_swing = 3 if frame == 1 else (-3 if frame == 3 else 0)
+    arm_col = shade(top, -0.12)
+    lay = body_y + 3 + max(0, arm_swing)
+    ray = body_y + 3 + max(0, -arm_swing)
+    cv.rect(cx - 15, lay, 4, 15, arm_col)
+    cv.vline(cx - 15, lay, 15, shade(top, -0.3))
+    cv.rect(cx + 11, ray, 4, 15, arm_col)
+    cv.vline(cx + 14, ray, 15, shade(top, -0.3))
+    # hands
+    cv.rect(cx - 15, lay + 15, 4, 3, skin)
+    cv.rect(cx + 11, ray + 15, 4, 3, skin)
+
+    # ---- torso ----
+    cv.rect(cx - 11, body_y, 22, 23, top)
+    cv.rect(cx - 11, body_y, 6, 23, top_hi)        # left highlight band
+    cv.rect(cx + 8, body_y, 3, 23, top_sh)         # right shadow band
+    cv.hline(cx - 11, body_y + 22, 22, top_sh)     # hem
+    cv.vline(cx, body_y + 2, 19, shade(top, -0.16))  # centre seam
+    cv.hline(cx - 6, body_y, 12, shade(top, 0.12))   # collar
+    # neck
+    cv.rect(cx - 3, body_y - 3, 6, 3, skin_d)
+
+    # ---- head ----
+    cv.ellipse(cx, head_y + 9, 10, 10, skin)
+    cv.ellipse(cx - 3, head_y + 6, 5, 5, skin_hi)       # forehead/cheek highlight
+    cv.vline(cx + 8, head_y + 4, 12, shade(skin, -0.14))  # right edge shade
+    cv.rect(cx - 9, head_y + 6, 2, 8, skin_d)           # left cheek shadow
+    cv.set(cx - 9, head_y + 9, skin_d)                  # ears
+    cv.set(cx + 8, head_y + 9, skin)
+
     if direction == "up":
         pass  # back of head, hair covers it below
     elif direction in ("left", "right"):
         s = 1 if direction == "right" else -1
-        # far cheek shadow
-        cv.vline(cx - 4 * s, head_y + 2, 8, skin_d)
-        # single eye
-        ex = cx + 1 * s
-        cv.rect(ex, head_y + 5, 2, 2, white)
-        cv.set(ex + (1 if s > 0 else 0), head_y + 5, ink)
-        cv.hline(ex - 1, head_y + 3, 3, hair)     # brow
-        # nose sticking out of the profile
-        nx = cx + 6 * s
-        cv.set(nx, head_y + 6, skin)
-        cv.set(nx, head_y + 7, skin_d)
-        cv.set(cx + 5 * s, head_y + 7, skin_d)
-        # mouth
-        cv.hline(cx + 1 * s, head_y + 10, 3, shade(skin, -0.32))
+        cv.vline(cx - 6 * s, head_y + 4, 12, skin_d)    # far cheek shadow
+        ex = cx + 2 * s
+        cv.rect(ex, head_y + 8, 3, 3, white)            # eye
+        cv.rect(ex + (1 if s > 0 else 0), head_y + 8, 2, 2, ink)  # pupil
+        cv.hline(ex - 1, head_y + 5, 4, hair)           # brow
+        nx = cx + 9 * s                                 # nose out of the profile
+        cv.set(nx, head_y + 10, skin)
+        cv.set(nx, head_y + 11, skin_d)
+        cv.set(cx + 8 * s, head_y + 11, skin_d)
+        cv.hline(cx + 2 * s, head_y + 15, 4, shade(skin, -0.32))  # mouth
     else:  # down
-        # eyes (white + pupil) and brows
-        cv.rect(cx - 4, head_y + 5, 3, 2, white)
-        cv.rect(cx + 2, head_y + 5, 3, 2, white)
-        cv.set(cx - 3, head_y + 5, ink)
-        cv.set(cx + 3, head_y + 5, ink)
-        cv.hline(cx - 4, head_y + 3, 3, hair)
-        cv.hline(cx + 2, head_y + 3, 3, hair)
-        # nose + mouth
-        cv.set(cx, head_y + 7, skin_d)
-        cv.set(cx, head_y + 8, skin_d)
-        cv.hline(cx - 2, head_y + 10, 5, shade(skin, -0.3))
-        cv.set(cx - 2, head_y + 10, shade(skin, -0.45))
-        cv.set(cx + 2, head_y + 10, shade(skin, -0.45))
+        for side in (-1, 1):
+            ex = cx + (3 if side > 0 else -7)
+            cv.rect(ex, head_y + 8, 4, 3, white)        # eye white
+            cv.rect(ex + (2 if side > 0 else 0), head_y + 8, 2, 3, ink)  # pupil
+            cv.set(ex + (2 if side > 0 else 0), head_y + 8, white)       # glint
+        cv.hline(cx - 7, head_y + 5, 4, hair)           # brows
+        cv.hline(cx + 3, head_y + 5, 4, hair)
+        cv.set(cx, head_y + 10, skin_d)                 # nose
+        cv.set(cx, head_y + 11, skin_d)
+        cv.set(cx - 1, head_y + 12, shade(skin, -0.3))
+        cv.hline(cx - 3, head_y + 15, 7, shade(skin, -0.3))  # mouth
+        cv.set(cx - 3, head_y + 15, shade(skin, -0.45))
+        cv.set(cx + 3, head_y + 15, shade(skin, -0.45))
 
     _draw_hair(cv, cx, head_y, direction, style, hair, hair_hi)
 
@@ -181,75 +175,72 @@ def draw_person(cv, ox, oy, direction, frame, pal):
 def _draw_hair(cv, cx, head_y, direction, style, hair, hair_hi):
     if style == "vince":
         # big backcombed black mane rising above and behind the head
-        for x in range(cx - 10, cx + 11):
-            h = 14 - abs(x - cx)
+        for x in range(cx - 15, cx + 16):
+            h = 20 - abs(x - cx)
             if direction == "up":
-                h += 2
+                h += 3
             if h < 0:
                 continue
-            for y in range(head_y - h, head_y + 3):
+            for y in range(head_y - h, head_y + 4):
                 cv.set(x, y, hair)
         # spiky crown highlights
-        for sx in range(cx - 8, cx + 9, 3):
-            cv.set(sx, head_y - 12 + abs(sx - cx), hair_hi)
-            cv.set(sx, head_y - 11 + abs(sx - cx), hair_hi)
-        cv.rect(cx - 4, head_y - 1, 2, 2, hair_hi)
+        for sx in range(cx - 12, cx + 13, 4):
+            for k in range(2):
+                cv.set(sx, head_y - 17 + abs(sx - cx) + k, hair_hi)
+        cv.rect(cx - 5, head_y - 2, 3, 3, hair_hi)
         if direction == "down":
-            cv.hline(cx - 6, head_y, 12, hair)     # fringe
-            cv.hline(cx - 6, head_y + 1, 4, hair)
-            cv.hline(cx + 3, head_y + 1, 3, hair)
+            cv.hline(cx - 9, head_y, 18, hair)          # fringe
+            cv.hline(cx - 9, head_y + 1, 6, hair)
+            cv.hline(cx + 4, head_y + 1, 5, hair)
         elif direction in ("left", "right"):
-            fx = cx - 7 if direction == "right" else cx + 4
-            cv.rect(fx, head_y, 3, 5, hair)
+            fx = cx - 10 if direction == "right" else cx + 6
+            cv.rect(fx, head_y, 5, 7, hair)
     elif style == "short":
-        cv.rect(cx - 6, head_y - 2, 12, 4, hair)
-        cv.hline(cx - 6, head_y + 2, 1, hair)
-        cv.hline(cx + 5, head_y + 2, 1, hair)
-        cv.rect(cx - 4, head_y - 1, 3, 1, hair_hi)
+        cv.rect(cx - 9, head_y - 3, 18, 6, hair)
+        cv.rect(cx - 6, head_y - 2, 5, 2, hair_hi)
         if direction == "up":
-            cv.rect(cx - 6, head_y, 12, 6, hair)
+            cv.rect(cx - 9, head_y, 18, 9, hair)
         elif direction in ("left", "right"):
-            fx = cx - 7 if direction == "right" else cx + 4
-            cv.rect(fx, head_y, 3, 4, hair)
+            fx = cx - 10 if direction == "right" else cx + 6
+            cv.rect(fx, head_y, 5, 6, hair)
     elif style == "turban":
-        cv.rect(cx - 8, head_y - 6, 16, 8, hair)
-        cv.rect(cx - 8, head_y - 2, 16, 2, hair_hi)
-        cv.hline(cx - 8, head_y - 6, 16, shade(hair, -0.3))
-        cv.rect(cx + 5, head_y - 5, 2, 3, hair_hi)   # jewel/fold
-        cv.set(cx + 6, head_y - 4, PAL["white"])
+        cv.rect(cx - 12, head_y - 9, 24, 12, hair)
+        cv.rect(cx - 12, head_y - 3, 24, 3, hair_hi)
+        cv.hline(cx - 12, head_y - 9, 24, shade(hair, -0.3))
+        cv.rect(cx + 7, head_y - 8, 3, 4, hair_hi)      # jewel/fold
+        cv.set(cx + 8, head_y - 6, PAL["white"])
     elif style == "fur":
-        for x in range(cx - 8, cx + 9):
-            h = 6 if abs(x - cx) < 5 else 4
-            for y in range(head_y - h, head_y + 12):
+        for x in range(cx - 12, cx + 13):
+            h = 9 if abs(x - cx) < 7 else 6
+            for y in range(head_y - h, head_y + 18):
                 cv.set(x, y, hair)
-        # shaggy highlights
-        for sx in range(cx - 6, cx + 7, 4):
-            cv.vline(sx, head_y - 4, 4, hair_hi)
-        cv.set(cx - 4, head_y - 4, hair_hi)
+        for sx in range(cx - 9, cx + 10, 5):
+            cv.vline(sx, head_y - 6, 6, hair_hi)
+        cv.set(cx - 6, head_y - 6, hair_hi)
     elif style == "bald":
-        cv.rect(cx - 6, head_y - 2, 12, 3, hair)
-        cv.hline(cx - 5, head_y - 2, 10, shade(hair, 0.25))
-        cv.set(cx + 4, head_y, hair)
-        cv.set(cx - 5, head_y, hair)
+        cv.rect(cx - 9, head_y - 3, 18, 4, hair)
+        cv.hline(cx - 7, head_y - 3, 14, shade(hair, 0.25))
+        cv.set(cx + 6, head_y, hair)
+        cv.set(cx - 7, head_y, hair)
 
 
 # ---- accessories ---------------------------------------------------------
 def acc_moustache(cv, ox, oy, direction):
-    cx = ox + 16
-    head_y = oy + 7
+    cx = ox + 24
+    head_y = oy + 10
     col = PAL["howard_hair"]
     col_hi = shade(col, 0.25)
     if direction == "down":
-        cv.hline(cx - 4, head_y + 8, 8, col)
-        cv.hline(cx - 4, head_y + 9, 3, col)
-        cv.hline(cx + 1, head_y + 9, 3, col)
-        cv.hline(cx - 3, head_y + 8, 6, col_hi)
+        cv.hline(cx - 6, head_y + 13, 12, col)
+        cv.hline(cx - 6, head_y + 14, 4, col)
+        cv.hline(cx + 2, head_y + 14, 4, col)
+        cv.hline(cx - 5, head_y + 13, 10, col_hi)
     elif direction == "left":
-        cv.hline(cx - 6, head_y + 8, 6, col)
-        cv.hline(cx - 6, head_y + 9, 3, col)
+        cv.hline(cx - 9, head_y + 13, 9, col)
+        cv.hline(cx - 9, head_y + 14, 4, col)
     elif direction == "right":
-        cv.hline(cx, head_y + 8, 6, col)
-        cv.hline(cx + 3, head_y + 9, 3, col)
+        cv.hline(cx, head_y + 13, 9, col)
+        cv.hline(cx + 5, head_y + 14, 4, col)
 
 
 def hero_palettes():

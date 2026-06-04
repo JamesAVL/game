@@ -7,8 +7,9 @@ from artlib import PAL
 
 
 def npc(pal, out):
-    cv = Canvas(artlib.FRAME_W, artlib.FRAME_H, cs=CS)
+    cv = Canvas(artlib.FRAME_W, artlib.FRAME_H, cs=1)  # native 48x72 detail
     artlib.draw_person(cv, 0, 0, "down", 0, pal)
+    cv.outline((16, 12, 24))   # crisp dark rim
     cv.write(out)
     print("wrote", out)
 
