@@ -5,6 +5,7 @@
 import { Scenes, VIEW_W, VIEW_H, Input, img, clamp } from "../engine/core.js";
 import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic, audioTime } from "../engine/audio.js";
+import { GS } from "./state.js";
 
 const LANES = 4;
 const LANE_W = 24;
@@ -13,27 +14,44 @@ const TOTAL_W = LANES * LANE_W + (LANES - 1) * GAP;
 const X0 = (VIEW_W - TOTAL_W) / 2 + 20;
 const TOP_Y = 16;
 const HIT_Y = 150;
-const TRAVEL = 1.45;                 // seconds a note is visible before its hit time
 const LANE_COL = ["#ff5a8a", "#ffd24a", "#5ad6ff", "#8aff6a"];
 const LANE_KEY = ["lane0", "lane1", "lane2", "lane3"];
 const LANE_LBL = ["D", "F", "J", "K"];
+
+// Per-difficulty tuning. minGap thins the chart to a max note density (also
+// drops impossible 16th-runs/chords). Wider windows + a head start + gentler
+// misses on easier modes. The song always finishes; you win if you >= boss.
+const DIFF = {
+  easy:   { perfWin: 0.11, goodWin: 0.22, minGap: 0.24, travel: 1.9, startYou: 62, missYou: 0.4, missBoss: 0.6 },
+  normal: { perfWin: 0.09, goodWin: 0.18, minGap: 0.17, travel: 1.7, startYou: 56, missYou: 0.7, missBoss: 1.0 },
+  hard:   { perfWin: 0.07, goodWin: 0.15, minGap: 0.12, travel: 1.5, startYou: 50, missYou: 1.0, missBoss: 1.3 },
+};
 
 export class Crimp {
   // def: { boss, name, face, track, bpm, notes:[[step,lane]...], lyrics:[[beat,text]],
   //        startStyle, intro, onResult(win) }
   constructor(def) {
     this.def = def;
-    this.you = 50; this.boss = 50;
+    this.D = DIFF[GS.data.difficulty] || DIFF.normal;
+    this.travel = this.D.travel;
+    this.you = this.D.startYou; this.boss = 50;
     this.combo = 0; this.maxCombo = 0;
-    this.hits = 0; this.perfects = 0; this.total = def.notes.length;
+    this.hits = 0; this.perfects = 0;
     this.judge = ""; this.judgeT = 0; this.judgeCol = "#fff";
     this.state = "count";        // count -> play -> over
     this.countT = 3.0;
     this.shake = 0;
     this.result = null;
     const sd = 60 / def.bpm / 4;  // seconds per 16th step
-    this.notes = def.notes.map(([step, lane]) => ({ t: step * sd, lane, dead: false }))
+    const raw = def.notes.map(([step, lane]) => ({ t: step * sd, lane, dead: false }))
       .sort((a, b) => a.t - b.t);
+    // enforce a global minimum spacing so charts can't be denser than playable
+    this.notes = [];
+    let lastT = -Infinity;
+    for (const n of raw) {
+      if (n.t - lastT >= this.D.minGap) { this.notes.push(n); lastT = n.t; }
+    }
+    this.total = this.notes.length;
     this.lyrics = (def.lyrics || []).map(([beat, text]) => ({ t: beat * (60 / def.bpm), text }));
     this.lastT = this.notes.length ? this.notes[this.notes.length - 1].t : 4;
     this.flashLane = [0, 0, 0, 0];
@@ -60,9 +78,10 @@ export class Crimp {
   }
 
   judgeHit(kind) {
-    if (kind === "perfect") { this.you += 4.2; this.boss -= 4.2; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
-    else if (kind === "good") { this.you += 2.6; this.boss -= 2.4; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
-    else { this.you -= 3.0; this.boss += 3.0; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; this.shake = 0.25; }
+    const D = this.D;
+    if (kind === "perfect") { this.you += 4.6; this.boss -= 4.8; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
+    else if (kind === "good") { this.you += 3.2; this.boss -= 3.4; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
+    else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; this.shake = 0.2; }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     if (this.combo > 0 && this.combo % 10 === 0) { this.you += 2; this.boss -= 1; }
     this.you = clamp(this.you, 0, 100);
@@ -77,17 +96,15 @@ export class Crimp {
       if (n.dead || n.lane !== lane) continue;
       const d = Math.abs(n.t - t);
       if (d < bestD) { bestD = d; best = n; }
-      if (n.t - t > 0.25) break;
+      if (n.t - t > 0.3) break;
     }
     this.flashLane[lane] = 0.12;
-    if (best && bestD <= 0.16) {
+    if (best && bestD <= this.D.goodWin) {
       best.dead = true;
-      this.judgeHit(bestD <= 0.06 ? "perfect" : "good");
+      this.judgeHit(bestD <= this.D.perfWin ? "perfect" : "good");
     } else {
-      // wasted press: mashing is punished so timing matters
+      // empty/mistimed tap: only breaks the combo (no meter penalty -> forgiving)
       this.combo = 0;
-      this.you = clamp(this.you - 1.1, 0, 100);
-      this.boss = clamp(this.boss + 0.6, 0, 100);
     }
   }
 
@@ -109,11 +126,11 @@ export class Crimp {
       const t = this.now();
       // missed notes (passed hit line without being struck)
       for (const n of this.notes) {
-        if (!n.dead && n.t < t - 0.17) { n.dead = true; this.judgeHit("miss"); }
+        if (!n.dead && n.t < t - this.D.goodWin) { n.dead = true; this.judgeHit("miss"); }
       }
-      // resolve
+      // resolve: no mid-song loss -- the song always finishes, then you win if
+      // you're ahead. An early KO (boss emptied) ends it triumphantly.
       if (this.boss <= 0) { this.finish(true); }
-      else if (this.you <= 0) { this.finish(false); }
       else if (t > this.lastT + 1.2) { this.finish(this.you >= this.boss); }
       return;
     }
@@ -173,8 +190,8 @@ export class Crimp {
       for (const n of this.notes) {
         if (n.dead) continue;
         const dt = n.t - t;
-        if (dt > TRAVEL || dt < -0.25) continue;
-        const prog = 1 - dt / TRAVEL;          // 0 at spawn, 1 at hit line
+        if (dt > this.travel || dt < -0.25) continue;
+        const prog = 1 - dt / this.travel;     // 0 at spawn, 1 at hit line
         const y = TOP_Y + prog * (HIT_Y - TOP_Y);
         const lx = this.laneX(n.lane);
         this._note(ctx, lx + 2, y - 5, LANE_W - 4, 10, LANE_COL[n.lane]);

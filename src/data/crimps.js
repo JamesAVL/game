@@ -45,45 +45,45 @@ function crimp(o) {
 
 export const CRIMPS = {
   tutorial: crimp({
-    name: "Naboo", face: "naboo", trackKey: "hub", bpm: 124,
+    name: "Naboo", face: "naboo", trackKey: "hub", bpm: 116,
     bg0: "#1a2040", bg1: "#3a2a6a", bossScale: 2,
     intro: "Just feel the rhythm, you berks...",
-    chart: { seed: 7, length: 120, base: 3, runChance: 0.05, doubleChance: 0 },
+    chart: { seed: 7, length: 96, base: 4, runChance: 0, doubleChance: 0 },
     lyrics: ["Come with me", "on a journey", "through the crimp", "feel the funk", "and let it flow", "nice one"],
   }),
 
   jazz: crimp({
-    name: "Spirit of Jazz", face: "boss_jazz", trackKey: "crimp_jazz", bpm: 140,
+    name: "Spirit of Jazz", face: "boss_jazz", trackKey: "crimp_jazz", bpm: 128,
     bg0: "#2a1010", bg1: "#5a2a10", bossScale: 2,
     intro: "I'm the Spirit of Jazz, baby!",
-    chart: { seed: 21, length: 256, base: 2, runChance: 0.22, doubleChance: 0.08 },
+    chart: { seed: 21, length: 180, base: 3, runChance: 0.10, doubleChance: 0.04 },
     lyrics: ["I'm the spirit of jazz", "be-bop a doo-wop", "smoky little man", "playin' all the wrong notes", "Howard loves me so",
       "scattin' in the cold", "blow your little trumpet", "freezin' to the bone", "jazz it up now", "yeah yeah yeah"],
   }),
 
   gregg: crimp({
-    name: "Old Gregg", face: "boss_gregg", trackKey: "crimp_gregg", bpm: 118,
+    name: "Old Gregg", face: "boss_gregg", trackKey: "crimp_gregg", bpm: 112,
     bg0: "#06202a", bg1: "#0a4a4a", bossScale: 2,
     intro: "Do you love me?",
-    chart: { seed: 44, length: 256, base: 2, runChance: 0.18, doubleChance: 0.1 },
+    chart: { seed: 44, length: 170, base: 3, runChance: 0.10, doubleChance: 0.05 },
     lyrics: ["I'm Old Gregg!", "do you love me?", "I gotta mangina", "make an album with me", "drink your Bailey's",
       "from a shoe", "downstairs mix-up", "love games down here", "the funk lives in me", "you'll love me too"],
   }),
 
   crackfox: crimp({
-    name: "The Crack Fox", face: "boss_crackfox", trackKey: "crimp_crackfox", bpm: 156,
+    name: "The Crack Fox", face: "boss_crackfox", trackKey: "crimp_crackfox", bpm: 132,
     bg0: "#161008", bg1: "#3a2a12", bossScale: 2,
     intro: "Heeere come the Crack Fox!",
-    chart: { seed: 88, length: 300, base: 2, runChance: 0.34, doubleChance: 0.12 },
+    chart: { seed: 88, length: 210, base: 2, runChance: 0.16, doubleChance: 0.06 },
     lyrics: ["scuttle in the bins", "shiny shiny things", "rusty little kettle", "my best friend", "feed me feed me",
       " messy little fox", "jumpin' on the bags", "got the fizzy in me", "faster faster now", "wheee", "can't catch me", "crack crack crack"],
   }),
 
   nana: crimp({
-    name: "Nanageddon", face: "boss_nana", trackKey: "crimp_nana", bpm: 128,
+    name: "Nanageddon", face: "boss_nana", trackKey: "crimp_nana", bpm: 120,
     bg0: "#100620", bg1: "#2a0a3a", bossScale: 2,
     intro: "Naaaaaanageddon!",
-    chart: { seed: 131, length: 288, base: 2, runChance: 0.26, doubleChance: 0.14 },
+    chart: { seed: 131, length: 190, base: 3, runChance: 0.13, doubleChance: 0.06 },
     lyrics: ["raised from the nightosphere", "demon nana risen", "all dark and shadow", "candles on the floor",
       "wrong incantation", "now she's here for tea", "biscuits of the damned", "send her back below", "crimp her down", "begone foul gran"],
   }),
@@ -92,16 +92,16 @@ export const CRIMPS = {
     name: "The Moon", face: "boss_moon", trackKey: "crimp_moon", bpm: 92,
     bg0: "#0a0a28", bg1: "#1a1a48", bossScale: 2,
     intro: "Hello. I'm the moon. Do do dooo.",
-    chart: { seed: 200, length: 220, base: 3, runChance: 0.08, doubleChance: 0.03 },
+    chart: { seed: 200, length: 150, base: 4, runChance: 0.04, doubleChance: 0.02 },
     lyrics: ["I'm the moon", "the big white face", "made of milk they say", "lookin' down on you", "do do do",
       "little jelly man", "talkin' to myself", "lonely up so high", "nice and dreamy", "goodnight"],
   }),
 
   tony: crimp({
-    name: "Tony Harrison", face: "boss_tony", trackKey: "crimp_tony", bpm: 150,
+    name: "Tony Harrison", face: "boss_tony", trackKey: "crimp_tony", bpm: 138,
     bg0: "#1a0626", bg1: "#3a0a4a", bossScale: 2,
     intro: "This is an OUTRAGE!",
-    chart: { seed: 333, length: 380, base: 2, runChance: 0.3, doubleChance: 0.16 },
+    chart: { seed: 333, length: 240, base: 2, runChance: 0.16, doubleChance: 0.08 },
     lyrics: ["this is an OUTRAGE", "I'm Tony Harrison", "a pink old cephalopod", "the board of shaman", "Saboo and Kirk",
       "you cannot crimp like me", "the wind! the wind!", "an absolute disgrace", "feel my tentacle wrath", "the funk is mine",
       "out-crimp the council", "this is a circus", "an OUTRAGE I say", "the crimp of legends"],
