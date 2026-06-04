@@ -7,16 +7,18 @@ import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic, audioTime } from "../engine/audio.js";
 import { GS } from "./state.js";
 
-const LANES = 4;
 const LANE_W = 24 * ART;
 const GAP = 8 * ART;
-const TOTAL_W = LANES * LANE_W + (LANES - 1) * GAP;
-const X0 = (VIEW_W - TOTAL_W) / 2 + 20 * ART;
 const TOP_Y = 16 * ART;
 const HIT_Y = 150 * ART;
-const LANE_COL = ["#ff5a8a", "#ffd24a", "#5ad6ff", "#8aff6a"];
-const LANE_KEY = ["lane0", "lane1", "lane2", "lane3"];
-const LANE_LBL = ["D", "F", "J", "K"];
+
+// Lanes are directional and their count scales with difficulty. Each lane maps
+// to one of the movement Input actions (unused during a crimp) so the arrow
+// keys are the primary input with no keymap changes. Colours are keyed by
+// direction so they stay stable regardless of how many lanes are shown.
+const DIFF_LANES = { easy: 2, normal: 3, hard: 4 };
+const DIR_SETS = { 2: ["left", "right"], 3: ["left", "up", "right"], 4: ["left", "up", "down", "right"] };
+const DIR_COL = { left: "#ff5a8a", up: "#ffd24a", down: "#5ad6ff", right: "#8aff6a" };
 
 // Per-difficulty tuning. minGap thins the chart to a max note density (also
 // drops impossible 16th-runs/chords). Wider windows + a head start + gentler
@@ -42,8 +44,20 @@ export class Crimp {
     this.countT = 3.0;
     this.shake = 0;
     this.result = null;
+
+    // lane layout from difficulty
+    this.laneCount = DIFF_LANES[GS.data.difficulty] || 3;
+    this.dirs = DIR_SETS[this.laneCount];
+    this.laneCols = this.dirs.map((d) => DIR_COL[d]);
+    this.totalW = this.laneCount * LANE_W + (this.laneCount - 1) * GAP;
+    this.x0 = (VIEW_W - this.totalW) / 2 + 20 * ART;
+    this.flashLane = new Array(this.laneCount).fill(0);
+
     const sd = 60 / def.bpm / 4;  // seconds per 16th step
-    const raw = def.notes.map(([step, lane]) => ({ t: step * sd, lane, dead: false }))
+    // remap each chart lane (authored 0..3) onto the active lane count, keeping
+    // its left->right position; deterministic so charts stay reproducible.
+    const remap = (lane) => Math.min(this.laneCount - 1, Math.floor(lane * this.laneCount / 4));
+    const raw = def.notes.map(([step, lane]) => ({ t: step * sd, lane: remap(lane), dead: false }))
       .sort((a, b) => a.t - b.t);
     // enforce a global minimum spacing so charts can't be denser than playable
     this.notes = [];
@@ -54,7 +68,6 @@ export class Crimp {
     this.total = this.notes.length;
     this.lyrics = (def.lyrics || []).map(([beat, text]) => ({ t: beat * (60 / def.bpm), text }));
     this.lastT = this.notes.length ? this.notes[this.notes.length - 1].t : 4;
-    this.flashLane = [0, 0, 0, 0];
     this.danceT = 0;
   }
 
@@ -112,7 +125,7 @@ export class Crimp {
     this.danceT += dt;
     if (this.judgeT > 0) this.judgeT -= dt;
     if (this.shake > 0) this.shake -= dt;
-    for (let i = 0; i < LANES; i++) if (this.flashLane[i] > 0) this.flashLane[i] -= dt;
+    for (let i = 0; i < this.laneCount; i++) if (this.flashLane[i] > 0) this.flashLane[i] -= dt;
 
     if (this.state === "count") {
       this.countT -= dt;
@@ -121,8 +134,8 @@ export class Crimp {
     }
 
     if (this.state === "play") {
-      // lane input
-      for (let i = 0; i < LANES; i++) if (Input.pressed(LANE_KEY[i])) this.tryLane(i);
+      // lane input — arrow keys / touch arrows mapped per lane direction
+      for (let i = 0; i < this.laneCount; i++) if (Input.pressed(this.dirs[i])) this.tryLane(i);
       const t = this.now();
       // missed notes (passed hit line without being struck)
       for (const n of this.notes) {
@@ -138,7 +151,7 @@ export class Crimp {
     if (this.state === "over") {
       this.overT += dt;
       const tapped = Input.pressed("confirm") || Input.pressed("cancel") ||
-        Input.pressed("lane0") || Input.pressed("lane1") || Input.pressed("lane2") || Input.pressed("lane3");
+        Input.pressed("left") || Input.pressed("up") || Input.pressed("down") || Input.pressed("right");
       if (this.overT > 1.0 && tapped) {
         const cb = this.def.onResult;
         Scenes.pop();
@@ -147,7 +160,7 @@ export class Crimp {
     }
   }
 
-  laneX(i) { return X0 + i * (LANE_W + GAP); }
+  laneX(i) { return this.x0 + i * (LANE_W + GAP); }
 
   render(ctx) {
     // ---- backdrop ----
@@ -170,23 +183,21 @@ export class Crimp {
       ctx.drawImage(bim, VIEW_W / 2 - bw / 2 + 40 * ART, 30 * ART + bob - bh / 2 + 30 * ART, bw, bh);
     }
 
-    // ---- lanes ----
-    for (let i = 0; i < LANES; i++) {
-      const lx = this.laneX(i);
+    // ---- lanes (directional receptors) ----
+    const recR = 8 * ART;
+    for (let i = 0; i < this.laneCount; i++) {
+      const lx = this.laneX(i), cx = lx + LANE_W / 2;
       ctx.fillStyle = "rgba(0,0,0,0.35)";
       ctx.fillRect(lx, TOP_Y, LANE_W, HIT_Y - TOP_Y + 14 * ART);
-      // receptor
+      // receptor: a faint arrow outline, lit when struck
       const flash = this.flashLane[i] > 0;
-      ctx.strokeStyle = LANE_COL[i];
-      ctx.globalAlpha = flash ? 1 : 0.7;
-      ctx.lineWidth = 2 * ART;
-      ctx.strokeRect(lx + 2 * ART, HIT_Y, LANE_W - 4 * ART, 10 * ART);
-      if (flash) { ctx.fillStyle = LANE_COL[i]; ctx.globalAlpha = 0.4; ctx.fillRect(lx + 2 * ART, HIT_Y, LANE_W - 4 * ART, 10 * ART); }
+      const cy = HIT_Y + 5 * ART;
+      ctx.globalAlpha = flash ? 1 : 0.55;
+      this._arrow(ctx, cx, cy, this.dirs[i], recR, this.laneCols[i], !flash);
       ctx.globalAlpha = 1;
-      drawText(ctx, LANE_LBL[i], lx + LANE_W / 2 - 2 * ART, HIT_Y + 13 * ART, { color: LANE_COL[i] });
     }
 
-    // ---- notes ----
+    // ---- notes (arrows falling toward the receptor) ----
     if (this.state !== "count") {
       const t = this.now();
       for (const n of this.notes) {
@@ -194,9 +205,9 @@ export class Crimp {
         const dt = n.t - t;
         if (dt > this.travel || dt < -0.25) continue;
         const prog = 1 - dt / this.travel;     // 0 at spawn, 1 at hit line
-        const y = TOP_Y + prog * (HIT_Y - TOP_Y);
-        const lx = this.laneX(n.lane);
-        this._note(ctx, lx + 2 * ART, y - 5 * ART, LANE_W - 4 * ART, 10 * ART, LANE_COL[n.lane]);
+        const y = TOP_Y + prog * (HIT_Y - TOP_Y) + 5 * ART;
+        const cx = this.laneX(n.lane) + LANE_W / 2;
+        this._arrow(ctx, cx, y, this.dirs[n.lane], LANE_W * 0.42, this.laneCols[n.lane], false);
       }
     }
 
@@ -227,7 +238,7 @@ export class Crimp {
       const n = Math.ceil(this.countT);
       const label = n > 0 ? String(n) : "CRIMP!";
       textCentered(ctx, label, VIEW_W / 2, VIEW_H / 2 - 16 * ART, { color: "#ffd86a", scale: 4, shadow: "#000" });
-      textCentered(ctx, "Hit  D F J K  (or arrow keys) in time!", VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
+      textCentered(ctx, "Hit the ARROW keys in time!", VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
     }
 
     if (this.state === "over") {
@@ -242,12 +253,26 @@ export class Crimp {
     }
   }
 
-  _note(ctx, x, y, w, h, col) {
-    ctx.fillStyle = col;
-    ctx.fillRect(x, y + 1 * ART, w, h - 2 * ART);
-    ctx.fillRect(x + 1 * ART, y, w - 2 * ART, h);
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.fillRect(x + 1 * ART, y + 1 * ART, w - 2 * ART, 2 * ART);
+  // a filled (or outlined) equilateral-ish arrow of "radius" r pointing `dir`
+  _arrow(ctx, cx, cy, dir, r, col, outline = false) {
+    const b = r * 0.78;            // half-width of the base
+    let pts;
+    if (dir === "up") pts = [[cx, cy - r], [cx - b, cy + b], [cx + b, cy + b]];
+    else if (dir === "down") pts = [[cx, cy + r], [cx - b, cy - b], [cx + b, cy - b]];
+    else if (dir === "left") pts = [[cx - r, cy], [cx + b, cy - b], [cx + b, cy + b]];
+    else pts = [[cx + r, cy], [cx - b, cy - b], [cx - b, cy + b]]; // right
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    ctx.lineTo(pts[1][0], pts[1][1]);
+    ctx.lineTo(pts[2][0], pts[2][1]);
+    ctx.closePath();
+    if (outline) {
+      ctx.strokeStyle = col; ctx.lineWidth = 2 * ART; ctx.lineJoin = "round"; ctx.stroke();
+    } else {
+      ctx.fillStyle = col; ctx.fill();
+      // glossy top edge for a bit of depth
+      ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1 * ART; ctx.lineJoin = "round"; ctx.stroke();
+    }
   }
 
   _meter(ctx, x, y, w, label, val, col, right = false) {

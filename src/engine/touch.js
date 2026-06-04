@@ -4,9 +4,13 @@
 // "crimp" (four tappable lanes), switched by inspecting the active scene.
 
 import { Input, Scenes } from "./core.js";
+import { GS } from "../game/state.js";
 
-const LANE_COL = ["#ff5a8a", "#ffd24a", "#5ad6ff", "#8aff6a"];
-const LANE_LBL = ["D", "F", "J", "K"];
+// crimp lanes are directional now; count + layout scale with difficulty.
+const DIR_ICON = { left: "&#9664;", up: "&#9650;", down: "&#9660;", right: "&#9654;" };
+const DIR_COL = { left: "#ff5a8a", up: "#ffd24a", down: "#5ad6ff", right: "#8aff6a" };
+const DIFF_LANES = { easy: 2, normal: 3, hard: 4 };
+const DIR_SETS = { 2: ["left", "right"], 3: ["left", "up", "right"], 4: ["left", "up", "down", "right"] };
 
 function isTouch() {
   return (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
@@ -97,23 +101,34 @@ export function initTouch() {
 
   btn("tc-menu", "&#9776;", "pause", root);
 
-  // crimp lanes
+  // crimp lanes — populated on demand to match the current difficulty
   const lanes = document.createElement("div");
   lanes.className = "tc-lanes";
   root.appendChild(lanes);
-  for (let i = 0; i < 4; i++) {
-    const b = btn("tc-lane", LANE_LBL[i], "lane" + i, lanes);
-    b.style.borderColor = LANE_COL[i];
-    b.style.color = LANE_COL[i];
+  let laneDirs = [];
+  function buildLanes(dirs) {
+    laneDirs = dirs;
+    lanes.innerHTML = "";
+    for (const d of dirs) {
+      const b = btn("tc-lane", DIR_ICON[d], d, lanes);
+      b.style.borderColor = DIR_COL[d];
+      b.style.color = DIR_COL[d];
+    }
   }
+  buildLanes(DIR_SETS[3]);
 
   // controls now exist -> recompute canvas size to reserve the bottom band
   window.dispatchEvent(new Event("resize"));
 
-  // switch layout based on the active scene
+  // switch layout based on the active scene; rebuild lanes if the difficulty's
+  // lane count changed since they were last shown
   setInterval(() => {
     const top = Scenes.top();
     const inCrimp = top && top.constructor && top.constructor.name === "Crimp";
     root.dataset.mode = inCrimp ? "crimp" : "explore";
+    if (inCrimp) {
+      const dirs = DIR_SETS[DIFF_LANES[GS.data.difficulty] || 3];
+      if (dirs.length !== laneDirs.length) buildLanes(dirs);
+    }
   }, 150);
 }
