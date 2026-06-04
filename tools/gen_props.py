@@ -143,10 +143,16 @@ def main():
     here = os.path.dirname(__file__)
     out = os.path.join(here, "..", "assets", "sprites", "props.png")
     cv = Canvas(FW * len(PAINTERS), FH, cs=CS)
+    step = int(FW * CS + 0.5)   # device cell width
     for i, paint in enumerate(PAINTERS):
-        ox = i * FW
-        base_shadow(cv, ox)
-        paint(cv, ox)
+        # ground shadow goes straight on the strip (behind the object)
+        base_shadow(cv, i * FW)
+        # paint the object on its own canvas so we can rim it without rimming
+        # the soft ground shadow, then composite it over the shadow
+        tmp = Canvas(FW, FH, cs=CS)
+        paint(tmp, 0)
+        tmp.outline((16, 12, 24))
+        cv.blit(tmp, i * step, 0)
     cv.write(out)
     print("wrote", out)
 
