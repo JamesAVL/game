@@ -1,6 +1,10 @@
 // core.js — engine primitives: config, canvas, fixed-timestep loop, input,
 // asset loading, save system, and a tiny scene stack.
 
+import { Renderer } from "./renderer.js";
+import { Particles, Juice } from "./particles.js";
+import { getReactive } from "./audio.js";
+
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
 // future resolution change is a single edit. CONTRACT: this MUST equal
@@ -13,11 +17,20 @@ export const TILE = 16 * ART;
 // ---------------------------------------------------------------------------
 // Canvas / rendering target
 // ---------------------------------------------------------------------------
+// The visible canvas (#game) is owned by the Renderer (WebGL2, or a 2D
+// fallback). The game itself draws every frame into an offscreen 2D canvas at
+// the fixed internal resolution; the Renderer then presents that frame to the
+// screen, optionally running post-processing during the upscale. Scene code is
+// unchanged — it still receives this same `ctx` in render(ctx).
 export const canvas = document.getElementById("game");
-canvas.width = VIEW_W;
-canvas.height = VIEW_H;
-export const ctx = canvas.getContext("2d");
+
+const sceneCanvas = document.createElement("canvas");
+sceneCanvas.width = VIEW_W;
+sceneCanvas.height = VIEW_H;
+export const ctx = sceneCanvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
+
+Renderer.init(canvas, sceneCanvas, VIEW_W, VIEW_H);
 
 // Fit the 320x180 canvas to the viewport. On desktop we use crisp integer
 // scaling; on touch devices we scale fractionally to fill the width and
@@ -111,6 +124,13 @@ export const MANIFEST = {
   boss_nana: "assets/sprites/boss_nana.png",
   boss_moon: "assets/sprites/boss_moon.png",
   boss_tony: "assets/sprites/boss_tony.png",
+  // companion normal maps for per-pixel boss lighting in the crimp
+  boss_jazz_n: "assets/sprites/boss_jazz_n.png",
+  boss_gregg_n: "assets/sprites/boss_gregg_n.png",
+  boss_crackfox_n: "assets/sprites/boss_crackfox_n.png",
+  boss_nana_n: "assets/sprites/boss_nana_n.png",
+  boss_moon_n: "assets/sprites/boss_moon_n.png",
+  boss_tony_n: "assets/sprites/boss_tony_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",
@@ -181,15 +201,41 @@ export function startLoop() {
   let acc = 0;
   function frame() {
     const now = performance.now() / 1000;
-    acc += Math.min(0.25, now - last);
+    const dt = Math.min(0.25, now - last);
     last = now;
-    while (acc >= STEP) {
-      Scenes.update(STEP);
-      Input._flip();
-      acc -= STEP;
+    if (Juice.frozen()) {
+      // hit-stop: hold the simulation for impact, but keep timers + rendering alive
+      Juice.tickFreeze(dt);
+      Juice.update(dt);
+    } else {
+      acc += dt;
+      while (acc >= STEP) {
+        Scenes.update(STEP);
+        Particles.update(STEP);
+        Juice.update(STEP);
+        Input._flip();
+        acc -= STEP;
+      }
     }
     ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    // global screen-shake kicks the whole frame (HUD included); particles draw
+    // into the scene buffer so the renderer's bloom turns them into glow.
+    const sh = Juice.offset();
+    ctx.save();
+    ctx.translate(Math.round(sh.x), Math.round(sh.y));
     Scenes.render(ctx);
+    Particles.draw(ctx);
+    ctx.restore();
+    // impact flash (drawn into the scene buffer so it blooms)
+    const fa = Juice.flashAlpha();
+    if (fa > 0) {
+      ctx.save();
+      ctx.globalAlpha = fa;
+      ctx.fillStyle = Juice.flashCol;
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      ctx.restore();
+    }
+    Renderer.present(getReactive().bass); // bloom pulses to the music
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

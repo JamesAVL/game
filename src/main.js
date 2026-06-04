@@ -1,13 +1,37 @@
 // main.js — boot: load assets, gate audio behind first input, run the loop.
 
-import { loadAll, startLoop, Scenes } from "./engine/core.js";
-import { unlockAudio } from "./engine/audio.js";
+import { loadAll, startLoop, Scenes, Save, Input } from "./engine/core.js";
+import { Renderer } from "./engine/renderer.js";
+import { Particles, Juice } from "./engine/particles.js";
+import { initMidi, midiStatus } from "./engine/midi.js";
+import { unlockAudio, audioDebug, getReactive, duckMusic, setMusicBrightness } from "./engine/audio.js";
+import { Crimp } from "./game/crimp.js";
+import { CRIMPS } from "./data/crimps.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
 import { initTouch } from "./engine/touch.js";
 
+// restore the saved visual-FX preset (off | soft | crt)
+Renderer.setPreset(Save.optGet("fx", "soft"));
+
+// register the service worker for offline play (production build only — in dev
+// it would shadow Vite's module serving / HMR).
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW registration failed:", e));
+  });
+}
+
 // debug handle (handy for testing in the console)
-window.__BOOSH = { GS, Scenes };
+window.__BOOSH = {
+  GS, Scenes, Renderer, Particles, Juice, Input,
+  Audio: { debug: audioDebug, getReactive, duckMusic, setMusicBrightness },
+  midiStatus,
+  startCrimp: (key = "jazz") => { const c = new Crimp(CRIMPS[key]); Scenes.push(c); c.begin(); return c; },
+};
+
+// optional WebMIDI — play the crimp on a real keyboard/pad if one is present
+initMidi();
 
 const boot = document.getElementById("boot");
 

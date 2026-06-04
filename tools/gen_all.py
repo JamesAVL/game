@@ -12,6 +12,7 @@ import gen_tiles
 import gen_items
 import gen_props
 import gen_ui
+import gen_icon
 
 
 def main():
@@ -23,6 +24,7 @@ def main():
     print("== items ==");       gen_items.main()
     print("== props ==");       gen_props.main()
     print("== ui ==");          gen_ui.main()
+    print("== icon ==");        gen_icon.main()
     print("\nAll assets generated.")
 
 

@@ -202,6 +202,36 @@ class Canvas:
             c = _lerp(top, bottom, t)
             self.hline(x, y + i, w, c)
 
+    def normal_map(self, strength=2.5):
+        """Derive a tangent-space normal map from this sprite. luma*alpha is the
+        heightfield (transparent texels read as ground, so silhouettes bevel);
+        XYZ is encoded into RGB. Transparent texels stay transparent. Pure +
+        deterministic — lets our procedural art light per-pixel at runtime."""
+        import math
+        w, h = self.w, self.h
+        out = Canvas(w, h, fill=(128, 128, 255, 0), scale=1)
+
+        def height(x, y):
+            r, g, b, a = self.get(x, y)
+            if a == 0:
+                return 0.0
+            return (r * 0.299 + g * 0.587 + b * 0.114) / 255.0 * (a / 255.0)
+
+        for y in range(h):
+            for x in range(w):
+                if self.get(x, y)[3] == 0:
+                    continue
+                dx = (height(x - 1, y) - height(x + 1, y)) * strength
+                dy = (height(x, y - 1) - height(x, y + 1)) * strength
+                inv = 1.0 / math.sqrt(dx * dx + dy * dy + 1.0)
+                out.set(x, y, (
+                    int((dx * inv * 0.5 + 0.5) * 255),
+                    int((dy * inv * 0.5 + 0.5) * 255),
+                    int((inv * 0.5 + 0.5) * 255),
+                    255,
+                ))
+        return out
+
     # ---- output ----------------------------------------------------------
     def write(self, path):
         s = int(self.scale)

@@ -14,11 +14,23 @@ sound effects are synthesised live in the browser with the Web Audio API.
 ## Play
 
 ```bash
-npm start            # serves at http://localhost:8000 (zero dependencies)
-# then open http://localhost:8000 in a browser
+npm install          # one-time: dev toolchain (Vite, TypeScript, Vitest)
+npm run dev          # Vite dev server with HMR — open the printed localhost URL
 ```
 
-Any static file server works too, e.g. `python3 -m http.server`.
+To produce the deployable static bundle (regenerates assets + validates zones
+first, then bundles to `dist/`):
+
+```bash
+npm run build        # -> dist/
+npm run preview      # serve the built dist/ locally
+```
+
+Other scripts: `npm test` (Vitest unit tests), `npm run typecheck`
+(`tsc --noEmit`), `npm run assets` (regenerate PNGs), `npm run validate`
+(zone integrity), `npm run serve:legacy` (the old dependency-free static
+server). The build is plain static files — deployable to GitHub Pages or any
+host.
 
 ### Controls
 - **Move:** Arrow keys / WASD

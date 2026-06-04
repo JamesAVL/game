@@ -3,9 +3,19 @@
 // meter and drains the boss's. Out-crimp them before the song ends to win.
 
 import { Scenes, VIEW_W, VIEW_H, ART, Input, img, clamp } from "../engine/core.js";
+import { Particles, Juice } from "../engine/particles.js";
 import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
-import { Sfx, playMusic, stopMusic, audioTime } from "../engine/audio.js";
+import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness, getReactive } from "../engine/audio.js";
+import { litSprite } from "../engine/normalmap.js";
 import { GS } from "./state.js";
+
+// parse a "#rrggbb" lane colour to an [r,g,b] triple for particle bursts
+function hexRGB(h) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(h || "");
+  if (!m) return [255, 230, 120];
+  const v = parseInt(m[1], 16);
+  return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+}
 
 const LANE_W = 24 * ART;
 const GAP = 8 * ART;
@@ -54,7 +64,6 @@ export class Crimp {
     this.judge = ""; this.judgeT = 0; this.judgeCol = "#fff";
     this.state = "count";        // count -> play -> over
     this.countT = 3.0;
-    this.shake = 0;
     this.result = null;
 
     // lane layout from difficulty
@@ -83,7 +92,7 @@ export class Crimp {
     this.danceT = 0;
   }
 
-  enter() { Sfx.confirm(); }
+  enter() { Sfx.confirm(); Particles.clear(); Juice.clear(); }
   exit() { stopMusic(); }
 
   now() { return audioTime() - this.startAudio; }
@@ -103,15 +112,25 @@ export class Crimp {
     this.result = win;
     stopMusic();
     if (win) Sfx.win(); else Sfx.lose();
+    // big finish: hit-stop + flash + a burst over the boss
+    Juice.freeze(0.16);
+    Juice.flash(win ? "#fff7d8" : "#ff6a6a", win ? 0.8 : 0.5, 0.3);
+    Juice.shake(win ? 5 * ART : 7 * ART, 0.4);
+    const col = win ? [255, 240, 180] : [255, 110, 110];
+    Particles.burst(VIEW_W / 2 + 40 * ART, VIEW_H / 2 - 10 * ART, 60, { color: col, speed: 170, life: 0.9, size: 2 * ART, gravity: 40 * ART, drag: 1.8 });
   }
 
   judgeHit(kind) {
     const D = this.D, g = this.gainMul;
     if (kind === "perfect") { this.you += 4.6 * g; this.boss -= 4.8 * g; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
     else if (kind === "good") { this.you += 3.2 * g; this.boss -= 3.4 * g; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
-    else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; this.shake = 0.2; }
+    else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; Juice.shake(4 * ART, 0.22); }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     if (this.combo > 0 && this.combo % 10 === 0) { this.you += 2; this.boss -= 1; }
+    // interactive mix: a hot combo opens the backing track up; a fluff ducks and
+    // muffles it for a beat, so the music tracks how well you're crimping.
+    if (kind === "miss") { duckMusic(0.5, 0.26); setMusicBrightness(0.5); }
+    else setMusicBrightness(0.8 + Math.min(0.2, this.combo * 0.02));
     this.you = clamp(this.you, 0, 100);
     this.boss = clamp(this.boss, 0, 100);
     this.judgeT = 0.5;
@@ -129,7 +148,20 @@ export class Crimp {
     this.flashLane[lane] = 0.12;
     if (best && bestD <= this.goodWin) {
       best.dead = true;
-      this.judgeHit(bestD <= this.perfWin ? "perfect" : "good");
+      const perfect = bestD <= this.perfWin;
+      this.judgeHit(perfect ? "perfect" : "good");
+      // celebratory burst at the struck receptor — additive, so bloom glows it
+      const cx = this.laneX(lane) + LANE_W / 2;
+      const cy = HIT_Y + 5 * ART;
+      const col = perfect ? [255, 216, 106] : hexRGB(this.laneCols[lane]);
+      Particles.burst(cx, cy, perfect ? 16 : 9, {
+        color: col, speed: perfect ? 95 : 65, life: perfect ? 0.55 : 0.4,
+        size: 1.6 * ART, gravity: 60 * ART, drag: 2.2,
+      });
+      if (this.combo > 0 && this.combo % 10 === 0) {
+        Particles.burst(cx, cy, 26, { color: [255, 240, 180], speed: 130, life: 0.7, size: 1.8 * ART, gravity: 40 * ART });
+        Juice.shake(2.5 * ART, 0.18);
+      }
     } else {
       // empty/mistimed tap: only breaks the combo (no meter penalty -> forgiving)
       this.combo = 0;
@@ -139,7 +171,6 @@ export class Crimp {
   update(dt) {
     this.danceT += dt;
     if (this.judgeT > 0) this.judgeT -= dt;
-    if (this.shake > 0) this.shake -= dt;
     for (let i = 0; i < this.laneCount; i++) if (this.flashLane[i] > 0) this.flashLane[i] -= dt;
 
     if (this.state === "count") {
@@ -185,9 +216,7 @@ export class Crimp {
     g.addColorStop(0, this.def.bg0 || "#1a1140");
     g.addColorStop(1, this.def.bg1 || "#3a1a5a");
     ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    let sx = 0, sy = 0;
-    if (this.shake > 0) { sx = (Math.random() - 0.5) * 4 * ART; sy = (Math.random() - 0.5) * 4 * ART; }
-    ctx.save(); ctx.translate(sx, sy);
+    ctx.save();
 
     // ---- boss sprite, bobbing ----
     // bossScale stays as-is: the PNG is baked ART× larger and the canvas is ART×
@@ -197,7 +226,14 @@ export class Crimp {
       const scale = this.def.bossScale || 2;
       const bw = bim.width * scale, bh = bim.height * scale;
       const bob = Math.sin(this.danceT * 6) * 3 * ART;
-      ctx.drawImage(bim, VIEW_W / 2 - bw / 2 + 40 * ART, 30 * ART + bob - bh / 2 + 30 * ART, bw, bh);
+      // normal-mapped lighting: a light orbits the boss and flares to the beat,
+      // so the surface relief catches highlights in time with the music.
+      const nim = img(this.def.face + "_n");
+      const lx = Math.cos(this.danceT * 1.1) * 0.8;
+      const ly = -0.35 + Math.sin(this.danceT * 0.7) * 0.25;
+      const beat = getReactive().bass;
+      const src = nim ? litSprite(bim, nim, lx, ly, 0.7, 0.42 + beat * 0.22, 1.0, 0.97, 0.9) : bim;
+      ctx.drawImage(src, VIEW_W / 2 - bw / 2 + 40 * ART, 30 * ART + bob - bh / 2 + 30 * ART, bw, bh);
     }
 
     // ---- lanes (directional receptors) ----

@@ -1,16 +1,24 @@
 // menu.js — pause menu overlay with Resume / Party stats / Save / Quit.
 
-import { Scenes, VIEW_W, VIEW_H, ART, Input } from "../engine/core.js";
+import { Scenes, VIEW_W, VIEW_H, ART, Input, Save } from "../engine/core.js";
+import { Renderer } from "../engine/renderer.js";
 import { drawText, textCentered, panel } from "../engine/gfx.js";
 import { Sfx } from "../engine/audio.js";
 import { GS } from "./state.js";
 import { ITEMS } from "../data/items.js";
 
+export const FX_LABELS = { off: "Off", soft: "Soft", crt: "CRT" };
+export function cycleFx() {
+  const p = Renderer.cyclePreset();
+  Save.optSet("fx", p);
+  return p;
+}
+
 export class PauseMenu {
   constructor(overworld) {
     this.ow = overworld;
     this.sel = 0;
-    this.items = ["Resume", "Party", "Items", "Difficulty", "Save", "Quit to title"];
+    this.items = ["Resume", "Party", "Items", "Difficulty", "Visual FX", "Save", "Quit to title"];
     this.view = "menu";
     this.block = 0.12;
   }
@@ -20,6 +28,7 @@ export class PauseMenu {
       const d = GS.difficulty();
       return "Difficulty: " + d.charAt(0).toUpperCase() + d.slice(1);
     }
+    if (it === "Visual FX") return "Visual FX: " + (FX_LABELS[Renderer.preset] || Renderer.preset);
     return it;
   }
 
@@ -34,12 +43,14 @@ export class PauseMenu {
     if (Input.pressed("cancel") || Input.pressed("pause")) { if (this.block <= 0) { Sfx.cancel(); Scenes.pop(); } return; }
     const choice = this.items[this.sel];
     if (choice === "Difficulty" && (Input.pressed("left") || Input.pressed("right"))) { GS.cycleDifficulty(); Sfx.move(); }
+    if (choice === "Visual FX" && (Input.pressed("left") || Input.pressed("right"))) { cycleFx(); Sfx.move(); }
     if (Input.pressed("confirm") && this.block <= 0) {
       Sfx.confirm();
       if (choice === "Resume") Scenes.pop();
       else if (choice === "Party") this.view = "party";
       else if (choice === "Items") this.view = "items";
       else if (choice === "Difficulty") { const d = GS.cycleDifficulty(); this.ow.toast("Difficulty: " + d); }
+      else if (choice === "Visual FX") { const p = cycleFx(); this.ow.toast("Visual FX: " + (FX_LABELS[p] || p)); }
       else if (choice === "Save") { GS.save(); this.ow.toast("Game saved."); Scenes.pop(); }
       else if (choice === "Quit to title") { GS.save(); location.reload(); }
     }
@@ -54,7 +65,7 @@ export class PauseMenu {
   }
 
   renderMenu(ctx) {
-    const w = 140 * ART, h = 98 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 140 * ART, h = 110 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
     textCentered(ctx, "PAUSED", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
     this.items.forEach((it, i) => {

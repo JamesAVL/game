@@ -1,4 +1,5 @@
 node_modules/
+dist/
 *.log
 assets/ui/_*.png
 __pycache__/

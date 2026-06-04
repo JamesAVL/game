@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
-# Publishes the static game (index.html + src/ + assets/) to GitHub Pages.
-# No build step — it's plain ES modules and generated PNGs served as-is.
+# Builds the game with Vite (regenerates assets + validates zones first) and
+# publishes the dist/ bundle to GitHub Pages.
 
 on:
   push:
@@ -22,14 +22,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (regenerate assets, validate zones, bundle)
+        run: npm run build
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -39,8 +53,15 @@ jobs:
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .                 # repo root is the web root
+          path: dist               # the built bundle is the web root
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

@@ -3,8 +3,19 @@
 // boss crimp-offs). Pausing opens the menu.
 
 import { Scenes, VIEW_W, VIEW_H, TILE, ART, Input, img, Save } from "../engine/core.js";
+import { Particles, Juice } from "../engine/particles.js";
+import { renderLighting } from "../engine/light.js";
 import { drawText, textCentered, textWidth, panel, drawFrame } from "../engine/gfx.js";
 import { Camera } from "../engine/gfx.js";
+
+// per-zone ambient gloom (level 1 = fully lit, skipped). Sunlit zones stay 1;
+// the surreal/indoor worlds get atmospheric darkness that light sources cut through.
+const ZONE_LIGHT = {
+  night: { level: 0.34 },
+  moon: { level: 0.5 },
+  sea: { level: 0.52 },
+  temple: { level: 0.58 },
+};
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
 import { buildZone, getZone } from "./world.js";
 import { Party } from "./player.js";
@@ -239,6 +250,10 @@ export class Overworld {
           GS.setFlag(f); GS.addItem(e.item);
           Sfx.pickup(); this.toast("Found " + (ITEMS[e.item] ? ITEMS[e.item].name : e.item) + "!");
           e._gone = true;
+          // upward gold sparkle at the pickup (additive -> bloom glows it)
+          const px = e.px - this.cam.x + 8 * ART, py = e.py - this.cam.y + 8 * ART;
+          Particles.burst(px, py, 18, { color: [255, 224, 130], speed: 70, life: 0.6, size: 1.5 * ART, gravity: -28 * ART, drag: 2 });
+          Juice.shake(2 * ART, 0.14);
           if (e.onGet) this.startDialog(e.onGet);
         }
       }
@@ -378,6 +393,22 @@ export class Overworld {
     }
   }
 
+  // screen-space light sources for the lighting pass: a torch on the party plus
+  // glows from portals and lurking bosses.
+  buildLights() {
+    const L = [];
+    const px = this.party.centerX() - this.cam.x;
+    const py = this.party.feetY() - this.cam.y - 6 * ART;
+    L.push({ x: px, y: py, r: 84 * ART, color: [255, 226, 170], intensity: 0.95 });
+    for (const e of this.entities) {
+      if (e._gone) continue;
+      const sx = e.px - this.cam.x + 8 * ART, sy = e.py - this.cam.y + 8 * ART;
+      if (e.type === "portal") L.push({ x: sx, y: sy, r: 58 * ART, color: [150, 140, 255], intensity: 0.85 });
+      else if (e.type === "boss") L.push({ x: sx, y: sy, r: 68 * ART, color: [255, 110, 120], intensity: 0.7 });
+    }
+    return L;
+  }
+
   render(ctx) {
     this.tilemap.renderGround(ctx, this.cam);
 
@@ -394,6 +425,10 @@ export class Overworld {
     this.tilemap.renderOver(ctx, this.cam);
 
     this.renderWeather(ctx);
+
+    // ---- dynamic lighting (dark zones only) ----
+    const amb = this.ambient || ZONE_LIGHT[GS.data.zone];
+    if (amb && amb.level < 1) renderLighting(ctx, amb.level, this.buildLights(), VIEW_W, VIEW_H);
 
     // ---- HUD ----
     this.renderHud(ctx);
