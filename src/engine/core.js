@@ -114,6 +114,7 @@ export const MANIFEST = {
   tiles_moon: "assets/tiles/moon.png",
   tiles_temple: "assets/tiles/temple.png",
   items: "assets/items/items.png",
+  props: "assets/sprites/props.png",
   bg_stars: "assets/bg/stars.png",
   bg_title: "assets/bg/title.png",
 };
@@ -141,6 +142,9 @@ export const Save = {
   read() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } },
   clear() { localStorage.removeItem(SAVE_KEY); },
   exists() { return !!localStorage.getItem(SAVE_KEY); },
+  // standalone settings (persist even before a game save exists)
+  optGet(k, def) { try { const v = localStorage.getItem("boosh_opt_" + k); return v === null ? def : v; } catch (e) { return def; } },
+  optSet(k, v) { try { localStorage.setItem("boosh_opt_" + k, v); } catch (e) {} },
 };
 
 // ---------------------------------------------------------------------------

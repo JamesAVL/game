@@ -14,8 +14,16 @@ export class Title {
     this.sel = 0;
     this.t = 0;
     this.hasSave = Save.exists();
-    this.items = this.hasSave ? ["Continue", "New Journey"] : ["New Journey"];
+    this.items = this.hasSave ? ["Continue", "New Journey", "Difficulty"] : ["New Journey", "Difficulty"];
     this.started = false;
+  }
+
+  label(it) {
+    if (it === "Difficulty") {
+      const d = GS.difficulty();
+      return "Difficulty: " + d.charAt(0).toUpperCase() + d.slice(1);
+    }
+    return it;
   }
 
   enter() { if (TRACKS.title) playMusic(TRACKS.title); }
@@ -39,10 +47,12 @@ export class Title {
     this.t += dt;
     if (Input.pressed("up")) { this.sel = (this.sel - 1 + this.items.length) % this.items.length; Sfx.move(); }
     if (Input.pressed("down")) { this.sel = (this.sel + 1) % this.items.length; Sfx.move(); }
+    const c = this.items[this.sel];
+    if (c === "Difficulty" && (Input.pressed("left") || Input.pressed("right"))) { GS.cycleDifficulty(); Sfx.move(); }
     if (Input.pressed("confirm")) {
       Sfx.confirm();
-      const c = this.items[this.sel];
-      this.startGame(c === "New Journey");
+      if (c === "Difficulty") { GS.cycleDifficulty(); }
+      else this.startGame(c === "New Journey");
     }
   }
 
@@ -61,13 +71,14 @@ export class Title {
     }
     textCentered(ctx, "Journey Through the Zooniverse", VIEW_W / 2, 92, { color: "#c79aff" });
 
-    const y0 = 118;
+    const y0 = 112;
     this.items.forEach((it, i) => {
       const yy = y0 + i * 14;
       if (i === this.sel) {
-        if (Math.floor(this.t * 3) % 2 === 0) drawText(ctx, ">", VIEW_W / 2 - 44, yy, { color: "#ffd86a" });
+        if (Math.floor(this.t * 3) % 2 === 0) drawText(ctx, ">", VIEW_W / 2 - 52, yy, { color: "#ffd86a" });
       }
-      textCentered(ctx, it, VIEW_W / 2, yy, { color: i === this.sel ? "#ffd86a" : "#9aa0c0", shadow: "#000" });
+      const dim = it === "Difficulty";
+      textCentered(ctx, this.label(it), VIEW_W / 2, yy, { color: i === this.sel ? "#ffd86a" : (dim ? "#7f86a8" : "#9aa0c0"), shadow: "#000" });
     });
 
     textCentered(ctx, "a crimping adventure", VIEW_W / 2, VIEW_H - 10, { color: "#5a5a7a" });

@@ -13,8 +13,11 @@ function fresh() {
     zone: "hub",
     spawn: null,            // {x,y,dir} override, else zone default
     playtime: 0,
+    difficulty: Save.optGet("difficulty", "normal"),  // easy | normal | hard
   };
 }
+
+export const DIFFICULTIES = ["easy", "normal", "hard"];
 
 export const GS = {
   data: fresh(),
@@ -31,6 +34,15 @@ export const GS = {
   addItem(id, n = 1) { this.data.items[id] = (this.data.items[id] || 0) + n; },
   removeItem(id, n = 1) { this.data.items[id] = Math.max(0, (this.data.items[id] || 0) - n); },
   itemList() { return Object.keys(this.data.items).filter((k) => this.data.items[k] > 0); },
+
+  // ---- difficulty --------------------------------------------------------
+  difficulty() { return this.data.difficulty || "normal"; },
+  setDifficulty(d) { this.data.difficulty = d; Save.optSet("difficulty", d); },
+  cycleDifficulty() {
+    const i = DIFFICULTIES.indexOf(this.difficulty());
+    this.setDifficulty(DIFFICULTIES[(i + 1) % DIFFICULTIES.length]);
+    return this.difficulty();
+  },
 
   // ---- progression -------------------------------------------------------
   unlock(zone) { this.data.unlocked[zone] = true; },

@@ -4,6 +4,7 @@
 import { TILE, img } from "../engine/core.js";
 import { Tilemap } from "../engine/tilemap.js";
 import { ZONES } from "../data/zones.js";
+import { GS } from "./state.js";
 
 // Shared tile-index convention used by every generated tileset (gen_tiles.py):
 //  0 floor   1 floor-variant   2 wall          3 wall-alt(solid)
@@ -57,10 +58,16 @@ export function buildZone(id) {
     animT: Math.random() * 2,
   }));
 
-  // solid characters/obstacles block walking; warps/items/triggers do not
+  // solid characters/obstacles block walking; warps/items/triggers/switches do not
+  const inb = (e) => e.y >= 0 && e.y < h && e.x >= 0 && e.x < w;
   for (const e of entities) {
-    if (e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal") {
-      if (e.y >= 0 && e.y < h && e.x >= 0 && e.x < w) solids[e.y][e.x] = true;
+    if (e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" || e.type === "search") {
+      if (inb(e)) solids[e.y][e.x] = true;
+    }
+    // gates block until their switch flag is set (re-applies on re-entry)
+    if (e.type === "gate") {
+      if (GS.flag("sw_" + e.gate)) { e._open = true; }
+      else if (inb(e)) solids[e.y][e.x] = true;
     }
   }
 

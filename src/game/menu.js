@@ -10,9 +10,17 @@ export class PauseMenu {
   constructor(overworld) {
     this.ow = overworld;
     this.sel = 0;
-    this.items = ["Resume", "Party", "Items", "Save", "Quit to title"];
+    this.items = ["Resume", "Party", "Items", "Difficulty", "Save", "Quit to title"];
     this.view = "menu";
     this.block = 0.12;
+  }
+
+  label(it) {
+    if (it === "Difficulty") {
+      const d = GS.difficulty();
+      return "Difficulty: " + d.charAt(0).toUpperCase() + d.slice(1);
+    }
+    return it;
   }
 
   update(dt) {
@@ -24,12 +32,14 @@ export class PauseMenu {
     if (Input.pressed("up")) { this.sel = (this.sel - 1 + this.items.length) % this.items.length; Sfx.move(); }
     if (Input.pressed("down")) { this.sel = (this.sel + 1) % this.items.length; Sfx.move(); }
     if (Input.pressed("cancel") || Input.pressed("pause")) { if (this.block <= 0) { Sfx.cancel(); Scenes.pop(); } return; }
+    const choice = this.items[this.sel];
+    if (choice === "Difficulty" && (Input.pressed("left") || Input.pressed("right"))) { GS.cycleDifficulty(); Sfx.move(); }
     if (Input.pressed("confirm") && this.block <= 0) {
       Sfx.confirm();
-      const choice = this.items[this.sel];
       if (choice === "Resume") Scenes.pop();
       else if (choice === "Party") this.view = "party";
       else if (choice === "Items") this.view = "items";
+      else if (choice === "Difficulty") { const d = GS.cycleDifficulty(); this.ow.toast("Difficulty: " + d); }
       else if (choice === "Save") { GS.save(); this.ow.toast("Game saved."); Scenes.pop(); }
       else if (choice === "Quit to title") { GS.save(); location.reload(); }
     }
@@ -44,13 +54,13 @@ export class PauseMenu {
   }
 
   renderMenu(ctx) {
-    const w = 120, h = 84, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 140, h = 98, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
     textCentered(ctx, "PAUSED", VIEW_W / 2, y + 8, { color: "#ffd86a" });
     this.items.forEach((it, i) => {
       const yy = y + 24 + i * 11;
       if (i === this.sel) drawText(ctx, ">", x + 18, yy, { color: "#ffd86a" });
-      drawText(ctx, it, x + 28, yy, { color: i === this.sel ? "#ffd86a" : "#cfcfe6" });
+      drawText(ctx, this.label(it), x + 28, yy, { color: i === this.sel ? "#ffd86a" : "#cfcfe6" });
     });
   }
 
