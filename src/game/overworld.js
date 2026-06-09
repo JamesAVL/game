@@ -45,9 +45,32 @@ const WEATHER_CFG = {
 
 function rr(a, b) { return a + Math.random() * (b - a); }
 
+// deterministic 0..1 hash (stable star/spark positions per index)
+function h1(i, salt) { let v = (Math.imul(i + 1, 374761393) + Math.imul(salt + 1, 668265263)) >>> 0; v = Math.imul(v ^ (v >> 13), 1274126177) >>> 0; return ((v ^ (v >> 16)) & 0xffff) / 65535; }
+
+// parallax backdrops painted BEFORE the ground layer; they only show through
+// void ("%") chasm tiles, scrolling at half the camera speed for real depth.
+const BACKDROP = {
+  stars: { base: "#070a18" },
+  abyss: { base: "#160420", glow: "#581a6a", spark: "#ff9a3a" },
+};
+
+// foreground drift: a translucent screen-space haze drawn after the overlay
+// tiles, offset *faster* than the camera (parallax > 1) so it reads as a plane
+// floating between the player and the screen.
+const DRIFT = {
+  hub: { kind: "rays", color: "255,250,210", alpha: 0.05 },
+  forest: { kind: "rays", color: "255,242,180", alpha: 0.09 },
+  tundra: { kind: "fog", color: "235,245,255", alpha: 0.13 },
+  sea: { kind: "fog", color: "120,200,210", alpha: 0.12 },
+  temple: { kind: "fog", color: "230,200,140", alpha: 0.09 },
+  night: { kind: "fog", color: "190,110,230", alpha: 0.08 },
+};
+
 export class Overworld {
   constructor() {
     this.cam = new Camera();
+    this.t = 0;                        // scene clock for drift/backdrop motion
     this.toastMsg = ""; this.toastT = 0;
     this.musicKey = null;
     this.fadeT = 0;
@@ -311,6 +334,7 @@ export class Overworld {
 
   update(dt) {
     GS.data.playtime += dt;
+    this.t += dt;
     if (this.toastT > 0) this.toastT -= dt;
     if (this.fadeT > 0) this.fadeT -= dt;
     this.updateWeather(dt);
@@ -409,7 +433,70 @@ export class Overworld {
     return L;
   }
 
+  // ---- depth plane 0: parallax backdrop behind the ground layer -----------
+  // Visible only through void ("%") tiles; scrolls at half camera speed.
+  renderBackdrop(ctx) {
+    const bd = BACKDROP[this.def.backdrop];
+    if (!bd) return;
+    ctx.fillStyle = bd.base;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const ox = this.cam.x * 0.5, oy = this.cam.y * 0.5;
+    if (this.def.backdrop === "stars") {
+      for (let i = 0; i < 70; i++) {
+        const x = (h1(i, 3) * 2048 - ox) % VIEW_W, y = (h1(i, 7) * 2048 - oy) % VIEW_H;
+        const tw = 0.35 + 0.65 * Math.abs(Math.sin(this.t * (0.6 + h1(i, 11)) + i));
+        ctx.globalAlpha = tw;
+        ctx.fillStyle = h1(i, 5) < 0.2 ? "#cfe2ff" : "#fff6c0";
+        const s = (h1(i, 9) < 0.15 ? 2 : 1) * ART;
+        ctx.fillRect((x + VIEW_W) % VIEW_W, (y + VIEW_H) % VIEW_H, s, s);
+      }
+      ctx.globalAlpha = 1;
+    } else { // abyss: a deep glow with slow rising sparks
+      const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+      g.addColorStop(0, bd.base); g.addColorStop(1, bd.glow);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      ctx.fillStyle = bd.spark;
+      for (let i = 0; i < 26; i++) {
+        const x = (h1(i, 3) * 2048 - ox) % VIEW_W;
+        const y = (h1(i, 7) * 2048 - oy - this.t * 14 * ART * (0.4 + h1(i, 13))) % VIEW_H;
+        ctx.globalAlpha = 0.25 + 0.5 * h1(i, 5);
+        ctx.fillRect((x + VIEW_W) % VIEW_W, (y + VIEW_H) % VIEW_H, ART, ART);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---- depth plane 4: foreground haze drifting over the scene -------------
+  renderDrift(ctx) {
+    const d = DRIFT[GS.data.zone];
+    if (!d) return;
+    const par = this.cam.x * 0.15;   // extra slide vs camera = "in front" cue
+    if (d.kind === "fog") {
+      for (let L = 0; L < 2; L++) {
+        const speed = (L ? 9 : 5) * ART, yBase = (L ? 0.7 : 0.3) * VIEW_H;
+        ctx.fillStyle = "rgba(" + d.color + "," + d.alpha / (L + 1) + ")";
+        for (let i = 0; i < 5; i++) {
+          const w = (60 + h1(i, L) * 70) * ART, h = (14 + h1(i, L + 4) * 12) * ART;
+          let x = (h1(i, L + 8) * 2048 + this.t * speed + par * (L + 1)) % (VIEW_W + w * 2) - w;
+          const y = yBase + Math.sin(this.t * 0.4 + i * 2.1 + L) * 10 * ART;
+          ctx.beginPath(); ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    } else { // rays: slanted light shafts sliding slowly across
+      ctx.save();
+      ctx.fillStyle = "rgba(" + d.color + "," + d.alpha + ")";
+      ctx.rotate(-0.35);
+      for (let i = 0; i < 4; i++) {
+        const w = (10 + h1(i, 2) * 14) * ART;
+        const x = ((h1(i, 6) * 2048 + this.t * 4 * ART + par) % (VIEW_W * 1.6)) - VIEW_H * 0.4;
+        ctx.fillRect(x, -VIEW_H * 0.5, w, VIEW_H * 2);
+      }
+      ctx.restore();
+    }
+  }
+
   render(ctx) {
+    if (this.zone.hasVoid) this.renderBackdrop(ctx);
     this.tilemap.renderGround(ctx, this.cam);
 
     // y-sorted drawables: entities + party
@@ -422,9 +509,13 @@ export class Overworld {
     list.sort((a, b) => a.y - b.y);
     for (const d of list) d.draw(ctx, this.cam);
 
-    this.tilemap.renderOver(ctx, this.cam);
+    // overlay tiles ghost near the party so the player never vanishes under them
+    const gtx = Math.floor(this.party.centerX() / TILE);
+    const gty = Math.floor((this.party.feetY() - 4) / TILE);
+    this.tilemap.renderOver(ctx, this.cam, { tx: gtx, ty: gty, r: 1, alpha: 0.55 });
 
     this.renderWeather(ctx);
+    this.renderDrift(ctx);
 
     // ---- dynamic lighting (dark zones only) ----
     const amb = this.ambient || ZONE_LIGHT[GS.data.zone];

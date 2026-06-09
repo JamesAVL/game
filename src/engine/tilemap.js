@@ -33,7 +33,10 @@ export class Tilemap {
     );
   }
 
-  _drawLayer(ctx, layer, cam) {
+  // ghost (optional): { tx, ty, r, alpha } — tiles within Chebyshev distance r
+  // of (tx,ty) draw at `alpha`, so overhangs the player walks under turn
+  // translucent instead of swallowing the sprite.
+  _drawLayer(ctx, layer, cam, ghost) {
     if (!this.img) return;
     const x0 = Math.max(0, Math.floor(cam.x / TILE));
     const y0 = Math.max(0, Math.floor(cam.y / TILE));
@@ -45,12 +48,15 @@ export class Tilemap {
         if (t < 0) continue;
         const sx = (t % this.cols) * TILE;
         const sy = Math.floor(t / this.cols) * TILE;
+        const ghosted = ghost && Math.abs(tx - ghost.tx) <= ghost.r && Math.abs(ty - ghost.ty) <= ghost.r;
+        if (ghosted) ctx.globalAlpha = ghost.alpha;
         ctx.drawImage(this.img, sx, sy, TILE, TILE,
           Math.round(tx * TILE - cam.x), Math.round(ty * TILE - cam.y), TILE, TILE);
+        if (ghosted) ctx.globalAlpha = 1;
       }
     }
   }
 
   renderGround(ctx, cam) { this._drawLayer(ctx, this.grid, cam); }
-  renderOver(ctx, cam) { if (this.over) this._drawLayer(ctx, this.over, cam); }
+  renderOver(ctx, cam, ghost) { if (this.over) this._drawLayer(ctx, this.over, cam, ghost); }
 }

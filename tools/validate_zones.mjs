@@ -5,15 +5,15 @@
 //   node tools/validate_zones.mjs
 // Exits non-zero (and prints a report) if any zone fails.
 //
-// The solidity rules below MUST mirror src/game/world.js:
-//   - LEGEND solid chars: # = O ~ X   (world.js:13-26)
-//   - solid entity types: npc, boss, sign, portal, search, and a CLOSED gate
-//     (world.js buildZone solid loop)
-// zones.js is pure data (no engine imports), so we can import it directly.
+// Solidity rules come straight from the shared legend (data/legend.js), so the
+// validator can never drift from src/game/world.js. Solid entity types must
+// still mirror world.js buildZone: npc, boss, sign, portal, search + CLOSED gate.
+// zones.js/legend.js are pure data (no engine imports), importable directly.
 
 import { ZONES } from "../src/data/zones.js";
+import { LEGEND } from "../src/data/legend.js";
 
-const SOLID_CHARS = new Set(["#", "=", "O", "~", "X"]);
+const SOLID_CHARS = new Set(Object.entries(LEGEND).filter(([, c]) => c.solid).map(([ch]) => ch));
 const SOLID_TYPES = new Set(["npc", "boss", "sign", "portal", "search"]);
 const STAND_ON = new Set(["item", "switch"]);       // player stands on the tile
 const ADJACENT = new Set(["npc", "boss", "sign", "portal", "search", "gate"]); // interact from beside
@@ -75,6 +75,13 @@ for (const [id, def] of Object.entries(ZONES)) {
   const grid = buildGrid(def);
   const { w, h, solidMap } = grid;
   const ents = def.entities || [];
+
+  // 0. every map char must exist in the merged legend (typo guard; world.js
+  // silently falls back to floor, which hides authoring mistakes)
+  const legend = Object.assign({}, LEGEND, def.legend || {});
+  for (let y = 0; y < def.map.length; y++)
+    for (const ch of def.map[y])
+      if (!legend[ch]) { fail(id, `unknown map char '${ch}' on row ${y}`); break; }
 
   // 1. items must sit on a non-solid map tile
   for (const e of ents) {

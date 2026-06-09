@@ -40,6 +40,27 @@ describe("CRIMPS data", () => {
         }
       });
 
+      it("has a valid parallax stage (back-to-front bands + sane motes)", () => {
+        const st = c.stage;
+        expect(st).toBeTruthy();
+        expect(st.bands.length).toBeGreaterThanOrEqual(2);
+        let prevY = 0;
+        for (const b of st.bands) {
+          expect(b.color).toMatch(/^#[0-9a-f]{6}$/i);
+          expect(b.y).toBeGreaterThan(0);
+          expect(b.y).toBeLessThan(1);
+          expect(b.y).toBeGreaterThanOrEqual(prevY); // back bands sit higher
+          expect(b.amp).toBeGreaterThan(0);
+          expect(b.speed).toBeGreaterThan(0);
+          prevY = b.y;
+        }
+        if (st.motes) {
+          expect(st.motes.n).toBeGreaterThan(0);
+          expect(st.motes.alpha).toBeGreaterThan(0);
+          expect(st.motes.alpha).toBeLessThanOrEqual(1);
+        }
+      });
+
       it("lyric cues land within the song and carry text", () => {
         const lastStep = c.notes[c.notes.length - 1][0];
         const beats = lastStep / 4;

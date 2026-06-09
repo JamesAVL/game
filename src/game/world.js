@@ -4,26 +4,13 @@
 import { TILE, img } from "../engine/core.js";
 import { Tilemap } from "../engine/tilemap.js";
 import { ZONES } from "../data/zones.js";
+import { LEGEND } from "../data/legend.js";
 import { GS } from "./state.js";
 
-// Shared tile-index convention used by every generated tileset (gen_tiles.py):
-//  0 floor   1 floor-variant   2 wall          3 wall-alt(solid)
-//  4 obstacle(solid)  5 deco    6 path          7 water/hazard(solid)
-//  8 door    9 accent-floor   10 deco2         11 solid-feature
-export const LEGEND = {
-  ".": { t: 0 },
-  ",": { t: 1 },
-  "#": { t: 2, solid: true },
-  "=": { t: 3, solid: true },
-  "O": { t: 4, solid: true },
-  "\"": { t: 5 },
-  "_": { t: 6 },
-  "~": { t: 7, solid: true },
-  "D": { t: 8 },
-  "+": { t: 9 },
-  "*": { t: 10 },
-  "X": { t: 11, solid: true },
-};
+// The tile-char legend lives in data/legend.js (pure data) so the zone
+// validator and tests use the exact same solidity rules. Re-exported for
+// existing importers.
+export { LEGEND };
 
 export function getZone(id) { return ZONES[id]; }
 
@@ -36,17 +23,22 @@ export function buildZone(id) {
   const w = Math.max(...rows.map((r) => r.length));
   const grid = [];
   const solids = [];
+  const over = [];
+  let hasOver = false, hasVoid = false;
   for (let y = 0; y < h; y++) {
     grid.push(new Array(w).fill(0));
     solids.push(new Array(w).fill(false));
+    over.push(new Array(w).fill(-1));
     for (let x = 0; x < w; x++) {
       const ch = rows[y][x] || ".";
       const cell = legend[ch] || legend["."];
       grid[y][x] = cell.t;
       solids[y][x] = !!cell.solid;
+      if (cell.over != null) { over[y][x] = cell.over; hasOver = true; }
+      if (cell.void) hasVoid = true;
     }
   }
-  const tm = new Tilemap(img(def.tileset), grid, solids, null);
+  const tm = new Tilemap(img(def.tileset), grid, solids, hasOver ? over : null);
 
   const entities = (def.entities || []).map((e) => ({
     ...e,
@@ -71,5 +63,5 @@ export function buildZone(id) {
     }
   }
 
-  return { def, tilemap: tm, entities };
+  return { def, tilemap: tm, entities, hasVoid };
 }

@@ -215,12 +215,52 @@ export class Crimp {
     return touch ? "Tap the lanes in time!" : "Hit the ARROW keys in time!";
   }
 
+  // layered parallax stage: sinuous silhouette bands (back -> front, each
+  // drifting at its own speed) that swell with the beat, plus floating motes.
+  // Config is data-driven per boss (def.stage, built in data/crimps.js).
+  _stage(ctx) {
+    const st = this.def.stage;
+    if (!st) return;
+    const beat = getReactive().bass;
+    for (let bi = 0; bi < st.bands.length; bi++) {
+      const b = st.bands[bi];
+      ctx.fillStyle = b.color;
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.moveTo(0, VIEW_H);
+      const step = 8 * ART;
+      for (let x = 0; x <= VIEW_W + step; x += step) {
+        const ph = (x / ART) * 0.012 * b.freq + this.danceT * b.speed * 0.12 + bi * 1.7;
+        const y = b.y * VIEW_H
+          + Math.sin(ph) * b.amp * ART * (1 + beat * 0.25)
+          + Math.sin(ph * 2.7) * b.amp * 0.35 * ART;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(VIEW_W + step, VIEW_H);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    const m = st.motes;
+    if (m) {
+      ctx.fillStyle = m.color;
+      for (let i = 0; i < m.n; i++) {
+        const sp = (m.rise ? -1 : 1) * (6 + (i % 5) * 3) * ART;
+        const x = (i * 197 * ART + Math.sin(this.danceT * 0.7 + i) * 14 * ART) % VIEW_W;
+        const y = (i * 131 * ART + this.danceT * sp) % VIEW_H;
+        ctx.globalAlpha = m.alpha * (0.6 + 0.4 * Math.sin(this.danceT * 2 + i * 1.3)) * (0.7 + beat * 0.5);
+        ctx.fillRect((x + VIEW_W) % VIEW_W, (y + VIEW_H) % VIEW_H, ART, ART);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
   render(ctx) {
-    // ---- backdrop ----
+    // ---- backdrop: sky gradient + layered parallax stage ----
     const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
     g.addColorStop(0, this.def.bg0 || "#1a1140");
     g.addColorStop(1, this.def.bg1 || "#3a1a5a");
     ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    this._stage(ctx);
     ctx.save();
 
     // ---- boss sprite, bobbing ----

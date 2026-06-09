@@ -1,8 +1,10 @@
 """gen_tiles.py — one 16x16 tileset strip per world.
 
-Each strip has 12 tiles in the index order documented in game/world.js:
+Each strip has 16 tiles in the index order documented in data/legend.js:
   0 floor  1 floor2  2 wall  3 wall-alt  4 obstacle  5 deco
   6 path   7 water   8 door  9 accent    10 deco2     11 solid-feature
+plus the transparent OVERLAY tiles drawn above the party (depth layer):
+  12 canopy  13 arch-top  14 hanging(vines/icicles)  15 glow-haze
 A generic painter draws them from a per-zone palette, with a zone-specific
 "obstacle" shape (tree / ice / coral / spire / crater / urn).
 """
@@ -124,8 +126,58 @@ def deco(cv, ox, pal, kind="plant"):
         cv.set(cx + 5, 34, dk)
 
 
+# ---- overlay tiles (transparent background; drawn ABOVE the party) --------
+# All shapes stay strictly inside [ox, ox+T) so strips don't bleed.
+
+def over_canopy(cv, ox, pal):
+    """12: leafy/icy mass the player ghosts beneath."""
+    base = pal["feat"]; hi = pal["feat_hi"]; dk = shade(base, -0.35)
+    cx = ox + 24
+    cv.ellipse(cx, 15, 22, 13, base)
+    cv.ellipse(cx - 9, 10, 11, 8, hi)
+    cv.ellipse(cx + 10, 18, 10, 7, dk)
+    cv.ellipse(cx + 2, 27, 14, 8, base)       # drooping fringe
+    cv.ellipse(cx - 12, 24, 8, 6, dk)
+    for (lx, ly) in [(cx - 14, 7), (cx + 4, 5), (cx + 15, 12), (cx - 4, 19), (cx + 9, 24)]:
+        cv.set(lx, ly, hi); cv.set(lx + 1, ly, hi)
+
+
+def over_arch(cv, ox, pal):
+    """13: a stone lintel spanning the tile; open below."""
+    base = pal["wall"]; hi = pal["wall_hi"]; dk = shade(base, -0.4)
+    cv.rect(ox, 4, T, 15, base)
+    cv.rect(ox, 4, T, 3, hi)
+    cv.rect(ox, 16, T, 3, dk)
+    cv.vline(ox + 12, 7, 9, shade(base, -0.18))   # masonry joints
+    cv.vline(ox + 30, 7, 9, shade(base, -0.18))
+    cv.rect(ox + 18, 19, 12, 8, base)             # hanging keystone
+    cv.rect(ox + 18, 25, 12, 2, dk)
+    cv.rect(ox + 20, 19, 8, 2, hi)
+
+
+def over_hang(cv, ox, pal):
+    """14: vines/icicles trailing from above."""
+    c = pal.get("hang", pal.get("deco", (90, 150, 70)))
+    hi = shade(c, 0.3); dk = shade(c, -0.25)
+    for i, (x, ln) in enumerate([(4, 17), (12, 27), (21, 12), (29, 31), (38, 21), (44, 13)]):
+        col = hi if i % 3 == 0 else (c if i % 3 == 1 else dk)
+        for d in range(ln):
+            w = 3 if d < ln * 0.4 else (2 if d < ln * 0.75 else 1)
+            cv.hline(ox + x, d, w, col)
+        cv.set(ox + x, ln, shade(col, 0.35))      # bright droplet tip
+
+
+def over_haze(cv, ox, pal):
+    """15: soft translucent glow pool (alpha-blended)."""
+    g = pal.get("glow", pal.get("accent"))
+    r, gg, b = g[0], g[1], g[2]
+    cv.ellipse(ox + 24, 24, 21, 18, (r, gg, b, 40))
+    cv.ellipse(ox + 24, 24, 14, 12, (r, gg, b, 55))
+    cv.ellipse(ox + 24, 24, 7, 6, (r, gg, b, 70))
+
+
 def make(pal, kind, out):
-    cv = Canvas(T * 12, T, cs=1)   # T=48 native
+    cv = Canvas(T * 16, T, cs=1)   # T=48 native
     floor(cv, 0 * T, pal["floor"], pal["floor2"], 1, 0.10)            # 0
     floor(cv, 1 * T, pal["floor"], shade(pal["floor"], -0.12), 2, 0.16)  # 1
     wall(cv, 2 * T, pal["wall"], pal["wall_hi"], shade(pal["wall"], -0.35))  # 2
@@ -149,6 +201,11 @@ def make(pal, kind, out):
     cv.rect_outline(11 * T, 0, T, T, shade(pal["wall"], -0.4))
     cv.rect(11 * T + 14, 14, 21, 24, shade(pal["wall"], -0.5))
     cv.rect(11 * T + 17, 17, 15, 18, shade(pal["wall"], -0.3))
+    # overlay tiles (transparent bg; drawn above the party — see data/legend.js)
+    over_canopy(cv, 12 * T, pal)                                      # 12
+    over_arch(cv, 13 * T, pal)                                        # 13
+    over_hang(cv, 14 * T, pal)                                        # 14
+    over_haze(cv, 15 * T, pal)                                        # 15
     cv.write(out)
     print("wrote", out)
 
@@ -159,7 +216,8 @@ PALETTES = {
                  water=(70, 120, 200), water_hi=(130, 180, 235), accent=(214, 184, 96), deco=(70, 140, 64)), "tree"),
     "tundra": (dict(floor=(206, 228, 242), floor2=(220, 238, 250), wall=(150, 196, 226), wall_hi=(200, 226, 244),
                     feat=(176, 212, 240), feat_hi=(232, 245, 255), path=(186, 214, 238),
-                    water=(94, 154, 212), water_hi=(150, 200, 240), accent=(180, 220, 246), deco=(150, 196, 220)), "ice"),
+                    water=(94, 154, 212), water_hi=(150, 200, 240), accent=(180, 220, 246), deco=(150, 196, 220),
+                    hang=(208, 238, 252)), "ice"),
     "sea": (dict(floor=(46, 96, 116), floor2=(40, 86, 104), wall=(196, 92, 122), wall_hi=(230, 140, 165),
                  feat=(220, 96, 130), feat_hi=(255, 150, 180), path=(120, 150, 150),
                  water=(20, 60, 92), water_hi=(60, 120, 160), accent=(120, 220, 200), deco=(80, 170, 150)), "coral"),

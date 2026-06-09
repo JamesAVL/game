@@ -38,6 +38,8 @@ function hubMap() {
   scatter(m, "O", [[14, 4], [19, 5], [5, 16], [28, 16], [12, 17], [22, 18]]);
   scatter(m, "\"", [[8, 8], [26, 9], [4, 12], [30, 12], [16, 19], [9, 19]]);
   scatter(m, "+", [[5, 18], [10, 18], [15, 18], [20, 18], [25, 18], [29, 8]]);
+  // canopy overhangs flanking the courtyard trees (walk-under depth layer)
+  scatter(m, "^", [[13, 4], [15, 4], [18, 5], [20, 5], [4, 16], [6, 16], [27, 16], [29, 16]]);
   return m;
 }
 
@@ -80,11 +82,16 @@ function makeWorld(cfg) {
   pocket(m, pk.x, pk.y, pk.w, pk.h);
   set(m, pk.door[0], pk.door[1], ".");                 // doorway; a gate sits here
 
+  // depth layers: overlay chars (canopy/arch/hang/haze — walkable, drawn above
+  // the party) and void chasms ("%" — solid; the parallax backdrop shows through)
+  for (const o of (cfg.overlay || [])) scatter(m, o.ch, o.cells);
+  for (const [vx, vy, vw, vh] of (cfg.voids || [])) rect(m, vx, vy, vw, vh, "%");
+
   const sp = L.spawn || [15, 22];
   const searches = L.searches.map((s) => ({ type: "search", x: s[0], y: s[1], prop: s[2], dialog: s[3], xp: s[4] }));
   return {
     id: cfg.id, name: cfg.name, tileset: cfg.tileset, music: cfg.music,
-    weather: cfg.weather, onEnter: cfg.onEnter,
+    weather: cfg.weather, onEnter: cfg.onEnter, backdrop: cfg.backdrop,
     spawn: { x: sp[0], y: sp[1], dir: "up" },
     collect: { item: cfg.note, need: 3, label: "Crimp Notes", dialog: "collect_" + cfg.id },
     map: m,
@@ -108,6 +115,7 @@ const TUNDRA = makeWorld({
   id: "tundra", name: "The Frozen Tundra", tileset: "tiles_tundra", music: "amb_cold",
   weather: "snow", onEnter: "tundra_enter", color: "#9fe0ff", note: "note_tundra",
   toast: "Ice cracks open a passage to the north-west!",
+  overlay: [{ ch: ";", cells: [[4, 1], [5, 1], [6, 1], [12, 1], [13, 1], [21, 1], [22, 1]] }],
   layout: {
     rocks: [[6, 7], [24, 8], [9, 17], [20, 18], [12, 11], [26, 20]],
     deco: [[8, 12], [18, 10], [11, 19], [25, 15], [7, 20]],
@@ -127,6 +135,7 @@ const SEA = makeWorld({
   id: "sea", name: "Old Gregg's Sea", tileset: "tiles_sea", music: "amb_water",
   weather: "bubbles", onEnter: "sea_enter", color: "#5affc0", note: "note_sea",
   toast: "A current parts the reef to the north-east!",
+  overlay: [{ ch: ";", cells: [[5, 1], [6, 1], [11, 1], [12, 1], [19, 1], [20, 1], [26, 1]] }],
   layout: {
     rocks: [[7, 8], [22, 7], [10, 15], [19, 17], [24, 20], [6, 19]],
     deco: [[9, 11], [18, 9], [13, 18], [25, 14], [16, 20]],
@@ -146,6 +155,10 @@ const FOREST = makeWorld({
   id: "forest", name: "The Forest of Bins", tileset: "tiles_forest", music: "amb_forest",
   weather: "leaves", onEnter: "forest_enter", color: "#ff9a5a", note: "note_forest",
   toast: "Brambles rustle apart to the south-west!",
+  overlay: [{
+    ch: "^",
+    cells: [[7, 9], [9, 9], [20, 9], [22, 9], [12, 12], [14, 12], [5, 16], [7, 16], [22, 16], [24, 16], [24, 21], [26, 21]],
+  }],
   layout: {
     rocks: [[8, 9], [21, 9], [6, 16], [23, 16], [13, 12], [25, 21]],
     deco: [[10, 13], [19, 12], [9, 20], [24, 13], [15, 16]],
@@ -165,6 +178,9 @@ const NIGHT = makeWorld({
   id: "night", name: "The Nightosphere", tileset: "tiles_night", music: "amb_dark",
   weather: "embers", onEnter: "night_enter", color: "#c77aff", note: "note_night",
   toast: "A wall of embers gutters out to the south-east!",
+  backdrop: "abyss",
+  voids: [[1, 1, 2, 24]],   // the western edge falls away into the nightosphere
+  overlay: [{ ch: "!", cells: [[8, 9], [21, 9], [11, 16], [19, 16], [6, 20]] }],
   layout: {
     rocks: [[7, 9], [22, 9], [10, 16], [20, 16], [14, 12], [5, 20]],
     deco: [[9, 12], [18, 11], [24, 15], [8, 19], [16, 18]],
@@ -184,6 +200,8 @@ const MOON = makeWorld({
   id: "moon", name: "The Moon", tileset: "tiles_moon", music: "amb_moon",
   weather: "stars", onEnter: "moon_enter", color: "#fff2a0", note: "note_moon",
   toast: "A crater yawns open to the west...",
+  backdrop: "stars",
+  voids: [[4, 3, 2, 2], [26, 10, 2, 2], [9, 21, 2, 2]],  // craters open onto space
   layout: {
     rocks: [[8, 8], [21, 8], [11, 18], [19, 18], [24, 14], [6, 20]],
     deco: [[10, 11], [18, 10], [13, 16], [23, 16], [9, 20]],
@@ -203,6 +221,7 @@ const TEMPLE = makeWorld({
   id: "temple", name: "Xooberon Temple", tileset: "tiles_temple", music: "amb_temple",
   weather: "dust", onEnter: "temple_enter", color: "#ff7ad8", note: "note_temple",
   toast: "Ancient stone grinds aside to the east!",
+  overlay: [{ ch: "A", cells: [[12, 17], [13, 17]] }],   // arch over the inner gateway
   layout: {
     rocks: [[9, 9], [24, 8], [11, 14], [19, 14], [26, 20], [5, 14]],
     deco: [[12, 10], [18, 11], [24, 15], [10, 20], [16, 15]],
