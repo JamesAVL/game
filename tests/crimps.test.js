@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CRIMPS } from "../src/data/crimps.js";
+import { CRIMPS, remixCrimp } from "../src/data/crimps.js";
 
 // crimps.js is pure, DOM-free data: deterministic note charts generated from a
 // seed. These tests lock the contracts the rest of the engine relies on —
@@ -79,5 +79,36 @@ describe("CRIMPS data", () => {
     expect(CRIMPS.tutorial.notes.length).toBe(22);
     expect(CRIMPS.jazz.notes.length).toBe(62);
     expect(CRIMPS.tony.notes.length).toBe(115);
+  });
+
+  describe("crimp remixes (post-game rematches)", () => {
+    it("are deterministic and denser than the originals", () => {
+      for (const id of ["jazz", "gregg", "tony"]) {
+        const a = remixCrimp(id), b = remixCrimp(id);
+        expect(a.notes).toEqual(b.notes);
+        expect(a.notes.length).toBeGreaterThan(CRIMPS[id].notes.length);
+        expect(a.chart.seed).toBe(CRIMPS[id].chart.seed + 1000);
+        for (const [step, lane] of a.notes) {
+          expect(Number.isInteger(step)).toBe(true);
+          expect(lane).toBeGreaterThanOrEqual(0);
+          expect(lane).toBeLessThanOrEqual(3);
+        }
+      }
+    });
+
+    it("intensify the mechanic without exceeding fairness caps", () => {
+      const rx = remixCrimp("nana");
+      expect(rx.mechanic.rate).toBeGreaterThan(CRIMPS.nana.mechanic.rate);
+      expect(rx.mechanic.rate).toBeLessThanOrEqual(0.45);
+      const tx = remixCrimp("tony");
+      expect(tx.mechanic.everyBars).toBeLessThan(CRIMPS.tony.mechanic.everyBars);
+      expect(tx.mechanic.everyBars).toBeGreaterThanOrEqual(4);
+    });
+
+    it("never mutate the base definitions", () => {
+      const before = JSON.stringify(CRIMPS.jazz);
+      remixCrimp("jazz");
+      expect(JSON.stringify(CRIMPS.jazz)).toBe(before);
+    });
   });
 });

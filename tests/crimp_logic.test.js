@@ -47,8 +47,22 @@ describe("applyMechanic", () => {
   });
 
   it("every boss mechanic has a countdown hint", () => {
-    for (const c of Object.values(CRIMPS))
-      if (c.mechanic) expect(MECHANIC_HINTS[c.mechanic.type], c.name).toBeTruthy();
+    for (const c of Object.values(CRIMPS)) {
+      const list = Array.isArray(c.mechanic) ? c.mechanic : (c.mechanic ? [c.mechanic] : []);
+      for (const m of list) expect(MECHANIC_HINTS[m.type], c.name).toBeTruthy();
+    }
+  });
+
+  it("stacked mechanics (hitcher) apply all layers deterministically", () => {
+    const c = CRIMPS.hitcher;
+    expect(Array.isArray(c.mechanic)).toBe(true);
+    const a = applyMechanic(prepped("hitcher", 4), c.mechanic, c.bpm, 4);
+    const b = applyMechanic(prepped("hitcher", 4), c.mechanic, c.bpm, 4);
+    expect(a.notes).toEqual(b.notes);
+    expect(a.notes.some((n) => n.cursed)).toBe(true);   // hex layer
+    expect(a.notes.some((n) => n.scram)).toBe(true);    // outrage layer
+    expect(a.segments.length).toBeGreaterThan(0);
+    for (const n of a.notes) { expect(n.lane).toBeGreaterThanOrEqual(0); expect(n.lane).toBeLessThan(4); }
   });
 
   it("hold tails never reach the next note (0.25s of slack)", () => {

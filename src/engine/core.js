@@ -151,6 +151,8 @@ export const MANIFEST = {
   boss_nana_n: "assets/sprites/boss_nana_n.png",
   boss_moon_n: "assets/sprites/boss_moon_n.png",
   boss_tony_n: "assets/sprites/boss_tony_n.png",
+  boss_hitcher: "assets/sprites/boss_hitcher.png",
+  boss_hitcher_n: "assets/sprites/boss_hitcher_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",

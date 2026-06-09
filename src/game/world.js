@@ -55,7 +55,8 @@ export function buildZone(id) {
   // reveal could seal the player in.
   const inb = (e) => e.y >= 0 && e.y < h && e.x >= 0 && e.x < w;
   for (const e of entities) {
-    if ((e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" || e.type === "search") && !e.hidden) {
+    const absent = e.hidden || (e.appear && !GS.flag(e.appear)); // not there (yet)
+    if ((e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" || e.type === "search") && !absent) {
       if (inb(e)) solids[e.y][e.x] = true;
     }
     // gates block until their switch flag is set (re-applies on re-entry)

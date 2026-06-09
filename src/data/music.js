@@ -95,6 +95,14 @@ export const TRACKS = {
     { wave: "sine", gain: 0.12, env: E_PAD, seq: S("C3 - - - G2 - - - A2 - - - E3 - - - F2 - - - C3 - - - G2 - - - C3 - - -") },
     { wave: "noise", gain: 0.08, seq: D("k . . . . . s . . . . . . . s . k . . . . . s . . . . . k . s .") },
   ]),
+  // hitcher: menacing cockney music-hall stomp in a sour minor
+  crimp_hitcher: track(144, [
+    { wave: "sawtooth", gain: 0.10, env: E_LEAD, seq: S("E4 - G4 - B4 - G4 E4 - F4 - E4 D#4 - E4 - A4 - C5 - E5 - C5 A4 - B4 - A4 G#4 - E4 - -") },
+    { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("E2 - E2 B2 E2 - D3 - A2 - A2 E3 A2 - G2 - C3 - C3 G3 C3 - B2 - E2 B2 E2 - B2 - E2 -") },
+    { wave: "square", gain: 0.06, env: E_PLUCK, seq: S("E4 B4 G4 B4 E4 B4 G4 B4 A4 E5 C5 E5 A4 E5 C5 E5 C4 G4 E4 G4 C4 G4 E4 G4 B3 F#4 D#4 F#4 B3 F#4 D#4 F#4") },
+    { wave: "noise", gain: 0.12, seq: D("k . h k s . h . k h k . s . h k k . h k s . h k k h k h s h s h") },
+  ]),
+
   crimp_tony: track(150, [
     { wave: "square", gain: 0.11, env: E_LEAD, seq: S("D5 - A4 D5 F5 - D5 A5 - F5 D5 - A4 - D5 - E5 - B4 E5 G5 - E5 B5 - G5 E5 - B4 - E5 -") },
     { wave: "sawtooth", gain: 0.12, env: E_BASS, seq: S("D2 - D2 - A2 - D2 - F2 - C3 - A2 - D2 - E2 - E2 - B2 - E2 - G2 - D3 - B2 - E2 -") },

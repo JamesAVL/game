@@ -3,6 +3,7 @@
 
 import { Save } from "../engine/core.js";
 import { betterGrade } from "./crimp_logic.js";
+import { plusCarry } from "./newgame.js";
 
 function fresh() {
   return {
@@ -11,7 +12,9 @@ function fresh() {
     stats: { level: 1, xp: 0, xpNext: 10, style: 5, jazz: 5 },
     records: [],            // ids of crimp records won (one per world)
     grades: {},             // crimpId -> best grade letter (S/A/B/C)
+    medals: {},             // crimpId -> { fc: fullCombo, nm: noMiss }
     quests: {},             // questId -> step number (see data/quests.js)
+    ngPlus: 0,              // New Journey+ count (bosses run remix charts)
     unlocked: { hub: true },
     zone: "hub",
     spawn: null,            // {x,y,dir} override, else zone default
@@ -53,6 +56,8 @@ export const GS = {
   hasRecord(id) { return this.data.records.includes(id); },
   addRecord(id) { if (!this.hasRecord(id)) this.data.records.push(id); },
   recordCount() { return this.data.records.length; },
+  // the 7th record (the Hitcher's) only counts once the credits have rolled
+  totalRecords() { return this.flag("ending_seen") ? 7 : 6; },
 
   // ---- crimp grades --------------------------------------------------------
   gradeOf(id) { return this.data.grades[id]; },
@@ -61,6 +66,16 @@ export const GS = {
   // ---- quests (multi-step chains; steps only move forward) -----------------
   quest(id) { return this.data.quests[id] || 0; },
   setQuest(id, step) { this.data.quests[id] = Math.max(this.quest(id), step); },
+
+  // ---- challenge medals -----------------------------------------------------
+  setMedals(id, m) {
+    const cur = this.data.medals[id] || {};
+    this.data.medals[id] = { fc: cur.fc || !!m.fc, nm: cur.nm || !!m.nm };
+  },
+
+  // ---- New Journey+ ----------------------------------------------------------
+  // fresh run, but the spoils (codex, grades, medals, keepsake items) carry
+  resetPlus(oldData) { this.data = plusCarry(fresh(), oldData || this.data); },
 
   // ---- stats / XP --------------------------------------------------------
   addXp(n) {

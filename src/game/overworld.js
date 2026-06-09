@@ -23,7 +23,7 @@ import { GS } from "./state.js";
 import { Dialogue } from "./dialogue.js";
 import { Crimp } from "./crimp.js";
 import { DIALOG } from "../data/dialogue.js";
-import { CRIMPS } from "../data/crimps.js";
+import { CRIMPS, remixCrimp } from "../data/crimps.js";
 import { ITEMS, ITEM_INDEX, PROP_INDEX } from "../data/items.js";
 import { CODEX, pickEnding } from "../data/codex.js";
 import { TRACKS } from "../data/music.js";
@@ -160,19 +160,50 @@ export class Overworld {
     if (b) Scenes.push(new Dialogue(b.pages, b.onDone));
   }
 
-  beginCrimp(id, onResult, charm) {
-    const base = CRIMPS[id];
+  beginCrimp(id, onResult, charm, remix) {
+    // remix rematches and New Journey+ runs use the harder remix chart;
+    // grades/medals for remixes land under "<id>_rx"
+    const useRemix = remix || (GS.data.ngPlus > 0 && id !== "tutorial");
+    const base = useRemix ? remixCrimp(id) : CRIMPS[id];
     if (!base) { console.warn("no crimp", id); onResult && onResult(true); return; }
     const tone = GS.data.flags["tone_" + id];   // pre-fight choice (respect|mock)
-    const def = Object.assign({}, base, { id, track: TRACKS[base.trackKey] || base.track, onResult, charm, tone });
+    const def = Object.assign({}, base, {
+      id: remix ? id + "_rx" : id,
+      track: TRACKS[base.trackKey] || base.track, onResult, charm, tone,
+    });
     stopMusic(); this.musicKey = null;
     Scenes.push(new Crimp(def));
+  }
+
+  // post-game rematch: the same boss, remix chart, grade under "<crimp>_rx"
+  offerRemix(ent) {
+    const self = this;
+    let go = false;
+    const pages = [{
+      choice: ent.name + " is up for a CRIMP REMIX - the same song, twisted harder.\nHave at it?",
+      options: [
+        { label: "Remix it!", next: [], act: () => { go = true; } },
+        { label: "Just visiting", next: [] },
+      ],
+    }];
+    Scenes.push(new Dialogue(pages, () => {
+      if (!go) { if (ent.afterDialog) self.startDialog(ent.afterDialog); return; }
+      self.beginCrimp(ent.crimp, (win) => {
+        if (win) {
+          self.grantXp(10);
+          self.toast("Remix conquered! " + (GS.gradeOf(ent.crimp + "_rx") || ""));
+          GS.save();
+        }
+        if (self.def.music && TRACKS[self.def.music]) { playMusic(TRACKS[self.def.music]); self.musicKey = self.def.music; }
+      }, null, true);
+    }));
   }
 
   doBoss(ent) {
     const self = this;
     if (ent.winFlag && GS.flag(ent.winFlag)) {
-      // already beaten -> friendly post-battle line
+      // already beaten: post-credits they offer a remix, otherwise small talk
+      if (GS.flag("ending_seen") && ent.crimp) { this.offerRemix(ent); return; }
       if (ent.afterDialog) this.startDialog(ent.afterDialog);
       return;
     }
@@ -238,9 +269,10 @@ export class Overworld {
     Scenes.push(new Dialogue(pages, () => { if (go) this.warpTo(e.to, e.spawn); }));
   }
 
-  // hidden entities stay imperceptible until Howard's jazz trance finds them
+  // hidden entities stay imperceptible until Howard's jazz trance finds them;
+  // `appear`-flagged entities (the post-game Hitcher) don't exist until then
   revealFlag(e) { return "rev_" + this.def.id + "_" + e.x + "_" + e.y; }
-  isHidden(e) { return e.hidden && !GS.flag(this.revealFlag(e)); }
+  isHidden(e) { return (e.hidden && !GS.flag(this.revealFlag(e))) || (e.appear && !GS.flag(e.appear)); }
 
   interact() {
     const p = this.party.interactPoint();
@@ -507,7 +539,7 @@ export class Overworld {
     const py = this.party.feetY() - this.cam.y - 6 * ART;
     L.push({ x: px, y: py, r: 84 * ART, color: [255, 226, 170], intensity: 0.95 });
     for (const e of this.entities) {
-      if (e._gone) continue;
+      if (e._gone || this.isHidden(e)) continue;
       const sx = e.px - this.cam.x + 8 * ART, sy = e.py - this.cam.y + 8 * ART;
       if (e.type === "portal") L.push({ x: sx, y: sy, r: 58 * ART, color: [150, 140, 255], intensity: 0.85 });
       else if (e.type === "boss") L.push({ x: sx, y: sy, r: 68 * ART, color: [255, 110, 120], intensity: 0.7 });
@@ -615,7 +647,7 @@ export class Overworld {
 
   renderHud(ctx) {
     // top status strip
-    drawText(ctx, "Records " + GS.recordCount() + "/6", 6 * ART, 5 * ART, { color: "#ffd86a", shadow: "#000" });
+    drawText(ctx, "Records " + GS.recordCount() + "/" + GS.totalRecords(), 6 * ART, 5 * ART, { color: "#ffd86a", shadow: "#000" });
     drawText(ctx, "Lv " + GS.data.stats.level, VIEW_W - 36 * ART, 5 * ART, { color: "#9fd0ff", shadow: "#000" });
 
     // collectible objective for the current zone

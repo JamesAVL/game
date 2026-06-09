@@ -283,6 +283,53 @@ def tony():
     save_with_outline(cv, "boss_tony")
 
 
+def hitcher():
+    """The Hitcher — secret post-game boss. Green cockney, black coat,
+    towering top hat, one huge white polo-mint eye, brolly cane."""
+    cv = Canvas(60, 92, cs=CS)
+    green = (110, 170, 90); greenhi = (150, 205, 125); greendk = (78, 128, 64)
+    coat = (32, 30, 40); coathi = (58, 54, 70); coatdk = (18, 16, 24)
+    cx = 30
+    # long black coat, flaring at the hem
+    cv.fill_poly([(cx - 16, 90), (cx - 10, 46), (cx + 10, 46), (cx + 16, 90)], coat)
+    cv.fill_poly([(cx - 12, 90), (cx - 7, 52), (cx - 3, 52), (cx - 7, 90)], coathi)
+    cv.fill_poly([(cx + 4, 90), (cx + 4, 56), (cx + 9, 56), (cx + 11, 90)], coatdk)
+    cv.line(cx, 48, cx, 88, coatdk)
+    for by in (52, 58, 64, 70):
+        cv.set(cx - 2, by, (180, 170, 130))            # buttons
+    # shoulders + arms; one hand grips a brolly cane
+    cv.rect(cx - 14, 44, 28, 8, coat)
+    cv.rect(cx - 18, 46, 4, 16, coat); cv.rect(cx + 14, 46, 4, 16, coat)
+    cv.rect(cx - 18, 62, 4, 3, green); cv.rect(cx + 14, 62, 4, 3, green)
+    cane = (90, 70, 50)
+    cv.vline(cx + 20, 56, 30, cane); cv.set(cx + 20, 55, (140, 110, 80))
+    cv.ellipse(cx + 20, 54, 3, 2, coatdk)              # brolly crook
+    # green head
+    cv.ellipse(cx, 32, 11, 11, green)
+    cv.ellipse(cx - 4, 27, 5, 4, greenhi)
+    cv.ellipse(cx + 5, 36, 4, 3, greendk)
+    # the polo eye: one huge white ring, tiny dot pupil
+    cv.ellipse(cx - 4, 31, 6, 6, (250, 250, 250))
+    cv.ellipse(cx - 4, 31, 3, 3, (210, 215, 225))
+    cv.ellipse(cx - 4, 31, 1, 1, (15, 15, 20))
+    cv.ellipse(cx + 6, 31, 2, 2, (20, 30, 20))         # mean little other eye
+    # crooked grin with bad teeth
+    cv.line(cx - 6, 39, cx + 6, 38, greendk)
+    for gx in (cx - 4, cx - 1, cx + 2, cx + 5):
+        cv.vline(gx, 38, 2, (225, 220, 180))
+    # towering top hat
+    cv.rect(cx - 12, 18, 24, 4, coatdk)                # brim
+    cv.rect(cx - 9, 0, 18, 19, coatdk)                 # tall crown
+    cv.rect(cx - 8, 1, 3, 16, coathi)
+    cv.rect(cx - 9, 14, 18, 3, (70, 110, 70))          # mossy band
+    # fine detail: coat seams, hat scuffs, knuckles
+    for sy in range(48, 86, 6):
+        cv.set(cx - 10 + (sy % 3), sy, coathi)
+    cv.set(cx + 4, 4, coathi); cv.set(cx - 2, 9, coathi)
+    cv.set(cx - 16, 63, greenhi); cv.set(cx + 16, 63, greenhi)
+    save_with_outline(cv, "boss_hitcher")
+
+
 def main():
     global OUT
     here = os.path.dirname(__file__)
@@ -293,6 +340,7 @@ def main():
     nana()
     moon()
     tony()
+    hitcher()
 
 
 if __name__ == "__main__":

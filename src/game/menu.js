@@ -94,7 +94,7 @@ export class PauseMenu {
     textCentered(ctx, "THE PARTY", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
     drawText(ctx, "Vince Noir  -  rock & roll star", x + 12 * ART, y + 22 * ART, { color: "#9fd0ff" });
     drawText(ctx, "Howard Moon -  man of jazz", x + 12 * ART, y + 34 * ART, { color: "#e0b070" });
-    drawText(ctx, "Level   " + s.level, x + 12 * ART, y + 50 * ART, { color: "#fff" });
+    drawText(ctx, "Level   " + s.level + (GS.data.ngPlus ? "   (New Journey+" + GS.data.ngPlus + ")" : ""), x + 12 * ART, y + 50 * ART, { color: "#fff" });
     drawText(ctx, "XP      " + s.xp + " / " + s.xpNext, x + 12 * ART, y + 62 * ART, { color: "#fff" });
     drawText(ctx, "Style   " + s.style, x + 12 * ART, y + 74 * ART, { color: "#ff9fd0" });
     drawText(ctx, "Jazz    " + s.jazz, x + 100 * ART, y + 74 * ART, { color: "#9fd0ff" });
@@ -103,7 +103,7 @@ export class PauseMenu {
     const hs = Math.round(Math.min(15, over * 1.5));
     const pw = Math.round(Math.min(35, over * 3.5));
     drawText(ctx, "Crimp boost  +" + hs + " start  +" + pw + "% power", x + 12 * ART, y + 90 * ART, { color: "#8aff6a" });
-    drawText(ctx, "Records " + GS.recordCount() + " / 6", x + 12 * ART, y + 104 * ART, { color: "#ffd86a" });
+    drawText(ctx, "Records " + GS.recordCount() + " / " + GS.totalRecords(), x + 12 * ART, y + 104 * ART, { color: "#ffd86a" });
     const gs = Object.values(GS.data.grades || {});
     if (gs.length) {
       const sCount = gs.filter((g) => g === "S").length;
@@ -141,6 +141,10 @@ export class PauseMenu {
     for (const c of CODEX) if (GS.flag(c.id)) latest = c;
     drawText(ctx, latest ? "Latest: " + latest.title : "Search the worlds to fill the ledger.",
       x + 12 * ART, y + h - 22 * ART, { color: "#c79aff" });
+    // challenge medals across all crimps (full combo / no-miss)
+    const med = Object.values(GS.data.medals || {});
+    const fc = med.filter((m) => m.fc).length, nm = med.filter((m) => m.nm).length;
+    if (fc || nm) drawText(ctx, "Medals: " + fc + " full-combo  " + nm + " no-miss", x + 12 * ART, y + h - 33 * ART, { color: "#8aff6a" });
     drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 

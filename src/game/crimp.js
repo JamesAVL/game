@@ -81,7 +81,8 @@ export class Crimp {
     const mech = applyMechanic(prepped, def.mechanic, def.bpm, this.laneCount);
     this.notes = mech.notes;
     this.segments = mech.segments;   // outrage scramble windows (for warnings)
-    this.mech = def.mechanic || null;
+    // mechanics normalized to a list (post-game bosses stack two)
+    this.mechs = Array.isArray(def.mechanic) ? def.mechanic : (def.mechanic ? [def.mechanic] : []);
     this.barLen = (60 / def.bpm) * 4;
     this.activeHolds = [];
     this.total = this.notes.length;
@@ -130,7 +131,12 @@ export class Crimp {
     this.overT = 0;
     this.result = win;
     this.grade = gradeFor(this.hits, this.total, this.maxCombo);
-    if (win && this.def.id) GS.setGrade(this.def.id, this.grade);
+    this.fullCombo = this.total > 0 && this.maxCombo >= this.total;
+    this.noMiss = this.total > 0 && this.hits >= this.total;
+    if (win && this.def.id) {
+      GS.setGrade(this.def.id, this.grade);
+      GS.setMedals(this.def.id, { fc: this.fullCombo, nm: this.noMiss });
+    }
     stopMusic();
     if (win) Sfx.win(); else Sfx.lose();
     // big finish: hit-stop + flash + a burst over the boss
@@ -272,6 +278,8 @@ export class Crimp {
 
   laneX(i) { return this.x0 + i * (LANE_W + GAP); }
 
+  mech(type) { return this.mechs.find((m) => m.type === type); }
+
   _hint() {
     const touch = typeof document !== "undefined" && document.documentElement.classList.contains("has-touch");
     return touch ? "Tap the lanes in time!" : "Hit the ARROW keys in time!";
@@ -360,14 +368,14 @@ export class Crimp {
     // ---- notes (arrows falling toward the receptor) ----
     if (this.state !== "count") {
       const t = this.now();
-      const mt = this.mech ? this.mech.type : null;
+      const fogM = this.mech("fog"), driftM = this.mech("drift"), outrageM = this.mech("outrage");
       const span = HIT_Y - TOP_Y;
       // y for a note dt seconds from the hit line; "drift" warps the glide
       // visually but keeps both endpoints honest (judgement is untouched)
       const yFor = (dt) => {
         let prog = 1 - dt / this.travel;
-        if (mt === "drift")
-          prog += Math.sin(this.danceT * this.mech.speed + prog * 3) * this.mech.amp * Math.sin(Math.PI * Math.max(0, Math.min(1, prog)));
+        if (driftM)
+          prog += Math.sin(this.danceT * driftM.speed + prog * 3) * driftM.amp * Math.sin(Math.PI * Math.max(0, Math.min(1, prog)));
         return TOP_Y + prog * span + 5 * ART;
       };
       // active hold tails: shrink from the receptor up as you keep holding
@@ -388,8 +396,8 @@ export class Crimp {
         const cx = this.laneX(n.lane) + LANE_W / 2;
         // fog mechanic: notes fade out inside the murk band; a combo thins it
         let alpha = 1;
-        if (mt === "fog") {
-          const fy0 = TOP_Y + this.mech.y0 * span, fy1 = TOP_Y + this.mech.y1 * span;
+        if (fogM) {
+          const fy0 = TOP_Y + fogM.y0 * span, fy1 = TOP_Y + fogM.y1 * span;
           if (y > fy0 && y < fy1) alpha = Math.min(1, 0.08 + (this.combo >= 5 ? 0.3 : 0) + this.combo * 0.02);
         }
         if (n.ghost) alpha *= 0.35 + 0.6 * Math.abs(Math.sin(this.danceT * 7 + n.t * 3));
@@ -410,8 +418,8 @@ export class Crimp {
         ctx.globalAlpha = 1;
       }
       // fog: paint the murk itself so the vanishing reads as weather, not a bug
-      if (mt === "fog") {
-        const fy0 = TOP_Y + this.mech.y0 * span, fy1 = TOP_Y + this.mech.y1 * span;
+      if (fogM) {
+        const fy0 = TOP_Y + fogM.y0 * span, fy1 = TOP_Y + fogM.y1 * span;
         const fa = Math.max(0.08, 0.30 - this.combo * 0.02);
         const fg = ctx.createLinearGradient(0, fy0, 0, fy1);
         fg.addColorStop(0, "rgba(58,42,18,0)");
@@ -422,7 +430,7 @@ export class Crimp {
         ctx.fillRect(this.x0 - GAP, fy0, this.totalW + GAP * 2, fy1 - fy0);
       }
       // outrage: announce each scramble one bar early, tint while it blows
-      if (mt === "outrage") {
+      if (outrageM) {
         for (const [s0, s1] of this.segments) {
           if (t >= s0 - this.barLen && t < s0 && Math.floor(performance.now() / 180) % 2 === 0)
             textCentered(ctx, "THE WIND! LANES SCRAMBLE!", VIEW_W / 2, 44 * ART, { color: "#ff7ad8", shadow: "#000" });
@@ -461,9 +469,11 @@ export class Crimp {
       const n = Math.ceil(this.countT);
       const label = n > 0 ? String(n) : "CRIMP!";
       textCentered(ctx, label, VIEW_W / 2, VIEW_H / 2 - 16 * ART, { color: "#ffd86a", scale: 4, shadow: "#000" });
-      const mh = this.mech && MECHANIC_HINTS[this.mech.type];
-      if (mh) textCentered(ctx, mh, VIEW_W / 2, VIEW_H - 40 * ART, { color: "#ffb15a", shadow: "#000" });
-      if (this.charm) textCentered(ctx, "Charm: " + this.charm.name + " (" + this.charm.label + ")", VIEW_W / 2, VIEW_H - 50 * ART, { color: "#9fd0ff", shadow: "#000" });
+      this.mechs.forEach((m, i) => {
+        const mh = MECHANIC_HINTS[m.type];
+        if (mh) textCentered(ctx, mh, VIEW_W / 2, VIEW_H - (40 + i * 10) * ART, { color: "#ffb15a", shadow: "#000" });
+      });
+      if (this.charm) textCentered(ctx, "Charm: " + this.charm.name + " (" + this.charm.label + ")", VIEW_W / 2, VIEW_H - (40 + this.mechs.length * 10) * ART, { color: "#9fd0ff", shadow: "#000" });
       textCentered(ctx, this._hint(), VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
     }
 
@@ -482,6 +492,7 @@ export class Crimp {
       const gcol = { S: "#ffd86a", A: "#8aff6a", B: "#9fd0ff", C: "#cfcfe6" }[this.grade] || "#fff";
       textCentered(ctx, "GRADE", VIEW_W / 2 - 14 * ART, 100 * ART, { color: "#9a9ab6" });
       textCentered(ctx, this.grade, VIEW_W / 2 + 14 * ART, 96 * ART, { color: gcol, scale: 2, shadow: "#000" });
+      if (this.fullCombo) textCentered(ctx, "FULL COMBO!", VIEW_W / 2 + 70 * ART, 100 * ART, { color: "#ffd86a", shadow: "#000" });
       textCentered(ctx, win ? "You feel the funk flow through you." : "Shake it off and try again.", VIEW_W / 2, 116 * ART, { color: "#cfcfe6" });
       if (this.overT > 1.0 && Math.floor(performance.now() / 400) % 2 === 0)
         textCentered(ctx, "press Z  /  tap a lane", VIEW_W / 2, 130 * ART, { color: "#9a7adf" });

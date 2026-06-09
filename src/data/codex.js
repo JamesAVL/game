@@ -42,6 +42,8 @@ export const CODEX = [
   { id: "codex_search2_temple", zone: "Xooberon Temple", title: "Ceremonial Tassels" },
   { id: "codex_search3_temple", zone: "Xooberon Temple", title: "The Glitter Scoreboard" },
   { id: "codex_tony", zone: "Xooberon Temple", title: "Tony Harrison" },
+  // post-game
+  { id: "codex_hitcher", zone: "The Zooniverse", title: "The Hitcher" },
 ];
 
 /** @param {{flags?: Record<string, any>}} data */

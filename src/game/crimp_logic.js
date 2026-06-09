@@ -50,12 +50,23 @@ export function prepareChart(def, laneCount, minGap) {
 // only and pass through untouched.
 /**
  * @param {Note[]} notes
- * @param {Mechanic | undefined} mechanic
+ * @param {Mechanic | Mechanic[] | undefined} mechanic
  * @param {number} bpm
  * @param {number} laneCount
  * @returns {{notes: Note[], segments: [number, number][]}}
  */
 export function applyMechanic(notes, mechanic, bpm, laneCount) {
+  // stacked mechanics (post-game bosses): apply in order, pooling segments
+  if (Array.isArray(mechanic)) {
+    /** @type {[number, number][]} */
+    let segs = [];
+    for (const m of mechanic) {
+      const r = applyMechanic(notes, m, bpm, laneCount);
+      notes = r.notes;
+      segs = segs.concat(r.segments);
+    }
+    return { notes, segments: segs };
+  }
   /** @type {[number, number][]} */
   const segments = [];
   if (!mechanic || !notes.length) return { notes, segments };

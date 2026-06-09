@@ -59,6 +59,14 @@ const HUB = {
     { type: "portal", x: 20, y: 18, to: "night", color: "#c77aff", label: "Nightosphere" },
     { type: "portal", x: 25, y: 18, to: "moon", color: "#fff2a0", label: "The Moon" },
     { type: "portal", x: 29, y: 8, to: "temple", color: "#ff7ad8", label: "Temple" },
+    // secret 8th boss: materialises by the east hedge once the credits roll;
+    // won't crimp without a polo (found on the Moon) — er, the Ornate Key
+    {
+      type: "boss", x: 31, y: 14, sprite: "boss_hitcher", crimp: "hitcher", name: "The Hitcher",
+      appear: "ending_seen", require: "key", requireDialog: "hitcher_need",
+      dialog: "hitcher_pre", winDialog: "hitcher_win", loseDialog: "hitcher_lose", afterDialog: "hitcher_after",
+      winFlag: "beat_hitcher", record: "rec_hitcher", xp: 100,
+    },
   ],
 };
 

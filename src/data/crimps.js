@@ -54,9 +54,43 @@ function crimp(o) {
     intro: o.intro || "",
     stage: o.stage,
     mechanic: o.mechanic,   // signature battle twist, interpreted by crimp_logic.js
+    chart: o.chart,         // kept so remixes can re-roll the same generator
     notes,
     lyrics: lyrics(o.lyrics, beats),
   };
+}
+
+// Crimp Remix: the post-game rematch chart. Zero new chart code — the same
+// deterministic generator with a shifted seed and a denser grid, plus an
+// intensified mechanic. remixCrimp(id) is itself deterministic.
+export function remixCrimp(id) {
+  const base = CRIMPS[id];
+  if (!base) return null;
+  const chart = Object.assign({}, base.chart, {
+    seed: (base.chart.seed || 1) + 1000,
+    base: Math.max(1, (base.chart.base || 2) - 1),
+    runChance: Math.min(0.3, (base.chart.runChance || 0) + 0.06),
+  });
+  const harder = (m) => {
+    if (!m) return m;
+    if (Array.isArray(m)) return m.map(harder);
+    const h = Object.assign({}, m);
+    if (h.rate) h.rate = Math.min(0.45, h.rate * 1.4);
+    if (h.everyBars) h.everyBars = Math.max(4, h.everyBars - 2);
+    if (h.y1) h.y1 = Math.min(0.85, h.y1 + 0.1);
+    if (h.amp) h.amp = h.amp * 1.5;
+    return h;
+  };
+  const notes = makeChart(chart);
+  const beats = notes[notes.length - 1][0] / 4;
+  return Object.assign({}, base, {
+    name: base.name + " RMX",
+    intro: base.intro + " ...AGAIN!",
+    mechanic: harder(base.mechanic),
+    chart,
+    notes,
+    lyrics: lyrics((base.lyrics || []).map(([, t]) => t + "!"), beats),
+  });
 }
 
 export const CRIMPS = {
@@ -122,6 +156,20 @@ export const CRIMPS = {
     chart: { seed: 200, length: 150, base: 4, runChance: 0.04, doubleChance: 0.02 },
     lyrics: ["I'm the moon", "the big white face", "made of milk they say", "lookin' down on you", "do do do",
       "little jelly man", "talkin' to myself", "lonely up so high", "nice and dreamy", "goodnight"],
+  }),
+
+  // secret post-game boss: appears in the hub once the credits have rolled.
+  // Two stacked mechanics — cursed notes AND lane scrambles. Bring polos.
+  hitcher: crimp({
+    name: "The Hitcher", face: "boss_hitcher", trackKey: "crimp_hitcher", bpm: 144,
+    bg0: "#0a1408", bg1: "#1e3214", bossScale: 2,
+    intro: "Ello there. Fancy meetin' you 'ere...",
+    mechanic: [{ type: "hex", rate: 0.14, seed: 6660 }, { type: "outrage", everyBars: 6, lenBars: 2 }],
+    stage: stage("#14260e", "#0e1c0a", "#081406", { freq: 2.0, amp: 12, motes: { color: "#baf0a0", n: 16, rise: false, alpha: 0.6 } }),
+    chart: { seed: 666, length: 250, base: 2, runChance: 0.18, doubleChance: 0.08 },
+    lyrics: ["ello there, little men", "I'm the Hitcher, see", "got me a polo eye", "eels up inside ya", "down in the canal",
+      "I taught the boosh to crimp", "before it was cool", "green as the day is long", "mind yer fingers now", "this is MY song",
+      "cockney radiance", "say goodnight, dearies"],
   }),
 
   tony: crimp({

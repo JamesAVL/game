@@ -43,6 +43,10 @@ export const DIALOG = {
     if (sCount >= 3) pages.push(N("Word's going round the shaman circles about your S-grade crimping. Even Saboo's impressed. SABOO."));
     else if (sCount >= 1) pages.push(N("An S-grade crimp already? Not bad for a pair of berks."));
     if (done >= 6) pages.push(N("You did it. The Zooniverse is funky again. Nice one, you absolute legends."));
+    if (api.flag("ending_seen") && !api.flag("beat_hitcher"))
+      pages.push(N("...one more thing. Something GREEN is lurking by the east hedge. Top hat. Polo eye. Don't go unarmed."));
+    if (api.flag("beat_hitcher"))
+      pages.push(N("Seven records. Even the Hitcher's. There's nothing left to teach you, you mad berks."));
     pages.push({
       choice: "Want a quick crimp to practice? No pressure.",
       options: [
@@ -322,6 +326,27 @@ export const DIALOG = {
   },
   tony_lose: (api) => [{ speaker: "Tony", text: "HA! The council prevails! Begone and practice, you crimping amateurs!" }],
   tony_after: (api) => [{ speaker: "Tony", text: "The legendary crimpers return. It is... an acceptable surprise. The wind!" }],
+
+  // ---- the Hitcher (secret post-game boss, by the hub's east hedge) -------
+  hitcher_need: (api) => [
+    { speaker: "", text: "Ello there. Can't 'ave a proper crimp-off without payin' the toll, can we?" },
+    H("He wants... a key? There was an ornate one in a temple urn, as I recall."),
+  ],
+  hitcher_pre: (api) => [
+    { speaker: "", text: "Ello there, little men. Remember me? Green as the day is long." },
+    V("The Hitcher! Howard, it's the actual Hitcher. By the hedge. In broad daylight."),
+    { speaker: "", text: "I taught this whole zoo to crimp before either of you was born. Time someone reminded ya." },
+    H("Stay sharp, Vince. He curses notes AND scrambles lanes. He's... he's the full nightmare."),
+    { speaker: "", text: "Eels up inside ya. Notes down on ya. Let's CRIMP." },
+  ],
+  hitcher_win: (api) => [
+    { speaker: "", text: "...Well I never. Out-crimped by a ponce and a jazz maverick. Take the old record then." },
+    { speaker: "", text: "Seven records. The full set. Even I never 'ad the full set." },
+    V("Is he... is he proud of us? I can't tell through the polo."),
+    H("The Hitcher's record. Vince, we are officially legends of the crimp."),
+  ],
+  hitcher_lose: (api) => [{ speaker: "", text: "Heh heh heh. Eels got ya. Come back when yer funk's grown up." }],
+  hitcher_after: (api) => [{ speaker: "", text: "Keep the record polished, little men. Or I'll be back. Heh." }],
 
   // ---- hub flavour searches ---------------------------------------------
   hub_search1: (api) => [V("A crate of Naboo's 'special' incense. Smells of liquorice and regret."), H("Don't light that near the trumpet, Vince.")],

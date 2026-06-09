@@ -16,9 +16,14 @@ export class Title {
     this.sel = 0;
     this.t = 0;
     this.hasSave = Save.exists();
+    // a finished save (credits seen) unlocks New Journey+ — fresh run,
+    // spoils carried, bosses on remix charts
+    const saved = this.hasSave ? Save.read() : null;
+    this.cleared = !!(saved && saved.flags && saved.flags.ending_seen);
     this.items = this.hasSave
       ? ["Continue", "New Journey", "Difficulty", "Visual FX"]
       : ["New Journey", "Difficulty", "Visual FX"];
+    if (this.cleared) this.items.splice(2, 0, "New Journey+");
     this.started = false;
   }
 
@@ -33,13 +38,14 @@ export class Title {
 
   enter() { if (TRACKS.title) playMusic(TRACKS.title); }
 
-  startGame(fresh) {
-    if (fresh) { GS.reset(); Save.clear(); }
+  startGame(fresh, plus) {
+    if (plus) { GS.load(); GS.resetPlus(); GS.save(); }
+    else if (fresh) { GS.reset(); Save.clear(); }
     else GS.load();
     stopMusic();
     const ow = new Overworld();
     Scenes.replace(ow);
-    if (fresh && DIALOG.intro) {
+    if ((fresh || plus) && DIALOG.intro) {
       // intro narration before control is given
       const built = DIALOG.intro(ow.api());
       const pages = Array.isArray(built) ? built : built.pages;
@@ -66,7 +72,7 @@ export class Title {
       Sfx.confirm();
       if (c === "Difficulty") { GS.cycleDifficulty(); }
       else if (c === "Visual FX") { cycleFx(); }
-      else this.startGame(c === "New Journey");
+      else this.startGame(c === "New Journey", c === "New Journey+");
     }
   }
 
