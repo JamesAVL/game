@@ -86,6 +86,13 @@ export class Crimp {
     this.activeHolds = [];
     this.total = this.notes.length;
 
+    // ---- pre-fight tone (dialogue choice; small, flavour-scale modifier) ---
+    // respect: the boss eases off a touch. mock: you crimp hotter but fluffs
+    // sting more — bravado cuts both ways.
+    this.missMul = 1;
+    if (def.tone === "respect") this.boss -= 3;
+    else if (def.tone === "mock") { this.gainMul *= 1.05; this.missMul = 1.15; }
+
     // ---- charm (one key item carried into the battle; see items.js) --------
     this.charm = def.charm || null;  // { id, name, type, ... } resolved upstream
     this.saves = 0;
@@ -142,7 +149,7 @@ export class Crimp {
       // a charmed Howard absorbs the fluff: no penalty, combo survives
       this.saves--; Sfx.hit(); this.judge = "HOWARD'S GOT IT"; this.judgeCol = "#9fd0ff";
     }
-    else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; Juice.shake(4 * ART, 0.22); }
+    else { this.you -= 2.4 * D.missYou * this.missMul; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; Juice.shake(4 * ART, 0.22); }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     if (this.combo > 0 && this.combo % 10 === 0) { const b = this.encore ? 2 : 1; this.you += 2 * b; this.boss -= 1 * b; }
     // interactive mix: a hot combo opens the backing track up; a fluff ducks and

@@ -7,6 +7,7 @@ import { Sfx } from "../engine/audio.js";
 import { GS } from "./state.js";
 import { ITEMS } from "../data/items.js";
 import { QUESTS } from "../data/quests.js";
+import { CODEX } from "../data/codex.js";
 
 export const FX_LABELS = { off: "Off", soft: "Soft", crt: "CRT" };
 export function cycleFx() {
@@ -19,7 +20,7 @@ export class PauseMenu {
   constructor(overworld) {
     this.ow = overworld;
     this.sel = 0;
-    this.items = ["Resume", "Party", "Items", "Difficulty", "Visual FX", "Save", "Quit to title"];
+    this.items = ["Resume", "Party", "Items", "Codex", "Difficulty", "Visual FX", "Save", "Quit to title"];
     this.view = "menu";
     this.block = 0.12;
   }
@@ -45,7 +46,7 @@ export class PauseMenu {
     // touch: tap a row to select it (the tap's confirm pulse then activates it)
     const tap = Input.tap();
     if (tap) {
-      const w = 140 * ART, h = 110 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+      const w = 140 * ART, h = 122 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
       const i = Math.round((tap.y - (y + 24 * ART)) / (11 * ART));
       if (i >= 0 && i < this.items.length && tap.x >= x && tap.x <= x + w &&
           Math.abs(tap.y - (y + 24 * ART + i * 11 * ART)) < 6 * ART) this.sel = i;
@@ -58,6 +59,7 @@ export class PauseMenu {
       if (choice === "Resume") Scenes.pop();
       else if (choice === "Party") this.view = "party";
       else if (choice === "Items") this.view = "items";
+      else if (choice === "Codex") this.view = "codex";
       else if (choice === "Difficulty") { const d = GS.cycleDifficulty(); this.ow.toast("Difficulty: " + d); }
       else if (choice === "Visual FX") { const p = cycleFx(); this.ow.toast("Visual FX: " + (FX_LABELS[p] || p)); }
       else if (choice === "Save") { GS.save(); this.ow.toast("Game saved."); Scenes.pop(); }
@@ -70,11 +72,12 @@ export class PauseMenu {
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     if (this.view === "menu") this.renderMenu(ctx);
     else if (this.view === "party") this.renderParty(ctx);
+    else if (this.view === "codex") this.renderCodex(ctx);
     else this.renderItems(ctx);
   }
 
   renderMenu(ctx) {
-    const w = 140 * ART, h = 110 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 140 * ART, h = 122 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
     textCentered(ctx, "PAUSED", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
     this.items.forEach((it, i) => {
@@ -114,6 +117,30 @@ export class PauseMenu {
         break;
       }
     }
+    drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
+  }
+
+  renderCodex(ctx) {
+    const w = 188 * ART, h = 130 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    panel(ctx, x, y, w, h);
+    const total = CODEX.length;
+    const got = CODEX.filter((c) => GS.flag(c.id)).length;
+    textCentered(ctx, "NABOO'S LEDGER  " + got + " / " + total, VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
+    // per-zone completion, plus the latest unlocked entry as a teaser
+    const zones = [];
+    for (const c of CODEX) if (!zones.includes(c.zone)) zones.push(c.zone);
+    zones.forEach((z, i) => {
+      const all = CODEX.filter((c) => c.zone === z);
+      const have = all.filter((c) => GS.flag(c.id)).length;
+      const yy = y + 24 * ART + i * 11 * ART;
+      const done = have === all.length;
+      drawText(ctx, z, x + 12 * ART, yy, { color: done ? "#8aff6a" : "#cfcfe6" });
+      drawText(ctx, have + "/" + all.length, x + w - 40 * ART, yy, { color: done ? "#8aff6a" : "#9a9ab6" });
+    });
+    let latest = null;
+    for (const c of CODEX) if (GS.flag(c.id)) latest = c;
+    drawText(ctx, latest ? "Latest: " + latest.title : "Search the worlds to fill the ledger.",
+      x + 12 * ART, y + h - 22 * ART, { color: "#c79aff" });
     drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 

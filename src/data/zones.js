@@ -106,6 +106,8 @@ function makeWorld(cfg) {
       { type: "search", x: L.chest[0], y: L.chest[1], prop: "chest", item: cfg.note, flag: cfg.id + "_noteC", dialog: "chest_" + cfg.id },
       // searchable scenery (lore + XP)
       ...searches,
+      // zone NPCs (guide near the entrance + a side-quest character)
+      ...(cfg.npcs || []),
       // switch -> gate puzzle (opens the pocket holding Note B)
       { type: "switch", x: L.sw[0], y: L.sw[1], gate: cfg.id + "_g", toast: L.toast || "A gate grinds open somewhere..." },
       { type: "gate", x: pk.door[0], y: pk.door[1], gate: cfg.id + "_g" },
@@ -119,6 +121,10 @@ const TUNDRA = makeWorld({
   weather: "snow", onEnter: "tundra_enter", color: "#9fe0ff", note: "note_tundra",
   toast: "Ice cracks open a passage to the north-west!",
   overlay: [{ ch: ";", cells: [[4, 1], [5, 1], [6, 1], [12, 1], [13, 1], [21, 1], [22, 1]] }],
+  npcs: [
+    { type: "npc", x: 13, y: 21, sprite: "fossil", dialog: "tundra_explorer" },
+    { type: "npc", x: 22, y: 16, sprite: "fossil", dialog: "side_tundra" },
+  ],
   layout: {
     rocks: [[6, 7], [24, 8], [9, 17], [20, 18], [12, 11], [26, 20]],
     deco: [[8, 12], [18, 10], [11, 19], [25, 15], [7, 20]],
@@ -139,6 +145,10 @@ const SEA = makeWorld({
   weather: "bubbles", onEnter: "sea_enter", color: "#5affc0", note: "note_sea",
   toast: "A current parts the reef to the north-east!",
   overlay: [{ ch: ";", cells: [[5, 1], [6, 1], [11, 1], [12, 1], [19, 1], [20, 1], [26, 1]] }],
+  npcs: [
+    { type: "npc", x: 13, y: 21, sprite: "fossil", dialog: "sea_fossil" },
+    { type: "npc", x: 10, y: 9, sprite: "fossil", dialog: "side_sea" },
+  ],
   layout: {
     rocks: [[7, 8], [22, 7], [10, 15], [19, 17], [24, 20], [6, 19]],
     deco: [[9, 11], [18, 9], [13, 18], [25, 14], [16, 20]],
@@ -149,7 +159,7 @@ const SEA = makeWorld({
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_gregg", crimp: "gregg", name: "Old Gregg",
-    require: "baileys", requireDialog: "gregg_require",
+    require: "baileys", requireDialog: "gregg_need",
     dialog: "gregg_pre", winDialog: "gregg_win", loseDialog: "gregg_lose", afterDialog: "gregg_after",
     winFlag: "beat_gregg", record: "rec_gregg", unlock: "forest", xp: 28,
   },
@@ -163,6 +173,10 @@ const FOREST = makeWorld({
     ch: "^",
     cells: [[7, 9], [9, 9], [20, 9], [22, 9], [12, 12], [14, 12], [5, 16], [7, 16], [22, 16], [24, 16], [24, 21], [26, 21]],
   }],
+  npcs: [
+    { type: "npc", x: 13, y: 21, sprite: "naboo", dialog: "forest_naboo" },
+    { type: "npc", x: 20, y: 14, sprite: "naboo", dialog: "side_forest" },
+  ],
   layout: {
     rocks: [[8, 9], [21, 9], [6, 16], [23, 16], [13, 12], [25, 21]],
     deco: [[10, 13], [19, 12], [9, 20], [24, 13], [15, 16]],
@@ -173,7 +187,7 @@ const FOREST = makeWorld({
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_crackfox", crimp: "crackfox", name: "The Crack Fox",
-    require: "bin", requireDialog: "crackfox_require",
+    require: "bin", requireDialog: "crackfox_need",
     dialog: "crackfox_pre", winDialog: "crackfox_win", loseDialog: "crackfox_lose", afterDialog: "crackfox_after",
     winFlag: "beat_crackfox", record: "rec_crackfox", unlock: "night", xp: 36,
   },
@@ -186,6 +200,10 @@ const NIGHT = makeWorld({
   backdrop: "abyss",
   voids: [[1, 1, 2, 24]],   // the western edge falls away into the nightosphere
   overlay: [{ ch: "!", cells: [[8, 9], [21, 9], [11, 16], [19, 16], [6, 20]] }],
+  npcs: [
+    { type: "npc", x: 13, y: 21, sprite: "naboo", dialog: "night_naboo" },
+    { type: "npc", x: 18, y: 12, sprite: "naboo", dialog: "side_night" },
+  ],
   layout: {
     rocks: [[7, 9], [22, 9], [10, 16], [20, 16], [14, 12], [5, 20]],
     deco: [[9, 12], [18, 11], [24, 15], [8, 19], [16, 18]],
@@ -207,6 +225,9 @@ const MOON = makeWorld({
   toast: "A crater yawns open to the west...",
   backdrop: "stars",
   voids: [[4, 3, 2, 2], [26, 10, 2, 2], [9, 21, 2, 2]],  // craters open onto space
+  npcs: [
+    { type: "npc", x: 8, y: 17, sprite: "bollo", dialog: "side_moon" },
+  ],
   layout: {
     rocks: [[8, 8], [21, 8], [11, 18], [19, 18], [24, 14], [6, 20]],
     deco: [[10, 11], [18, 10], [13, 16], [23, 16], [9, 20]],
@@ -227,6 +248,10 @@ const TEMPLE = makeWorld({
   weather: "dust", onEnter: "temple_enter", color: "#ff7ad8", note: "note_temple",
   toast: "Ancient stone grinds aside to the east!",
   overlay: [{ ch: "A", cells: [[12, 17], [13, 17]] }],   // arch over the inner gateway
+  npcs: [
+    { type: "npc", x: 13, y: 21, sprite: "naboo", dialog: "temple_naboo" },
+    { type: "npc", x: 18, y: 19, sprite: "naboo", dialog: "side_temple" },
+  ],
   layout: {
     rocks: [[9, 9], [24, 8], [11, 14], [19, 14], [26, 20], [5, 14]],
     deco: [[12, 10], [18, 11], [24, 15], [10, 20], [16, 15]],

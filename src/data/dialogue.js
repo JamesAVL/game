@@ -39,6 +39,9 @@ export const DIALOG = {
       N("Alright. " + (done === 0 ? "First record's out in the Tundra." : "You've got " + done + " of the 6 records.")),
       N("Step into a glowing portal to travel. Sealed ones open as you win records."),
     ];
+    const sCount = Object.values(api.gs.data.grades || {}).filter((g) => g === "S").length;
+    if (sCount >= 3) pages.push(N("Word's going round the shaman circles about your S-grade crimping. Even Saboo's impressed. SABOO."));
+    else if (sCount >= 1) pages.push(N("An S-grade crimp already? Not bad for a pair of berks."));
     if (done >= 6) pages.push(N("You did it. The Zooniverse is funky again. Nice one, you absolute legends."));
     pages.push({
       choice: "Want a quick crimp to practice? No pressure.",
@@ -83,14 +86,18 @@ export const DIALOG = {
     };
   },
 
-  fossil: (api) => [
-    F("Hello ladies! Bob Fossil, head zookeeper, at your service!"),
-    F("I run a TIGHT ship here at the Zooniverse. Mostly by shouting at the animals."),
-    V("Bob, do you even know what a crimp is?"),
-    F("Course I do! It's the... the thing... with the... the hair? Is it the hair, Howard?"),
-    H("It is absolutely not the hair."),
-    F("LOOK just go and do your singing thing and make the place nice again. GO ON. SHOO."),
-  ],
+  fossil: (api) => {
+    const pages = [
+      F("Hello ladies! Bob Fossil, head zookeeper, at your service!"),
+      F("I run a TIGHT ship here at the Zooniverse. Mostly by shouting at the animals."),
+      V("Bob, do you even know what a crimp is?"),
+      F("Course I do! It's the... the thing... with the... the hair? Is it the hair, Howard?"),
+      H("It is absolutely not the hair."),
+    ];
+    if (api.quest("banana") >= 3) pages.push(F("And the monkey's got his banana back! He did a little shoulder dance. I CRIED."));
+    pages.push(F("LOOK just go and do your singing thing and make the place nice again. GO ON. SHOO."));
+    return pages;
+  },
 
   // ---- world entry banter ------------------------------------------------
   tundra_enter: (api) => [
@@ -133,6 +140,13 @@ export const DIALOG = {
     { speaker: "Jazz", text: "I'm the Spirit of Jazz, baby! Smoky, scatty, and I got your record." },
     H("That's... that's the Spirit of Jazz. He's a legend, Vince. A LEGEND."),
     { speaker: "Jazz", text: "You want it back? Then out-crimp me. Be-bop-a-doo-wop, here we GO!" },
+    {
+      choice: "How do you face the Spirit of Jazz?",
+      options: [
+        { label: "With respect - he's a legend", act: () => api.setFlag("tone_jazz", "respect") },
+        { label: "Mock his little hat", act: () => api.setFlag("tone_jazz", "mock") },
+      ],
+    },
   ],
   jazz_win: (api) => [
     { speaker: "Jazz", text: "Daddy-o... you got the funk. Take the record. I gotta go be cool somewhere else." },
@@ -153,16 +167,19 @@ export const DIALOG = {
     { speaker: "Gregg", text: "Do you love me?!" },
     H("AH! What IS that?!"),
     { speaker: "Gregg", text: "I'm Old Gregg! I won't crimp with ya unless ya bring me a Bailey's. From a shoe, ideally." },
-    V("We'd better find some Bailey's in this watery place first."),
-  ],
-  gregg_require: (api) => [
-    { speaker: "Gregg", text: "Old Gregg don't crimp dry. Bring Old Gregg his Bailey's first." },
     H("Bailey's... I'm sure I saw a bottle buried in a snowmound back in the Tundra."),
   ],
   gregg_pre: (api) => [
     { speaker: "Gregg", text: "You found all me Crimp Notes! You DO love me!" },
     V("We've got the notes, Gregg. Time to crimp."),
     { speaker: "Gregg", text: "Now we crimp. About the funk. About my mangina. Mostly the funk." },
+    {
+      choice: "Old Gregg leans in close...",
+      options: [
+        { label: "Be gentle with him", act: () => api.setFlag("tone_gregg", "respect") },
+        { label: "Wind him up", act: () => api.setFlag("tone_gregg", "mock") },
+      ],
+    },
   ],
   gregg_win: (api) => [
     { speaker: "Gregg", text: "You make Old Gregg feel things. Take the record, ya funky little man." },
@@ -182,15 +199,19 @@ export const DIALOG = {
     { speaker: "CrackFox", text: "Heeeere come the Crack Fox! Scuttle scuttle. You got somethin' shiny for me?" },
     H("He's twitching. Why is he twitching?"),
     { speaker: "CrackFox", text: "No shiny, no crimp! Bring the Crack Fox a shiny thing! Wheee!" },
-  ],
-  crackfox_require: (api) => [
-    { speaker: "CrackFox", text: "No shiny, no crimpy! Bring the Crack Fox somethin' SHINY first!" },
     V("Shiny... there was a gleaming bin lid washed up somewhere in Gregg's sea."),
   ],
   crackfox_pre: (api) => [
     { speaker: "CrackFox", text: "Ooooh! Three shiny shiny notes! For meeee?" },
     V("They're ours, you horrible little fox. Now sing."),
     { speaker: "CrackFox", text: "Crack crack crack! Faster faster! Can't catch the Crack Fox! CRIMP!" },
+    {
+      choice: "The fox twitches expectantly.",
+      options: [
+        { label: "Humour the little fella", act: () => api.setFlag("tone_crackfox", "respect") },
+        { label: "Taunt the manky thing", act: () => api.setFlag("tone_crackfox", "mock") },
+      ],
+    },
   ],
   crackfox_win: (api) => [
     { speaker: "CrackFox", text: "You is fast. You is funky. Take the record, scuttle scuttle byeeee." },
@@ -209,6 +230,13 @@ export const DIALOG = {
     { speaker: "Nana", text: "NAAAAANAGEDDON! Risen from the Nightosphere for a nice cup of tea and YOUR SOULS." },
     H("She's got the record on a little chain round her neck like reading glasses."),
     { speaker: "Nana", text: "Sit up straight and CRIMP, dearies, or it's the naughty step for eternity." },
+    {
+      choice: "She IS somebody's nan...",
+      options: [
+        { label: "Mind your manners", act: () => api.setFlag("tone_nana", "respect") },
+        { label: "Cheek the demon nan", act: () => api.setFlag("tone_nana", "mock") },
+      ],
+    },
   ],
   nana_win: (api) => [
     { speaker: "Nana", text: "Ooh, you cheeky monkeys out-crimped your nan. Back to the Nightosphere I pop. Toodle-oo." },
@@ -222,6 +250,13 @@ export const DIALOG = {
     { speaker: "Moon", text: "Hellooo. I'm the moon. Do do dooo. I'm made of milk, they say." },
     V("It's just... a big chatty face up here. I love it."),
     { speaker: "Moon", text: "I been keepin' a shiny record up here for company. You want a crimp about it? Dreamy like." },
+    {
+      choice: "The moon waits, humming.",
+      options: [
+        { label: "Compliment the big face", act: () => api.setFlag("tone_moon", "respect") },
+        { label: "Call it a milky berk", act: () => api.setFlag("tone_moon", "mock") },
+      ],
+    },
   ],
   moon_win: (api) => [
     { speaker: "Moon", text: "That was niiiice. Dreamy. Take the record, little jelly men. Do do dooo." },
@@ -247,15 +282,44 @@ export const DIALOG = {
     { speaker: "Tony", text: "I am a CEPHALOPOD, you ignorant man-child. And I hold the final Crimp Record." },
     V("Then we'll have to take it the only way that matters. A crimp-off."),
     { speaker: "Tony", text: "You? Out-crimp the council of Saboo and Kirk and ME? The WIND! The WIND! Very well. PREPARE." },
+    {
+      choice: "Tony Harrison glares down at you.",
+      options: [
+        { label: "Acknowledge the council", act: () => api.setFlag("tone_tony", "respect") },
+        { label: "Laugh at his tentacles", act: () => api.setFlag("tone_tony", "mock") },
+      ],
+    },
   ],
-  tony_win: (api) => [
-    { speaker: "Tony", text: "Impossible! Out-crimped! By the hairy one and the... the OTHER one! This is an OUTRAGE!" },
-    N("...but a fair one. Take the record. The council bows to the funk."),
-    V("That's all six! We did it, Howard!"),
-    H("Come here, you magnificent idiot. We are the greatest crimpers in the Zooniverse."),
-    NAR("The power of crimp floods back across the worlds. Somewhere, a moon hums a happy little tune."),
-    NAR("THANK YOU FOR PLAYING - THE MIGHTY BOOSH: JOURNEY THROUGH THE ZOONIVERSE"),
-  ],
+  tony_win: (api) => {
+    const pages = [
+      { speaker: "Tony", text: "Impossible! Out-crimped! By the hairy one and the... the OTHER one! This is an OUTRAGE!" },
+      N("...but a fair one. Take the record. The council bows to the funk."),
+      V("That's all six! We did it, Howard!"),
+      H("Come here, you magnificent idiot. We are the greatest crimpers in the Zooniverse."),
+    ];
+    // the finale reads your whole journey: grades, ledger, and how you
+    // treated the bosses along the way (see data/codex.js pickEnding)
+    const e = api.ending();
+    if (e === "legend") {
+      pages.push(
+        NAR("The records spin as one. The Zooniverse doesn't just wake - it ROARS."),
+        N("S-grade crimping, the ledger near full... there are shamen who'd trade their souls for that run."),
+        NAR("Statues of two little men are raised in the courtyard. One has magnificent hair. The other, a moustache."),
+      );
+    } else if (e === "respect") {
+      pages.push(
+        NAR("One by one, the beaten bosses arrive at the Zooniverse... not for revenge. For the encore."),
+        { speaker: "Gregg", text: "You was always kind to Old Gregg. We come to crimp WITH ya this time." },
+        NAR("The greatest crimp-circle in history plays until dawn. Even Tony taps a tentacle."),
+      );
+    } else {
+      pages.push(
+        NAR("The power of crimp floods back across the worlds. Somewhere, a moon hums a happy little tune."),
+      );
+    }
+    pages.push(NAR("THANK YOU FOR PLAYING - THE MIGHTY BOOSH: JOURNEY THROUGH THE ZOONIVERSE"));
+    return { pages, onDone: () => api.setFlag("ending_seen") };
+  },
   tony_lose: (api) => [{ speaker: "Tony", text: "HA! The council prevails! Begone and practice, you crimping amateurs!" }],
   tony_after: (api) => [{ speaker: "Tony", text: "The legendary crimpers return. It is... an acceptable surprise. The wind!" }],
 

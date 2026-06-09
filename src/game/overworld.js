@@ -25,6 +25,7 @@ import { Crimp } from "./crimp.js";
 import { DIALOG } from "../data/dialogue.js";
 import { CRIMPS } from "../data/crimps.js";
 import { ITEMS, ITEM_INDEX, PROP_INDEX } from "../data/items.js";
+import { CODEX, pickEnding } from "../data/codex.js";
 import { TRACKS } from "../data/music.js";
 import { PauseMenu } from "./menu.js";
 
@@ -96,6 +97,7 @@ export class Overworld {
       quest: (id) => GS.quest(id),
       setQuest: (id, step) => GS.setQuest(id, step),
       leader: () => self.party.leader,
+      ending: () => pickEnding(GS.data),
       toast: (m) => self.toast(m),
       goto: (z, sp) => self.warpTo(z, sp),
       startCrimp: (id, onResult) => self.beginCrimp(id, onResult),
@@ -161,7 +163,8 @@ export class Overworld {
   beginCrimp(id, onResult, charm) {
     const base = CRIMPS[id];
     if (!base) { console.warn("no crimp", id); onResult && onResult(true); return; }
-    const def = Object.assign({}, base, { id, track: TRACKS[base.trackKey] || base.track, onResult, charm });
+    const tone = GS.data.flags["tone_" + id];   // pre-fight choice (respect|mock)
+    const def = Object.assign({}, base, { id, track: TRACKS[base.trackKey] || base.track, onResult, charm, tone });
     stopMusic(); this.musicKey = null;
     Scenes.push(new Crimp(def));
   }
@@ -192,6 +195,7 @@ export class Overworld {
           if (ent.record) GS.addRecord(ent.record);
           if (ent.unlock) { GS.unlock(ent.unlock); }
           if (ent.xp) self.grantXp(ent.xp);
+          self.unlockCodex(ent.crimp);
           GS.save();
           if (ent.winDialog) self.startDialog(ent.winDialog);
         } else {
@@ -284,12 +288,24 @@ export class Overworld {
     else Sfx.blip();
   }
 
+  // a flag is a ledger entry if data/codex.js lists it
+  unlockCodex(id) {
+    const key = "codex_" + id;
+    if (CODEX.some((c) => c.id === key) && !GS.flag(key)) {
+      GS.setFlag(key);
+      return true;
+    }
+    return false;
+  }
+
   doSearch(e) {
     const f = e.flag || ("srch_" + e.x + "_" + e.y);
     if (!GS.flag(f)) {
       GS.setFlag(f);
       e._searched = true;
+      const ledger = e.dialog ? this.unlockCodex(e.dialog) : false;
       if (e.item) { GS.addItem(e.item); this.toast("Found " + (ITEMS[e.item] ? ITEMS[e.item].name : e.item) + "!"); Sfx.pickup(); }
+      else if (ledger) { this.toast("Naboo's Ledger updated."); Sfx.confirm(); }
       else Sfx.confirm();
       if (e.xp) this.grantXp(e.xp);
       if (e.dialog) this.startDialog(e.dialog);
