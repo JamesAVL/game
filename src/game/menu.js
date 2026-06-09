@@ -6,6 +6,7 @@ import { drawText, textCentered, panel } from "../engine/gfx.js";
 import { Sfx } from "../engine/audio.js";
 import { GS } from "./state.js";
 import { ITEMS } from "../data/items.js";
+import { QUESTS } from "../data/quests.js";
 
 export const FX_LABELS = { off: "Off", soft: "Soft", crt: "CRT" };
 export function cycleFx() {
@@ -84,7 +85,7 @@ export class PauseMenu {
   }
 
   renderParty(ctx) {
-    const w = 188 * ART, h = 124 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    const w = 188 * ART, h = 138 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
     panel(ctx, x, y, w, h);
     const s = GS.data.stats;
     textCentered(ctx, "THE PARTY", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
@@ -104,6 +105,14 @@ export class PauseMenu {
     if (gs.length) {
       const sCount = gs.filter((g) => g === "S").length;
       drawText(ctx, "Grades  " + gs.join(" ") + (sCount ? "   (" + sCount + " S!)" : ""), x + 100 * ART, y + 104 * ART, { color: "#9fd0ff" });
+    }
+    // active quest (first unfinished chain, current step text)
+    for (const [qid, q] of Object.entries(QUESTS)) {
+      const step = GS.quest(qid);
+      if (step > 0 && step < q.done) {
+        drawText(ctx, "Quest: " + q.steps[step], x + 12 * ART, y + 118 * ART, { color: "#c79aff", maxWidth: w - 24 * ART });
+        break;
+      }
     }
     drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }

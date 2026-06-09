@@ -50,10 +50,12 @@ export function buildZone(id) {
     animT: Math.random() * 2,
   }));
 
-  // solid characters/obstacles block walking; warps/items/triggers/switches do not
+  // solid characters/obstacles block walking; warps/items/triggers/switches do
+  // not. Hidden (trance-revealed) secrets stay walkable too — turning solid on
+  // reveal could seal the player in.
   const inb = (e) => e.y >= 0 && e.y < h && e.x >= 0 && e.x < w;
   for (const e of entities) {
-    if (e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" || e.type === "search") {
+    if ((e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" || e.type === "search") && !e.hidden) {
       if (inb(e)) solids[e.y][e.x] = true;
     }
     // gates block until their switch flag is set (re-applies on re-entry)

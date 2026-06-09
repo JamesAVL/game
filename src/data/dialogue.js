@@ -50,14 +50,38 @@ export const DIALOG = {
     return { pages, onDone: () => { if (practice) api.startCrimp("tutorial", (win) => { if (win) { api.addXp(6); api.say([N("Smooth. You're a natural. Off you go.")]); } else api.say([N("Bit rusty. Have another go whenever.")]); }); } };
   },
 
-  bollo: (api) => [
-    B("..."),
-    B("Bollo got a bad feeling about this quest."),
-    V("Bollo, you always have a bad feeling. Last week you had a bad feeling about a sandwich."),
-    B("...the sandwich tried something. Bollo was right about the sandwich."),
-    H("Any words of wisdom for our journey, Bollo?"),
-    B("Keep the beat. Hit the notes. And nobody touch Bollo's banana."),
-  ],
+  bollo: (api) => {
+    // quest chain: Bollo's Banana (steps tracked in GS.data.quests.banana)
+    if (api.quest("banana") >= 3) return [
+      B("Bollo's banana is home. Bollo is at peace."),
+      V("It's just a banana, Bollo."),
+      B("...it is never just a banana."),
+    ];
+    if (api.has("banana")) return {
+      pages: [
+        B("!!! Bollo's banana! You found it!"),
+        H("It was buried under the bins. It's gone a bit... jazzy."),
+        B("Bollo never forget this. Bollo owe you big."),
+      ],
+      onDone: () => { api.take("banana"); api.setQuest("banana", 3); api.addXp(30); api.toast("Quest complete: Bollo's Banana!"); },
+    };
+    if (api.quest("banana") >= 1) return [
+      B("Banana still missing. Bollo checked the Forest of Bins twice."),
+      B("Howard should lead the way out there. Howard... senses things. Jazz things."),
+    ];
+    return {
+      pages: [
+        B("..."),
+        B("Bollo got a bad feeling about this quest."),
+        V("Bollo, you always have a bad feeling. Last week you had a bad feeling about a sandwich."),
+        B("...the sandwich tried something. Bollo was right about the sandwich."),
+        H("Any words of wisdom for our journey, Bollo?"),
+        B("Keep the beat. Hit the notes. And... Bollo's banana is GONE. Stolen. Probably in the Forest of Bins."),
+        B("Find it and Bollo make it worth your while. Let Howard lead - his jazz nose will sniff it out."),
+      ],
+      onDone: () => { api.setQuest("banana", 1); api.toast("New quest: Bollo's Banana"); },
+    };
+  },
 
   fossil: (api) => [
     F("Hello ladies! Bob Fossil, head zookeeper, at your service!"),
@@ -238,6 +262,23 @@ export const DIALOG = {
   // ---- hub flavour searches ---------------------------------------------
   hub_search1: (api) => [V("A crate of Naboo's 'special' incense. Smells of liquorice and regret."), H("Don't light that near the trumpet, Vince.")],
   hub_search2: (api) => [H("A Zooniverse bin. Bob Fossil's lunch is in here. And his diary."), V("'Dear diary, today I shouted at a heron.' ...riveting stuff.")],
+
+  // ---- jazz-trance secrets (revealed only when Howard leads) -------------
+  hidden_tundra: (api) => [
+    H("My jazz sense led us straight to it. A stash of warm memories. And 20 XP of pure funk."),
+    V("You're like a sniffer dog for noodling, Howard."),
+  ],
+  hidden_forest: (api) => ({
+    pages: [
+      H("There. Buried under the bin bags. One banana, distinctly Bollo-shaped."),
+      V("Bollo's banana! He's going to do that little shoulder dance."),
+    ],
+    onDone: () => { if (api.quest("banana") >= 1) api.setQuest("banana", 2); },
+  }),
+  hidden_moon: (api) => [
+    H("A cache of moon-funk, hidden where only a man of jazz would think to look."),
+    V("It hums, Howard. The rock is actually humming."),
+  ],
 
   // ---- collectible hint (boss locked) -----------------------------------
   collect_tundra: (api) => [N("Three Crimp Notes are frozen out here. Gather all 3 before the Spirit of Jazz will crimp ya.")],

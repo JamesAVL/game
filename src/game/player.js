@@ -1,5 +1,6 @@
-// player.js — the party: Vince leads, Howard follows a breadcrumb trail.
-// Handles 4-direction movement, tile collision, and walk animation.
+// player.js — the party: the leader (Vince or Howard — swappable) is
+// controlled directly, the other follows a breadcrumb trail. Handles
+// 4-direction movement, tile collision, and walk animation.
 
 import { Input, TILE, ART } from "../engine/core.js";
 import { drawFrame } from "../engine/gfx.js";
@@ -18,8 +19,22 @@ export class Party {
     this.moving = false;
     this.animT = 0; this.frame = 0;
     this.trail = [];
-    this.gap = 14;                    // breadcrumbs between Vince and Howard
+    this.gap = 14;                    // breadcrumbs between leader and follower
     this.frozen = false;              // disable control during cutscenes
+    this.leader = "vince";            // "vince" | "howard"
+  }
+
+  // Hand the lead to the other character: control jumps to where the follower
+  // is standing, and the old leader stays put as the new follower (the trail
+  // is re-seeded with their pose so nobody teleports).
+  swap() {
+    const f = this.followerPose();
+    const old = { x: this.px, y: this.py, dir: this.dir };
+    this.px = f.x; this.py = f.y; this.dir = f.dir;
+    this.trail = [];
+    for (let i = 0; i <= this.gap; i++) this.trail.push(old);
+    this.leader = this.leader === "vince" ? "howard" : "vince";
+    return this.leader;
   }
 
   // feet collision box
@@ -79,19 +94,20 @@ export class Party {
   }
 
   drawables() {
-    const vCol = ANIM[this.frame];
+    const lCol = ANIM[this.frame];
     const f = this.followerPose();
-    const hFrame = this.moving ? this.frame : 0;
+    const fFrame = this.moving ? this.frame : 0;
+    const leadKey = this.leader, followKey = this.leader === "vince" ? "howard" : "vince";
     const draws = [];
-    // Howard (follower)
+    // follower (trails the breadcrumbs)
     draws.push({
       y: f.y + 23 * ART,
-      draw: (ctx, cam) => drawFrame(ctx, img("howard"), FW, FH, ANIM[hFrame], ROW[f.dir], f.x - cam.x, f.y - cam.y),
+      draw: (ctx, cam) => drawFrame(ctx, img(followKey), FW, FH, ANIM[fFrame], ROW[f.dir], f.x - cam.x, f.y - cam.y),
     });
-    // Vince (lead)
+    // leader (player-controlled)
     draws.push({
       y: this.feetY(),
-      draw: (ctx, cam) => drawFrame(ctx, img("vince"), FW, FH, vCol, ROW[this.dir], this.px - cam.x, this.py - cam.y),
+      draw: (ctx, cam) => drawFrame(ctx, img(leadKey), FW, FH, lCol, ROW[this.dir], this.px - cam.x, this.py - cam.y),
     });
     return draws;
   }

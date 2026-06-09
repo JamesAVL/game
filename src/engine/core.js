@@ -70,6 +70,7 @@ const KEYMAP = {
   Escape: ["cancel"], KeyX: ["cancel"], Backspace: ["cancel"],
   KeyM: ["mute"], KeyP: ["pause"],
   KeyF: ["lane1"], KeyJ: ["lane2"], KeyK: ["lane3"],
+  Tab: ["swap"], KeyQ: ["swap"],
 };
 
 const down = new Set();
@@ -114,7 +115,7 @@ function actionsFor(code) {
 }
 
 window.addEventListener("keydown", (e) => {
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Tab"].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
   for (const a of actionsFor(e.code)) {
     if (!down.has(a)) pendingPress.push(a);

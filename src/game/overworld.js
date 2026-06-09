@@ -93,6 +93,9 @@ export class Overworld {
       addRecord: (id) => GS.addRecord(id),
       hasRecord: (id) => GS.hasRecord(id),
       recordCount: () => GS.recordCount(),
+      quest: (id) => GS.quest(id),
+      setQuest: (id, step) => GS.setQuest(id, step),
+      leader: () => self.party.leader,
       toast: (m) => self.toast(m),
       goto: (z, sp) => self.warpTo(z, sp),
       startCrimp: (id, onResult) => self.beginCrimp(id, onResult),
@@ -231,13 +234,25 @@ export class Overworld {
     Scenes.push(new Dialogue(pages, () => { if (go) this.warpTo(e.to, e.spawn); }));
   }
 
+  // hidden entities stay imperceptible until Howard's jazz trance finds them
+  revealFlag(e) { return "rev_" + this.def.id + "_" + e.x + "_" + e.y; }
+  isHidden(e) { return e.hidden && !GS.flag(this.revealFlag(e)); }
+
   interact() {
     const p = this.party.interactPoint();
     const tx = Math.floor(p.x / TILE), ty = Math.floor(p.y / TILE);
     for (const e of this.entities) {
+      if (this.isHidden(e)) continue;
       const ex = Math.floor(e.px / TILE), ey = Math.floor(e.py / TILE);
       const near = (Math.abs(ex - tx) <= (e.w / TILE) && Math.abs(ey - ty) <= (e.h / TILE)) || (ex === tx && ey === ty);
       if (!near) continue;
+      // leader-gated interactions: the wrong frontman gets a flavour line
+      if (e.who && e.who !== this.party.leader) {
+        this.toast(e.who === "howard" ? "This needs a man of jazz up front. (Tab swaps the lead)"
+          : "Only Vince's touch will do here. (Tab swaps the lead)");
+        Sfx.cancel();
+        return true;
+      }
       if (e.type === "npc") { if (e.dialog) this.startDialog(e.dialog); return true; }
       if (e.type === "sign") { if (e.dialog) this.startDialog(e.dialog); return true; }
       if (e.type === "boss") { this.doBoss(e); return true; }
@@ -245,6 +260,28 @@ export class Overworld {
       if (e.type === "search") { this.doSearch(e); return true; }
     }
     return false;
+  }
+
+  // Howard's jazz trance: pressing confirm with nothing to interact with while
+  // Howard leads sends out a pulse that reveals hidden secrets nearby.
+  tryTrance() {
+    if (this.party.leader !== "howard") return;
+    const cx = this.party.centerX(), cy = this.party.feetY();
+    Particles.burst(cx - this.cam.x, cy - this.cam.y - 8 * ART, 22,
+      { color: [159, 208, 255], speed: 90, life: 0.7, size: 1.5 * ART, gravity: -10 * ART, drag: 2.4 });
+    let found = false;
+    for (const e of this.entities) {
+      if (!e.hidden || GS.flag(this.revealFlag(e))) continue;
+      const d2 = (e.px + 8 * ART - cx) ** 2 + (e.py + 8 * ART - cy) ** 2;
+      if (d2 <= (TILE * 3.5) ** 2) {
+        GS.setFlag(this.revealFlag(e));
+        e._revT = 1.0;   // fade-in timer
+        found = true;
+        if (e.onReveal) this.startDialog(e.onReveal);
+      }
+    }
+    if (found) { Sfx.perfect(); this.toast("Howard's jazz trance reveals something!"); Juice.shake(2 * ART, 0.15); }
+    else Sfx.blip();
   }
 
   doSearch(e) {
@@ -353,12 +390,18 @@ export class Overworld {
 
     if (Input.pressed("pause") || Input.pressed("cancel")) { Scenes.push(new PauseMenu(this)); return; }
     if (Input.pressed("mute")) { import("../engine/audio.js").then((m) => { const muted = m.toggleMute(); this.toast(muted ? "Muted" : "Sound on"); }); }
+    if (Input.pressed("swap")) {
+      const lead = this.party.swap();
+      Sfx.confirm();
+      this.toast(lead === "howard" ? "Howard takes the lead. Jazz senses tingling..." : "Vince takes the lead. Hair: immaculate.");
+    }
 
     this.party.update(dt, this.tilemap);
     // entity collision (block on npc/boss tiles handled via solids in world build)
     GS.data.px = this.party.px; GS.data.py = this.party.py;
+    for (const e of this.entities) if (e._revT > 0) e._revT = Math.max(0, e._revT - dt);
 
-    if (Input.pressed("confirm")) { if (this.interact()) return; }
+    if (Input.pressed("confirm")) { if (this.interact()) return; this.tryTrance(); }
     this.checkStanding();
     this.entities = this.entities.filter((e) => !e._gone);
 
@@ -366,7 +409,10 @@ export class Overworld {
   }
 
   drawEntity(ctx, e) {
+    if (this.isHidden(e)) return;
     const dx = e.px - this.cam.x, dy = e.py - this.cam.y;
+    // freshly-revealed secrets shimmer in
+    const rev = e._revT > 0 ? (1 - e._revT) * (0.7 + 0.3 * Math.sin(e._revT * 30)) : 1;
     if (e.type === "npc") {
       const im = img(e.sprite);
       // draw only the down-idle frame (works for single sprites and sheets)
@@ -391,7 +437,7 @@ export class Overworld {
       const im = img("props");
       const idx = PROP_INDEX[e.prop] != null ? PROP_INDEX[e.prop] : PROP_INDEX.crate;
       const done = GS.flag(e.flag || ("srch_" + e.x + "_" + e.y));
-      ctx.globalAlpha = done ? 0.45 : 1;
+      ctx.globalAlpha = (done ? 0.45 : 1) * rev;
       if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, idx, 0, dx, dy - 8 * ART);
       ctx.globalAlpha = 1;
     } else if (e.type === "switch") {
@@ -577,7 +623,7 @@ export class Overworld {
     // controls hint (fades after start) — adapts to touch vs keyboard
     if (GS.data.playtime < 14) {
       const touch = typeof document !== "undefined" && document.documentElement.classList.contains("has-touch");
-      const hint = touch ? "Drag to move   Tap to talk" : "Arrows/WASD move   Z talk   P menu";
+      const hint = touch ? "Drag to move   Tap to talk" : "Arrows/WASD move   Z talk   Tab swap leader   P menu";
       drawText(ctx, hint, 6 * ART, VIEW_H - 9 * ART, { color: "rgba(220,220,240,0.7)", shadow: "#000" });
     }
   }

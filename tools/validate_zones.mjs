@@ -39,7 +39,7 @@ function flood(def, grid, gatesOpen) {
   const { w, h, solidMap } = grid;
   const blocked = new Set();
   for (const e of def.entities || []) {
-    if (SOLID_TYPES.has(e.type)) blocked.add(e.x + "," + e.y);
+    if (SOLID_TYPES.has(e.type) && !e.hidden) blocked.add(e.x + "," + e.y); // hidden secrets stay walkable
     if (e.type === "gate" && !gatesOpen) blocked.add(e.x + "," + e.y);
   }
   const walkable = (x, y) =>

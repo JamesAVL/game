@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ZONES } from "../src/data/zones.js";
 import { LEGEND } from "../src/data/legend.js";
+import { QUESTS } from "../src/data/quests.js";
 
 // zones.js + legend.js are pure, DOM-free data. These tests lock the text-map
 // contract: every authored char must exist in the merged legend (world.js
@@ -36,8 +37,32 @@ describe("zone map data", () => {
         for (const row of def.map) for (const ch of row) if (legend[ch] && legend[ch].void) hasVoid = true;
         expect(!!def.backdrop).toBe(hasVoid);
       });
+
+      it("keeps leader-gates and trance-secrets off required progression", () => {
+        for (const e of def.entities || []) {
+          // crimp notes and bosses must stay leader-neutral and visible:
+          // who/hidden gating may only decorate optional extras
+          const isNote = def.collect && e.item === def.collect.item;
+          if (isNote || e.type === "boss" || e.type === "portal" || e.type === "switch" || e.type === "gate") {
+            expect(e.who, `${e.type} at (${e.x},${e.y})`).toBeUndefined();
+            expect(e.hidden, `${e.type} at (${e.x},${e.y})`).toBeFalsy();
+          }
+          // every interactable secret still explains itself
+          if (e.hidden || e.who) expect(e.dialog, `${e.type} at (${e.x},${e.y})`).toBeTruthy();
+        }
+      });
     });
   }
+});
+
+describe("quest data", () => {
+  it("every quest has contiguous step text up to its done step", () => {
+    for (const [id, q] of Object.entries(QUESTS)) {
+      expect(q.name, id).toBeTruthy();
+      expect(q.done, id).toBeGreaterThan(0);
+      for (let s = 1; s <= q.done; s++) expect(typeof q.steps[s], `${id} step ${s}`).toBe("string");
+    }
+  });
 });
 
 describe("legend contract", () => {

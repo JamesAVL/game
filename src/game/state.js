@@ -11,6 +11,7 @@ function fresh() {
     stats: { level: 1, xp: 0, xpNext: 10, style: 5, jazz: 5 },
     records: [],            // ids of crimp records won (one per world)
     grades: {},             // crimpId -> best grade letter (S/A/B/C)
+    quests: {},             // questId -> step number (see data/quests.js)
     unlocked: { hub: true },
     zone: "hub",
     spawn: null,            // {x,y,dir} override, else zone default
@@ -56,6 +57,10 @@ export const GS = {
   // ---- crimp grades --------------------------------------------------------
   gradeOf(id) { return this.data.grades[id]; },
   setGrade(id, g) { this.data.grades[id] = betterGrade(this.data.grades[id], g); },
+
+  // ---- quests (multi-step chains; steps only move forward) -----------------
+  quest(id) { return this.data.quests[id] || 0; },
+  setQuest(id, step) { this.data.quests[id] = Math.max(this.quest(id), step); },
 
   // ---- stats / XP --------------------------------------------------------
   addXp(n) {
