@@ -131,6 +131,10 @@ export const DIALOG = {
     { speaker: "Gregg", text: "I'm Old Gregg! I won't crimp with ya unless ya bring me a Bailey's. From a shoe, ideally." },
     V("We'd better find some Bailey's in this watery place first."),
   ],
+  gregg_require: (api) => [
+    { speaker: "Gregg", text: "Old Gregg don't crimp dry. Bring Old Gregg his Bailey's first." },
+    H("Bailey's... I'm sure I saw a bottle buried in a snowmound back in the Tundra."),
+  ],
   gregg_pre: (api) => [
     { speaker: "Gregg", text: "You found all me Crimp Notes! You DO love me!" },
     V("We've got the notes, Gregg. Time to crimp."),
@@ -154,6 +158,10 @@ export const DIALOG = {
     { speaker: "CrackFox", text: "Heeeere come the Crack Fox! Scuttle scuttle. You got somethin' shiny for me?" },
     H("He's twitching. Why is he twitching?"),
     { speaker: "CrackFox", text: "No shiny, no crimp! Bring the Crack Fox a shiny thing! Wheee!" },
+  ],
+  crackfox_require: (api) => [
+    { speaker: "CrackFox", text: "No shiny, no crimpy! Bring the Crack Fox somethin' SHINY first!" },
+    V("Shiny... there was a gleaming bin lid washed up somewhere in Gregg's sea."),
   ],
   crackfox_pre: (api) => [
     { speaker: "CrackFox", text: "Ooooh! Three shiny shiny notes! For meeee?" },

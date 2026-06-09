@@ -100,7 +100,9 @@ export class Dialogue {
   render(ctx) {
     const p = this.cur();
     if (!p) return;
-    const bx = 8 * ART, bh = 54 * ART, by = VIEW_H - bh - 6 * ART, bw = VIEW_W - 16 * ART;
+    // choice pages with >2 options get a taller panel so nothing clips
+    const extra = this.isChoice() ? Math.max(0, p.options.length - 2) * LINE_H : 0;
+    const bx = 8 * ART, bh = 54 * ART + extra, by = VIEW_H - bh - 6 * ART, bw = VIEW_W - 16 * ART;
     panel(ctx, bx, by, bw, bh);
 
     let tx = bx + 8 * ART;

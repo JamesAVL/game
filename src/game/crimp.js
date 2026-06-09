@@ -8,6 +8,7 @@ import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness, getReactive } from "../engine/audio.js";
 import { litSprite } from "../engine/normalmap.js";
 import { GS } from "./state.js";
+import { prepareChart, applyMechanic, gradeFor, MECHANIC_HINTS } from "./crimp_logic.js";
 
 // parse a "#rrggbb" lane colour to an [r,g,b] triple for particle bursts
 function hexRGB(h) {
@@ -74,19 +75,30 @@ export class Crimp {
     this.x0 = (VIEW_W - this.totalW) / 2 + 20 * ART;
     this.flashLane = new Array(this.laneCount).fill(0);
 
-    const sd = 60 / def.bpm / 4;  // seconds per 16th step
-    // remap each chart lane (authored 0..3) onto the active lane count, keeping
-    // its left->right position; deterministic so charts stay reproducible.
-    const remap = (lane) => Math.min(this.laneCount - 1, Math.floor(lane * this.laneCount / 4));
-    const raw = def.notes.map(([step, lane]) => ({ t: step * sd, lane: remap(lane), dead: false }))
-      .sort((a, b) => a.t - b.t);
-    // enforce a global minimum spacing so charts can't be denser than playable
-    this.notes = [];
-    let lastT = -Infinity;
-    for (const n of raw) {
-      if (n.t - lastT >= this.D.minGap) { this.notes.push(n); lastT = n.t; }
-    }
+    // chart prep + the boss's signature mechanic live in crimp_logic.js (pure,
+    // unit-tested): lane remap, density thinning, then deterministic note flags
+    const prepped = prepareChart(def, this.laneCount, this.D.minGap);
+    const mech = applyMechanic(prepped, def.mechanic, def.bpm, this.laneCount);
+    this.notes = mech.notes;
+    this.segments = mech.segments;   // outrage scramble windows (for warnings)
+    this.mech = def.mechanic || null;
+    this.barLen = (60 / def.bpm) * 4;
+    this.activeHolds = [];
     this.total = this.notes.length;
+
+    // ---- charm (one key item carried into the battle; see items.js) --------
+    this.charm = def.charm || null;  // { id, name, type, ... } resolved upstream
+    this.saves = 0;
+    this.encore = false;
+    if (this.charm) {
+      const c = this.charm;
+      if (c.type === "slow") this.travel += c.n;
+      else if (c.type === "head") this.you = Math.min(90, this.you + c.n);
+      else if (c.type === "boss") this.boss -= c.n;
+      else if (c.type === "window") { this.perfWin *= c.mul; this.goodWin *= c.mul; }
+      else if (c.type === "save") this.saves = c.n;
+      else if (c.type === "encore") this.encore = true;
+    }
     this.lyrics = (def.lyrics || []).map(([beat, text]) => ({ t: beat * (60 / def.bpm), text }));
     this.lastT = this.notes.length ? this.notes[this.notes.length - 1].t : 4;
     this.danceT = 0;
@@ -110,6 +122,8 @@ export class Crimp {
     this.state = "over";
     this.overT = 0;
     this.result = win;
+    this.grade = gradeFor(this.hits, this.total, this.maxCombo);
+    if (win && this.def.id) GS.setGrade(this.def.id, this.grade);
     stopMusic();
     if (win) Sfx.win(); else Sfx.lose();
     // big finish: hit-stop + flash + a burst over the boss
@@ -120,13 +134,17 @@ export class Crimp {
     Particles.burst(VIEW_W / 2 + 40 * ART, VIEW_H / 2 - 10 * ART, 60, { color: col, speed: 170, life: 0.9, size: 2 * ART, gravity: 40 * ART, drag: 1.8 });
   }
 
-  judgeHit(kind) {
-    const D = this.D, g = this.gainMul;
-    if (kind === "perfect") { this.you += 4.6 * g; this.boss -= 4.8 * g; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
-    else if (kind === "good") { this.you += 3.2 * g; this.boss -= 3.4 * g; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
+  judgeHit(kind, mult = 1) {
+    const D = this.D, g = this.gainMul * mult;
+    if (kind === "perfect") { this.you += 4.6 * g; this.boss -= 4.8 * g; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = mult > 1 ? "GHOST CRIMP!" : "CRIMP!"; this.judgeCol = "#ffd86a"; }
+    else if (kind === "good") { this.you += 3.2 * g; this.boss -= 3.4 * g; this.hits++; this.combo++; Sfx.hit(); this.judge = mult > 1 ? "GHOST!" : "GOOD"; this.judgeCol = "#8aff6a"; }
+    else if (this.saves > 0) {
+      // a charmed Howard absorbs the fluff: no penalty, combo survives
+      this.saves--; Sfx.hit(); this.judge = "HOWARD'S GOT IT"; this.judgeCol = "#9fd0ff";
+    }
     else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; Juice.shake(4 * ART, 0.22); }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
-    if (this.combo > 0 && this.combo % 10 === 0) { this.you += 2; this.boss -= 1; }
+    if (this.combo > 0 && this.combo % 10 === 0) { const b = this.encore ? 2 : 1; this.you += 2 * b; this.boss -= 1 * b; }
     // interactive mix: a hot combo opens the backing track up; a fluff ducks and
     // muffles it for a beat, so the music tracks how well you're crimping.
     if (kind === "miss") { duckMusic(0.5, 0.26); setMusicBrightness(0.5); }
@@ -148,11 +166,22 @@ export class Crimp {
     this.flashLane[lane] = 0.12;
     if (best && bestD <= this.goodWin) {
       best.dead = true;
-      const perfect = bestD <= this.perfWin;
-      this.judgeHit(perfect ? "perfect" : "good");
-      // celebratory burst at the struck receptor — additive, so bloom glows it
       const cx = this.laneX(lane) + LANE_W / 2;
       const cy = HIT_Y + 5 * ART;
+      if (best.cursed) {
+        // hex mechanic: striking a cursed note is the mistake
+        this.you -= 2.4 * this.D.missYou; this.boss += 2.0 * this.D.missBoss;
+        this.combo = 0; Sfx.miss();
+        this.judge = "HEXED!"; this.judgeCol = "#c77aff"; this.judgeT = 0.5;
+        this.you = clamp(this.you, 0, 100); this.boss = clamp(this.boss, 0, 100);
+        Juice.shake(5 * ART, 0.25);
+        Particles.burst(cx, cy, 14, { color: [180, 90, 220], speed: 80, life: 0.5, size: 1.6 * ART, gravity: 20 * ART, drag: 2 });
+        return;
+      }
+      const perfect = bestD <= this.perfWin;
+      this.judgeHit(perfect ? "perfect" : "good", best.ghost ? 2 : 1);
+      if (best.hold) { best.holding = true; this.activeHolds.push(best); }
+      // celebratory burst at the struck receptor — additive, so bloom glows it
       const col = perfect ? [255, 216, 106] : hexRGB(this.laneCols[lane]);
       Particles.burst(cx, cy, perfect ? 16 : 9, {
         color: col, speed: perfect ? 95 : 65, life: perfect ? 0.55 : 0.4,
@@ -185,10 +214,36 @@ export class Crimp {
       // lane input — arrow keys / touch arrows mapped per lane direction
       for (let i = 0; i < this.laneCount; i++) if (Input.pressed(this.dirs[i])) this.tryLane(i);
       const t = this.now();
-      // missed notes (passed hit line without being struck)
+      // missed notes (passed hit line without being struck); cursed notes are
+      // *meant* to be left alone, so they slip past without penalty
       for (const n of this.notes) {
-        if (!n.dead && n.t < t - this.goodWin) { n.dead = true; this.judgeHit("miss"); }
+        if (!n.dead && n.t < t - this.goodWin) {
+          n.dead = true;
+          if (!n.cursed) this.judgeHit("miss");
+        }
       }
+      // sustained notes: keep the lane key down until the tail runs out
+      for (const n of this.activeHolds) {
+        if (!n.holding) continue;
+        const end = n.t + n.hold;
+        if (t >= end) {
+          n.holding = false;
+          const g = this.gainMul;
+          this.you = clamp(this.you + 2.6 * g, 0, 100);
+          this.boss = clamp(this.boss - 1.6 * g, 0, 100);
+          this.judge = "HELD!"; this.judgeCol = "#5ad6ff"; this.judgeT = 0.5;
+          Sfx.perfect();
+          Particles.burst(this.laneX(n.lane) + LANE_W / 2, HIT_Y + 5 * ART, 18,
+            { color: [90, 214, 255], speed: 100, life: 0.6, size: 1.6 * ART, gravity: 50 * ART, drag: 2 });
+        } else if (!Input.isDown(this.dirs[n.lane])) {
+          n.holding = false;
+          this.combo = 0;
+          this.you = clamp(this.you - 1.2, 0, 100);
+          this.judge = "DROPPED"; this.judgeCol = "#ff9a5a"; this.judgeT = 0.5;
+          Sfx.cancel();
+        }
+      }
+      this.activeHolds = this.activeHolds.filter((n) => n.holding);
       // resolve: no mid-song loss -- the song always finishes, then you win if
       // you're ahead. An early KO (boss emptied) ends it triumphantly.
       if (this.boss <= 0) { this.finish(true); }
@@ -298,14 +353,77 @@ export class Crimp {
     // ---- notes (arrows falling toward the receptor) ----
     if (this.state !== "count") {
       const t = this.now();
+      const mt = this.mech ? this.mech.type : null;
+      const span = HIT_Y - TOP_Y;
+      // y for a note dt seconds from the hit line; "drift" warps the glide
+      // visually but keeps both endpoints honest (judgement is untouched)
+      const yFor = (dt) => {
+        let prog = 1 - dt / this.travel;
+        if (mt === "drift")
+          prog += Math.sin(this.danceT * this.mech.speed + prog * 3) * this.mech.amp * Math.sin(Math.PI * Math.max(0, Math.min(1, prog)));
+        return TOP_Y + prog * span + 5 * ART;
+      };
+      // active hold tails: shrink from the receptor up as you keep holding
+      for (const n of this.activeHolds) {
+        if (!n.holding) continue;
+        const yEnd = yFor(n.t + n.hold - t);
+        ctx.fillStyle = this.laneCols[n.lane];
+        ctx.globalAlpha = 0.75;
+        const cx = this.laneX(n.lane) + LANE_W / 2;
+        ctx.fillRect(cx - 3 * ART, yEnd, 6 * ART, Math.max(0, HIT_Y + 5 * ART - yEnd));
+        ctx.globalAlpha = 1;
+      }
       for (const n of this.notes) {
         if (n.dead) continue;
         const dt = n.t - t;
         if (dt > this.travel || dt < -0.25) continue;
-        const prog = 1 - dt / this.travel;     // 0 at spawn, 1 at hit line
-        const y = TOP_Y + prog * (HIT_Y - TOP_Y) + 5 * ART;
+        const y = yFor(dt);
         const cx = this.laneX(n.lane) + LANE_W / 2;
-        this._arrow(ctx, cx, y, this.dirs[n.lane], LANE_W * 0.42, this.laneCols[n.lane], false);
+        // fog mechanic: notes fade out inside the murk band; a combo thins it
+        let alpha = 1;
+        if (mt === "fog") {
+          const fy0 = TOP_Y + this.mech.y0 * span, fy1 = TOP_Y + this.mech.y1 * span;
+          if (y > fy0 && y < fy1) alpha = Math.min(1, 0.08 + (this.combo >= 5 ? 0.3 : 0) + this.combo * 0.02);
+        }
+        if (n.ghost) alpha *= 0.35 + 0.6 * Math.abs(Math.sin(this.danceT * 7 + n.t * 3));
+        ctx.globalAlpha = alpha;
+        if (n.hold) { // pending tail, drawn behind the head
+          ctx.fillStyle = this.laneCols[n.lane];
+          ctx.globalAlpha = alpha * 0.45;
+          ctx.fillRect(cx - 3 * ART, yFor(dt + n.hold), 6 * ART, Math.max(0, y - yFor(dt + n.hold)));
+          ctx.globalAlpha = alpha;
+        }
+        if (n.cursed) { // hex: an outlined, sickly note you must NOT strike
+          this._arrow(ctx, cx, y, this.dirs[n.lane], LANE_W * 0.42, "#c77aff", true);
+          drawText(ctx, "x", cx - 2 * ART, y - 3 * ART, { color: "#c77aff" });
+        } else {
+          this._arrow(ctx, cx, y, this.dirs[n.lane], LANE_W * 0.42, this.laneCols[n.lane], false);
+          if (n.scram) this._arrow(ctx, cx, y, this.dirs[n.lane], LANE_W * 0.42, "rgba(255,255,255,0.7)", true);
+        }
+        ctx.globalAlpha = 1;
+      }
+      // fog: paint the murk itself so the vanishing reads as weather, not a bug
+      if (mt === "fog") {
+        const fy0 = TOP_Y + this.mech.y0 * span, fy1 = TOP_Y + this.mech.y1 * span;
+        const fa = Math.max(0.08, 0.30 - this.combo * 0.02);
+        const fg = ctx.createLinearGradient(0, fy0, 0, fy1);
+        fg.addColorStop(0, "rgba(58,42,18,0)");
+        fg.addColorStop(0.3, "rgba(58,42,18," + fa + ")");
+        fg.addColorStop(0.7, "rgba(58,42,18," + fa + ")");
+        fg.addColorStop(1, "rgba(58,42,18,0)");
+        ctx.fillStyle = fg;
+        ctx.fillRect(this.x0 - GAP, fy0, this.totalW + GAP * 2, fy1 - fy0);
+      }
+      // outrage: announce each scramble one bar early, tint while it blows
+      if (mt === "outrage") {
+        for (const [s0, s1] of this.segments) {
+          if (t >= s0 - this.barLen && t < s0 && Math.floor(performance.now() / 180) % 2 === 0)
+            textCentered(ctx, "THE WIND! LANES SCRAMBLE!", VIEW_W / 2, 44 * ART, { color: "#ff7ad8", shadow: "#000" });
+          if (t >= s0 && t < s1) {
+            ctx.fillStyle = "rgba(255,122,216,0.07)";
+            ctx.fillRect(this.x0, TOP_Y, this.totalW, HIT_Y - TOP_Y + 14 * ART);
+          }
+        }
       }
     }
 
@@ -336,6 +454,9 @@ export class Crimp {
       const n = Math.ceil(this.countT);
       const label = n > 0 ? String(n) : "CRIMP!";
       textCentered(ctx, label, VIEW_W / 2, VIEW_H / 2 - 16 * ART, { color: "#ffd86a", scale: 4, shadow: "#000" });
+      const mh = this.mech && MECHANIC_HINTS[this.mech.type];
+      if (mh) textCentered(ctx, mh, VIEW_W / 2, VIEW_H - 40 * ART, { color: "#ffb15a", shadow: "#000" });
+      if (this.charm) textCentered(ctx, "Charm: " + this.charm.name + " (" + this.charm.label + ")", VIEW_W / 2, VIEW_H - 50 * ART, { color: "#9fd0ff", shadow: "#000" });
       textCentered(ctx, this._hint(), VIEW_W / 2, VIEW_H - 30 * ART, { color: "#cfcfe6" });
     }
 
@@ -351,7 +472,10 @@ export class Crimp {
       textCentered(ctx, win ? "CRIMP VICTORY!" : "OUT-CRIMPED...", VIEW_W / 2, 56 * ART, { color: win ? "#ffd86a" : "#ff7a7a", scale: 2, shadow: "#000" });
       const acc = this.total ? Math.round((this.hits / this.total) * 100) : 0;
       textCentered(ctx, "Accuracy " + acc + "%   Max combo " + this.maxCombo, VIEW_W / 2, 88 * ART, { color: "#fff" });
-      textCentered(ctx, win ? "You feel the funk flow through you." : "Shake it off and try again.", VIEW_W / 2, 102 * ART, { color: "#cfcfe6" });
+      const gcol = { S: "#ffd86a", A: "#8aff6a", B: "#9fd0ff", C: "#cfcfe6" }[this.grade] || "#fff";
+      textCentered(ctx, "GRADE", VIEW_W / 2 - 14 * ART, 100 * ART, { color: "#9a9ab6" });
+      textCentered(ctx, this.grade, VIEW_W / 2 + 14 * ART, 96 * ART, { color: gcol, scale: 2, shadow: "#000" });
+      textCentered(ctx, win ? "You feel the funk flow through you." : "Shake it off and try again.", VIEW_W / 2, 116 * ART, { color: "#cfcfe6" });
       if (this.overT > 1.0 && Math.floor(performance.now() / 400) % 2 === 0)
         textCentered(ctx, "press Z  /  tap a lane", VIEW_W / 2, 130 * ART, { color: "#9a7adf" });
     }

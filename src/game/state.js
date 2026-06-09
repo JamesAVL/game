@@ -2,6 +2,7 @@
 // crimp records collected, current zone + position, and save/load.
 
 import { Save } from "../engine/core.js";
+import { betterGrade } from "./crimp_logic.js";
 
 function fresh() {
   return {
@@ -9,6 +10,7 @@ function fresh() {
     items: {},
     stats: { level: 1, xp: 0, xpNext: 10, style: 5, jazz: 5 },
     records: [],            // ids of crimp records won (one per world)
+    grades: {},             // crimpId -> best grade letter (S/A/B/C)
     unlocked: { hub: true },
     zone: "hub",
     spawn: null,            // {x,y,dir} override, else zone default
@@ -50,6 +52,10 @@ export const GS = {
   hasRecord(id) { return this.data.records.includes(id); },
   addRecord(id) { if (!this.hasRecord(id)) this.data.records.push(id); },
   recordCount() { return this.data.records.length; },
+
+  // ---- crimp grades --------------------------------------------------------
+  gradeOf(id) { return this.data.grades[id]; },
+  setGrade(id, g) { this.data.grades[id] = betterGrade(this.data.grades[id], g); },
 
   // ---- stats / XP --------------------------------------------------------
   addXp(n) {

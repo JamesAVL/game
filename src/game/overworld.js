@@ -155,10 +155,10 @@ export class Overworld {
     if (b) Scenes.push(new Dialogue(b.pages, b.onDone));
   }
 
-  beginCrimp(id, onResult) {
+  beginCrimp(id, onResult, charm) {
     const base = CRIMPS[id];
     if (!base) { console.warn("no crimp", id); onResult && onResult(true); return; }
-    const def = Object.assign({}, base, { track: TRACKS[base.trackKey] || base.track, onResult });
+    const def = Object.assign({}, base, { id, track: TRACKS[base.trackKey] || base.track, onResult, charm });
     stopMusic(); this.musicKey = null;
     Scenes.push(new Crimp(def));
   }
@@ -182,7 +182,7 @@ export class Overworld {
       return;
     }
     const pre = this.buildDialog(ent.dialog);
-    const onDone = () => {
+    const launch = (charm) => {
       self.beginCrimp(ent.crimp, (win) => {
         if (win) {
           if (ent.winFlag) GS.setFlag(ent.winFlag);
@@ -196,7 +196,19 @@ export class Overworld {
         }
         // restore zone music
         if (self.def.music && TRACKS[self.def.music]) { playMusic(TRACKS[self.def.music]); self.musicKey = self.def.music; }
-      });
+      }, charm);
+    };
+    // pre-battle loadout: bring one owned charm item into the crimp-off
+    const onDone = () => {
+      const charms = GS.itemList().filter((id) => ITEMS[id] && ITEMS[id].battle);
+      if (!charms.length) { launch(null); return; }
+      let picked = null;
+      const opts = charms.slice(0, 3).map((id) => ({
+        label: ITEMS[id].name + " - " + ITEMS[id].battle.label,
+        next: [], act: () => { picked = { id, name: ITEMS[id].name, ...ITEMS[id].battle }; },
+      }));
+      opts.push({ label: "No charm, just funk", next: [] });
+      Scenes.push(new Dialogue([{ choice: "Bring a charm into the crimp-off?", options: opts }], () => launch(picked)));
     };
     if (pre) Scenes.push(new Dialogue(pre.pages, onDone));
     else onDone();
@@ -362,6 +374,14 @@ export class Overworld {
     } else if (e.type === "boss") {
       const im = img(e.sprite);
       if (im) ctx.drawImage(im, dx + 8 * ART - im.width / 2, dy + 16 * ART - im.height);
+      // beaten bosses wear your best grade as a bobbing medal
+      if (e.winFlag && GS.flag(e.winFlag)) {
+        const g = GS.gradeOf(e.crimp);
+        if (g) {
+          const my = dy - (im ? im.height - 12 * ART : 20 * ART) + Math.sin(performance.now() / 400) * 1.5 * ART;
+          drawText(ctx, g, dx + 6 * ART, my, { color: g === "S" ? "#ffd86a" : "#cfe2ff", shadow: "#000" });
+        }
+      }
     } else if (e.type === "item") {
       const im = img("items");
       const idx = ITEM_INDEX[e.item] || 0;

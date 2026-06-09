@@ -25,16 +25,21 @@ export const PROP_INDEX = {
 
 const NOTE = { name: "Crimp Note", desc: "A shimmering fragment of pure crimp. Collect them to power up." };
 
+// `battle` marks an item as a crimp CHARM: one can be brought into a boss
+// crimp-off (chosen pre-battle in overworld.doBoss, applied in crimp.js).
+//   slow: notes fall slower      save: Howard absorbs n fluffs
+//   head: +n starting meter      window: timing windows × mul
+//   boss: boss starts -n         encore: combo milestone bonuses doubled
 export const ITEMS = {
-  baileys: { name: "Bailey's", desc: "From the off-licence. Smooth. Creamy. Watery." },
-  polo: { name: "Polo Mint", desc: "The mint with the hole. The Hitcher wants these." },
-  hat: { name: "Naboo's Hat", desc: "A shaman's pointed hat. Faintly magical." },
+  baileys: { name: "Bailey's", desc: "From the off-licence. Smooth. Creamy. Watery.", battle: { type: "boss", n: 6, label: "boss starts -6" } },
+  polo: { name: "Polo Mint", desc: "The mint with the hole. The Hitcher wants these.", battle: { type: "window", mul: 1.18, label: "wider timing" } },
+  hat: { name: "Naboo's Hat", desc: "A shaman's pointed hat. Faintly magical.", battle: { type: "encore", label: "double combo bonus" } },
   banana: { name: "Bollo's Banana", desc: "Bollo has a bad feeling about giving this up." },
-  mirror: { name: "Tiny Mirror", desc: "For checking the hair. Vince's most prized tool." },
+  mirror: { name: "Tiny Mirror", desc: "For checking the hair. Vince's most prized tool.", battle: { type: "slow", n: 0.25, label: "slower notes" } },
   record: { name: "Crimp Record", desc: "A shimmering disc of pure crimp." },
-  jazzcig: { name: "Jazz Cigarette", desc: "Howard insists it is purely for the trumpet tone." },
+  jazzcig: { name: "Jazz Cigarette", desc: "Howard insists it is purely for the trumpet tone.", battle: { type: "save", n: 3, label: "Howard covers 3 fluffs" } },
   bin: { name: "Shiny Bin Lid", desc: "One man's rubbish is the Crack Fox's treasure." },
   key: { name: "Ornate Key", desc: "Opens something it really shouldn't." },
-  cream: { name: "Funk Cream", desc: "Spread it on toast. Or your soul." },
+  cream: { name: "Funk Cream", desc: "Spread it on toast. Or your soul.", battle: { type: "head", n: 8, label: "+8 head start" } },
   note_tundra: NOTE, note_sea: NOTE, note_forest: NOTE, note_night: NOTE, note_moon: NOTE, note_temple: NOTE,
 };

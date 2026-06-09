@@ -51,8 +51,8 @@ const HUB = {
     { type: "npc", x: 6, y: 6, sprite: "naboo", dialog: "naboo" },
     { type: "npc", x: 9, y: 7, sprite: "bollo", dialog: "bollo" },
     { type: "npc", x: 20, y: 6, sprite: "fossil", dialog: "fossil" },
-    { type: "search", x: 13, y: 8, prop: "crate", dialog: "hub_search1", xp: 3 },
-    { type: "search", x: 27, y: 10, prop: "bin", dialog: "hub_search2", xp: 3 },
+    { type: "search", x: 13, y: 8, prop: "crate", dialog: "hub_search1", xp: 3, item: "mirror" },
+    { type: "search", x: 27, y: 10, prop: "bin", dialog: "hub_search2", xp: 3, item: "hat" },
     { type: "portal", x: 5, y: 18, to: "tundra", color: "#9fe0ff", label: "Tundra" },
     { type: "portal", x: 10, y: 18, to: "sea", color: "#5affc0", label: "The Sea" },
     { type: "portal", x: 15, y: 18, to: "forest", color: "#ff9a5a", label: "The Bins" },
@@ -88,7 +88,9 @@ function makeWorld(cfg) {
   for (const [vx, vy, vw, vh] of (cfg.voids || [])) rect(m, vx, vy, vw, vh, "%");
 
   const sp = L.spawn || [15, 22];
-  const searches = L.searches.map((s) => ({ type: "search", x: s[0], y: s[1], prop: s[2], dialog: s[3], xp: s[4] }));
+  // searches: [x, y, prop, dialog, xp, item?] — the optional 6th entry tucks a
+  // key item (charm / boss-gate fodder) into the zone's big searchable
+  const searches = L.searches.map((s) => ({ type: "search", x: s[0], y: s[1], prop: s[2], dialog: s[3], xp: s[4], item: s[5] }));
   return {
     id: cfg.id, name: cfg.name, tileset: cfg.tileset, music: cfg.music,
     weather: cfg.weather, onEnter: cfg.onEnter, backdrop: cfg.backdrop,
@@ -122,7 +124,7 @@ const TUNDRA = makeWorld({
     walls: [{ o: "h", x: 8, y: 14, n: 14, gap: [5, 6] }],
     pocket: { x: 3, y: 4, w: 5, h: 5, door: [5, 8], note: [5, 6] },
     noteA: [26, 22], chest: [22, 6], sw: [24, 12],
-    searches: [[6, 19, "snowmound", "search1_tundra", 8], [20, 21, "rock", "search2_tundra", 8], [14, 17, "snowmound", "search3_tundra", 14]],
+    searches: [[6, 19, "snowmound", "search1_tundra", 8], [20, 21, "rock", "search2_tundra", 8], [14, 17, "snowmound", "search3_tundra", 14, "baileys"]],
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_jazz", crimp: "jazz", name: "Spirit of Jazz",
@@ -142,10 +144,11 @@ const SEA = makeWorld({
     walls: [{ o: "v", x: 15, y: 6, n: 9, gap: [3, 4] }],
     pocket: { x: 22, y: 4, w: 5, h: 5, door: [24, 8], note: [24, 6] },
     noteA: [4, 21], chest: [8, 6], sw: [7, 13],
-    searches: [[25, 19, "shell", "search1_sea", 8], [5, 16, "rock", "search2_sea", 8], [18, 14, "shell", "search3_sea", 14]],
+    searches: [[25, 19, "shell", "search1_sea", 8], [5, 16, "rock", "search2_sea", 8], [18, 14, "shell", "search3_sea", 14, "bin"]],
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_gregg", crimp: "gregg", name: "Old Gregg",
+    require: "baileys", requireDialog: "gregg_require",
     dialog: "gregg_pre", winDialog: "gregg_win", loseDialog: "gregg_lose", afterDialog: "gregg_after",
     winFlag: "beat_gregg", record: "rec_gregg", unlock: "forest", xp: 28,
   },
@@ -165,10 +168,11 @@ const FOREST = makeWorld({
     walls: [{ o: "h", x: 9, y: 11, n: 13, gap: [4, 5] }],
     pocket: { x: 3, y: 18, w: 5, h: 5, door: [5, 18], note: [5, 20] },
     noteA: [25, 7], chest: [22, 20], sw: [18, 7],
-    searches: [[10, 8, "bin", "search1_forest", 8], [24, 15, "bush", "search2_forest", 8], [13, 20, "bin", "search3_forest", 14]],
+    searches: [[10, 8, "bin", "search1_forest", 8], [24, 15, "bush", "search2_forest", 8], [13, 20, "bin", "search3_forest", 14, "jazzcig"]],
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_crackfox", crimp: "crackfox", name: "The Crack Fox",
+    require: "bin", requireDialog: "crackfox_require",
     dialog: "crackfox_pre", winDialog: "crackfox_win", loseDialog: "crackfox_lose", afterDialog: "crackfox_after",
     winFlag: "beat_crackfox", record: "rec_crackfox", unlock: "night", xp: 36,
   },
@@ -187,7 +191,7 @@ const NIGHT = makeWorld({
     walls: [{ o: "v", x: 15, y: 7, n: 9, gap: [3, 4] }],
     pocket: { x: 22, y: 18, w: 5, h: 5, door: [24, 18], note: [24, 20] },
     noteA: [5, 7], chest: [8, 18], sw: [10, 8],
-    searches: [[25, 9, "urn", "search1_night", 8], [6, 15, "rock", "search2_night", 8], [16, 15, "urn", "search3_night", 14]],
+    searches: [[25, 9, "urn", "search1_night", 8], [6, 15, "rock", "search2_night", 8], [16, 15, "urn", "search3_night", 14, "cream"]],
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_nana", crimp: "nana", name: "Nanageddon",
@@ -208,7 +212,7 @@ const MOON = makeWorld({
     walls: [{ o: "h", x: 8, y: 13, n: 9, gap: [4] }, { o: "h", x: 18, y: 13, n: 6, gap: [2] }],
     pocket: { x: 3, y: 9, w: 5, h: 6, door: [7, 12], note: [5, 12] },
     noteA: [24, 21], chest: [24, 7], sw: [16, 7],
-    searches: [[11, 20, "rock", "search1_moon", 8], [25, 16, "crate", "search2_moon", 8], [15, 11, "rock", "search3_moon", 14]],
+    searches: [[11, 20, "rock", "search1_moon", 8], [25, 16, "crate", "search2_moon", 8], [15, 11, "rock", "search3_moon", 14, "polo"]],
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_moon", crimp: "moon", name: "The Moon",
@@ -228,7 +232,7 @@ const TEMPLE = makeWorld({
     walls: [{ o: "h", x: 6, y: 17, n: 14, gap: [6, 7] }],
     pocket: { x: 22, y: 9, w: 5, h: 6, door: [22, 12], note: [24, 12] },
     noteA: [6, 7], chest: [7, 20], sw: [15, 7],
-    searches: [[9, 20, "urn", "search1_temple", 8], [25, 20, "crate", "search2_temple", 8], [14, 16, "urn", "search3_temple", 14]],
+    searches: [[9, 20, "urn", "search1_temple", 8], [25, 20, "crate", "search2_temple", 8], [14, 16, "urn", "search3_temple", 14, "key"]],
   },
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_tony", crimp: "tony", name: "Tony Harrison",
