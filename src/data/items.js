@@ -15,7 +15,8 @@ export const ITEM_INDEX = {
   cream: 9,
   // per-zone collectibles all share the "crimp note" icon (column 10)
   note_tundra: 10, note_sea: 10, note_forest: 10, note_night: 10, note_moon: 10, note_temple: 10,
-  // v2: currency / gear / collectible-set icons (columns 11-20, gen_items.py)
+  note_yeti: 10,
+  // v2: currency / gear / collectible-set icons (columns 11-21, gen_items.py)
   shrapnel: 11,
 };
 
@@ -39,4 +40,5 @@ export const ITEMS = {
   key: { name: "Ornate Key", desc: "Opens something it really shouldn't." },
   cream: { name: "Funk Cream", desc: "Spread it on toast. Or your soul." },
   note_tundra: NOTE, note_sea: NOTE, note_forest: NOTE, note_night: NOTE, note_moon: NOTE, note_temple: NOTE,
+  note_yeti: NOTE,
 };

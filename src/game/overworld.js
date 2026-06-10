@@ -97,6 +97,27 @@ export class Overworld {
     };
   }
 
+  // act-gated openness: worlds unlock in waves as records come home, not in
+  // a fixed chain — Act 1 (tundra/forest/yeti) opens at the intro; two records
+  // crack open Act 2's first wave; four summon the Moon; five the Temple.
+  checkActs() {
+    const r = GS.recordCount();
+    const open = (z, msg) => {
+      if (!GS.isUnlocked(z)) { GS.unlock(z); if (msg) this.toast(msg); return true; }
+      return false;
+    };
+    if (r >= 2) {
+      const a = open("sea", "");
+      const b = open("night", "");
+      if ((a || b) && !GS.flag("act2_started")) {
+        GS.setFlag("act2_started");
+        this.toast("New portals hum to life: The Sea and the Nightosphere!");
+      }
+    }
+    if (r >= 4) open("moon", "A pale light beckons: the Moon portal is open!");
+    if (r >= 5) open("temple", "Xooberon Temple unseals. The Board of Shamen await.");
+  }
+
   // re-evaluate active quests after any state change (zero polling); toast
   // journal updates and pay completed quests' rewards
   questBump() {
@@ -219,6 +240,7 @@ export class Overworld {
           if (ent.record) GS.addRecord(ent.record);
           if (ent.unlock) { GS.unlock(ent.unlock); }
           if (ent.xp && !repeat) self.grantXp(ent.xp);
+          self.checkActs();
         }
         // grade pays shrapnel (even a brave loss pays nothing but records best)
         if (perf) {

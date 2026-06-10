@@ -175,6 +175,10 @@ PALETTES = {
     "temple": (dict(floor=(152, 122, 88), floor2=(140, 112, 80), wall=(182, 152, 112), wall_hi=(214, 188, 142),
                     feat=(202, 176, 132), feat_hi=(236, 214, 168), path=(168, 138, 98),
                     water=(80, 130, 160), water_hi=(130, 175, 200), accent=(224, 190, 112), deco=(176, 146, 100)), "urn"),
+    # Yeti Woods: pine green, mulch brown, fog silver, campfire amber
+    "yeti": (dict(floor=(78, 104, 66), floor2=(68, 94, 58), wall=(104, 88, 64), wall_hi=(140, 122, 92),
+                  feat=(44, 96, 70), feat_hi=(82, 142, 104), trunk=(78, 56, 38), path=(150, 132, 100),
+                  water=(70, 120, 140), water_hi=(120, 170, 185), accent=(228, 168, 88), deco=(60, 110, 78)), "tree"),
 }
 
 

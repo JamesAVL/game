@@ -57,6 +57,12 @@ export const TRACKS = {
     { wave: "sine", gain: 0.13, env: E_PAD, seq: S("C3 - - - - - - - G3 - - - - - - - A2 - - - - - - - F3 - - - - - - -") },
     { wave: "triangle", gain: 0.06, env: E_PLUCK, seq: S("- - C5 - - - E5 - - - G5 - - - E5 - - - A4 - - - C5 - - - G4 - - - - -") },
   ]),
+  // yeti woods: mossy, hushed, faintly bouncy — distant stomps on the kick
+  amb_yeti: track(84, [
+    { wave: "triangle", gain: 0.11, env: E_PAD, seq: S("E2 - - - - - - - B2 - - - - - - - G2 - - - - - - - D3 - - - - - - -") },
+    { wave: "square", gain: 0.06, env: E_PLUCK, seq: S("E4 - B4 - - - E4 - G4 - D5 - - - G4 - A4 - E5 - - - A4 - B4 - F#5 - - - B4 -") },
+    { wave: "noise", gain: 0.07, seq: D("k . . . . . . . . . . . . . . . k . . . . . . . k . . . . . . .") },
+  ]),
   amb_temple: track(100, [
     { wave: "triangle", gain: 0.12, env: E_BASS, seq: S("D3 - - - A2 - - - B2 - - - F#3 - - - G2 - - - D3 - - - A2 - E3 - F#2 - - -") },
     { wave: "square", gain: 0.07, env: E_LEAD, seq: S("D4 - A4 - F#4 - A4 - B4 - D5 - F#4 - - - G4 - B4 - D5 - - - A4 - F#4 - D4 - - -") },
@@ -100,5 +106,13 @@ export const TRACKS = {
     { wave: "sawtooth", gain: 0.12, env: E_BASS, seq: S("D2 - D2 - A2 - D2 - F2 - C3 - A2 - D2 - E2 - E2 - B2 - E2 - G2 - D3 - B2 - E2 -") },
     { wave: "triangle", gain: 0.08, env: E_PLUCK, seq: S("D4 A4 F4 A4 D4 A4 F4 A4 F4 C5 A4 C5 F4 C5 A4 C5 E4 B4 G4 B4 E4 B4 G4 B4 G4 D5 B4 D5 G4 D5 B4 D5") },
     { wave: "noise", gain: 0.12, seq: D("k . k h s . h k k . k h s . h . k h k h s . h k k . k h s h h h") },
+  ]),
+
+  // yeti crimp: a stomp-chant — saw bass on the ones, horn-ish unison lead
+  crimp_yeti: track(100, [
+    { wave: "triangle", gain: 0.12, env: E_LEAD, seq: S("E4 - - - G4 - E4 - B4 - - - A4 - G4 - E4 - - - G4 - A4 - B4 - A4 - G4 - E4 -") },
+    { wave: "sawtooth", gain: 0.13, env: E_BASS, seq: S("E2 - - - - - - - E2 - - - B2 - - - C3 - - - - - - - B2 - - - A2 - - -") },
+    { wave: "triangle", gain: 0.07, env: E_PLUCK, seq: S("E3 - B3 - E3 - B3 - E3 - B3 - E3 - B3 - C3 - G3 - C3 - G3 - B2 - F#3 - B2 - F#3 -") },
+    { wave: "noise", gain: 0.12, seq: D("k . . . s . . . k . . . s . h . k . . . s . . . k . k . s . h h") },
   ]),
 };

@@ -16,4 +16,8 @@ export const COLLECTIONS = {
     name: "Shiny Things", icon: 20, total: 4,
     desc: "The Crack Fox's idea of a pension.",
   },
+  tufts: {
+    name: "Yeti Tufts", icon: 21, total: 4,
+    desc: "Shed by the Grand Yeti. Smells of moss and legend.",
+  },
 };

@@ -283,6 +283,46 @@ def tony():
     save_with_outline(cv, "boss_tony")
 
 
+def yeti():
+    cv = Canvas(72, 88, cs=CS)
+    fur = (228, 232, 238); furhi = (250, 252, 255); mid = (196, 202, 212); dk = (158, 166, 180)
+    skin = (120, 130, 150)
+    cx = 36
+    # mountainous shaggy body
+    cv.ellipse(cx, 52, 24, 28, fur)
+    cv.ellipse(cx - 9, 40, 12, 12, furhi)
+    cv.ellipse(cx + 12, 62, 10, 10, mid)
+    # shag strands all over
+    for sy in range(30, 80, 7):
+        for sx in range(cx - 20, cx + 21, 6):
+            off = (sx * 13 + sy * 7) % 5
+            cv.vline(sx + off % 3, sy + off, 4, mid if (sx + sy) % 2 else dk)
+    # mighty arms reaching down
+    cv.ellipse(cx - 24, 52, 7, 16, fur); cv.ellipse(cx + 24, 52, 7, 16, fur)
+    cv.ellipse(cx - 25, 44, 4, 6, furhi); cv.ellipse(cx + 23, 44, 4, 6, furhi)
+    cv.ellipse(cx - 24, 66, 5, 4, skin); cv.ellipse(cx + 24, 66, 5, 4, skin)
+    # face plate
+    cv.ellipse(cx, 26, 13, 11, skin)
+    cv.ellipse(cx - 4, 22, 6, 4, shade(skin, 0.18))
+    # deep-set glowing amber eyes
+    cv.ellipse(cx - 6, 24, 3, 3, (236, 168, 84)); cv.ellipse(cx + 6, 24, 3, 3, (236, 168, 84))
+    cv.set(cx - 6, 23, (255, 220, 150)); cv.set(cx + 6, 23, (255, 220, 150))
+    cv.line(cx - 9, 20, cx - 3, 21, dk); cv.line(cx + 9, 20, cx + 3, 21, dk)  # brow
+    # tusky underbite grin
+    cv.line(cx - 6, 32, cx + 6, 32, (70, 76, 92))
+    cv.rect(cx - 6, 29, 2, 3, furhi); cv.rect(cx + 4, 29, 2, 3, furhi)        # tusks
+    # fur crown over the brow
+    for hx in range(cx - 12, cx + 13, 3):
+        cv.vline(hx, 13 + (hx % 3), 5, fur)
+        cv.set(hx, 12 + (hx % 3), furhi)
+    # ---- fine detail: chest snow dusting, claw nubs
+    for (sx2, sy2) in [(cx - 6, 46), (cx + 4, 50), (cx - 2, 58), (cx + 10, 44)]:
+        cv.set(sx2, sy2, furhi)
+    for lx in (cx - 26, cx - 22, cx + 22, cx + 26):
+        cv.set(lx, 69, (70, 76, 92))
+    save_with_outline(cv, "boss_yeti")
+
+
 def main():
     global OUT
     here = os.path.dirname(__file__)
@@ -293,6 +333,7 @@ def main():
     nana()
     moon()
     tony()
+    yeti()
 
 
 if __name__ == "__main__":

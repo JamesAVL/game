@@ -25,10 +25,11 @@ export const DIALOG = {
       N("Exactly. Without them the whole place goes flat. Lifeless. No funk."),
       H("So what do we do, little man?"),
       N("You two travel to each world, out-crimp whoever's guarding the record, and bring it home."),
-      N("I've opened the first portal for you. The Frozen Tundra. Off you pop."),
+      N("I've opened three portals: the Frozen Tundra, the Forest of Bins, and Yeti Woods."),
+      N("Any order you like. The woods is just woods, mind. Woods with a vibe."),
       V("A crimping quest! This is going to be brilliant."),
     ],
-    onDone: () => { api.unlock("tundra"); api.setFlag("intro_done"); },
+    onDone: () => { api.unlock("tundra"); api.unlock("forest"); api.unlock("yeti"); api.setFlag("intro_done"); },
   }),
 
   // ---- hub NPCs ----------------------------------------------------------
@@ -36,7 +37,7 @@ export const DIALOG = {
     let practice = false;
     const done = api.recordCount();
     const pages = [
-      N("Alright. " + (done === 0 ? "First record's out in the Tundra." : "You've got " + done + " of the 6 records.")),
+      N("Alright. " + (done === 0 ? "Records are out in the Tundra and the Bins. Yeti Woods is... recreational." : "You've got " + done + " of the 6 records.")),
       N("Step into a glowing portal to travel. Sealed ones open as you win records."),
     ];
     if (done >= 6) pages.push(N("You did it. The Zooniverse is funky again. Nice one, you absolute legends."));
@@ -164,6 +165,43 @@ export const DIALOG = {
     H("Xooberon Temple. End of the line. The Board of Shaman await."),
     V("One more crimp-off, Howard. Then we're legends. Let's go."),
   ],
+
+  // ---- yeti woods ----------------------------------------------------------
+  yeti_enter: (api) => [
+    V("Pine trees! Actual countryside. My boots are NOT rated for moss."),
+    H("Hear that, Vince? Nothing. Proper wilderness silence. ...Why is the silence breathing?"),
+  ],
+  kodiak: (api) => [
+    { speaker: "Kodiak", text: "Name's Kodiak Jack. Trapper. Tracker. Soup enthusiast." },
+    { speaker: "Kodiak", text: "Them woods is bouncy this time o' year. Don't make eye contact with the moss." },
+    V("Bouncy? Woods can't be bouncy."),
+    { speaker: "Kodiak", text: "Tell that to the big fella up the hill. He INVENTED bouncy. Mind how you crimp." },
+  ],
+  search1_yeti: (api) => [H("Berries. Dozens of berry stems, all picked clean from two metres up. ...Tall pickers round here.")],
+  search2_yeti: (api) => [V("Someone's scratched a little chart into this rock. Tally marks and the word BOUNCE.")],
+  search3_yeti: (api) => [
+    V("There's a whole nest of white fluff in here. It's... warm."),
+    H("Don't nest in the fluff, Vince. We've talked about this."),
+  ],
+  collect_yeti: (api) => [
+    { speaker: "Yeti", text: "HhhRRMMM. (A claw points at your pockets, then the woods.)" },
+    H("I think he wants the three notes first, Vince. Even legends respect the format."),
+  ],
+  chest_yeti: (api) => [V("A chest in the woods! Bit suspicious. Bit brilliant.")],
+  yeti_pre: (api) => [
+    { speaker: "Yeti", text: "HhhrrRRMMM. RRMM-bouncy. (The ground shakes in 4/4.)" },
+    H("It's challenging us, Vince. The forest itself is the backing track."),
+    V("Then let's give the moss something to remember."),
+  ],
+  yeti_win: (api) => ({
+    pages: [
+      { speaker: "Yeti", text: "...rrmm. Bouncy. Good time, such a good time. (It bows, shedding gently.)" },
+      V("We out-bounced a myth, Howard. That's going in the memoirs."),
+    ],
+    onDone: () => api.give("cream"),
+  }),
+  yeti_lose: (api) => [{ speaker: "Yeti", text: "RRMMM. (It means: more bounce. Come back when you have it.)" }],
+  yeti_after: (api) => [{ speaker: "Yeti", text: "Hrrm hrrm hrrm. (It is humming your set. You are the forest's favourite band.)" }],
 
   // ---- tundra ------------------------------------------------------------
   tundra_explorer: (api) => [

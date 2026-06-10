@@ -52,6 +52,15 @@ export const CRIMPS = {
     lyrics: ["Come with me", "on a journey", "through the crimp", "feel the funk", "and let it flow", "nice one"],
   }),
 
+  yeti: crimp({
+    name: "The Grand Yeti", face: "boss_yeti", trackKey: "crimp_yeti", bpm: 100,
+    bg0: "#0e1c14", bg1: "#1e3a26", bossScale: 2,
+    intro: "HhhrrRRMMM. (It means: crimp-off.)",
+    chart: { seed: 404, length: 180, base: 4, runChance: 0.06, doubleChance: 0.14 },
+    lyrics: ["we are the forest", "we are the fuzz", "bouncy bouncy", "moss in our minds", "sap in our veins",
+      "the trees taught us this one", "bouncy bouncy", "fuzzy forever", "up the mountain", "good time, such a good time"],
+  }),
+
   jazz: crimp({
     name: "Spirit of Jazz", face: "boss_jazz", trackKey: "crimp_jazz", bpm: 128,
     bg0: "#2a1010", bg1: "#5a2a10", bossScale: 2,

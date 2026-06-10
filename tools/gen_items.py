@@ -8,7 +8,7 @@ T = 32
 CLR = (0, 0, 0, 0)
 
 
-N_ICONS = 21  # 0-10 classic items, 11 shrapnel, 12-17 gear, 18-20 collectibles
+N_ICONS = 22  # 0-10 classic items, 11 shrapnel, 12-17 gear, 18-21 collectibles
 
 
 def main():
@@ -194,6 +194,14 @@ def main():
                   (x + 11, 19), (x + 4, 16), (x + 11, 13)], (235, 240, 250))
     cv.fill_poly([(x + 16, 9), (x + 19, 14), (x + 16, 19), (x + 13, 14)], (180, 220, 255))
     cv.set(x + 16, 13, (255, 255, 255))
+
+    # 21 Yeti Tuft (a puff of legendary shag)
+    x = at(21)
+    cv.ellipse(x + 16, 17, 10, 9, (236, 240, 246))
+    cv.ellipse(x + 11, 13, 5, 4, (255, 255, 255))
+    cv.ellipse(x + 21, 21, 4, 3, (200, 208, 220))
+    for (tx, ty) in [(x + 8, 23), (x + 14, 26), (x + 21, 25), (x + 25, 14), (x + 16, 7)]:
+        cv.line(tx, ty, tx + 2, ty + 3, (216, 222, 232))
 
     cv.outline((26, 20, 34))   # crisp dark rim so icons read as world pickups
     cv.write(out)

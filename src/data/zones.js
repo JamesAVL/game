@@ -70,6 +70,7 @@ const HUB = {
     { type: "portal", x: 20, y: 18, to: "night", color: "#c77aff", label: "Nightosphere" },
     { type: "portal", x: 25, y: 18, to: "moon", color: "#fff2a0", label: "The Moon" },
     { type: "portal", x: 29, y: 8, to: "temple", color: "#ff7ad8", label: "Temple" },
+    { type: "portal", x: 29, y: 14, to: "yeti", color: "#9fffb0", label: "Yeti Woods" },
   ],
 };
 
@@ -167,7 +168,7 @@ const TUNDRA = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_jazz", crimp: "jazz", name: "Spirit of Jazz",
     dialog: "jazz_pre", winDialog: "jazz_win", loseDialog: "jazz_lose", afterDialog: "jazz_after",
-    winFlag: "beat_jazz", record: "rec_jazz", unlock: "sea", xp: 20,
+    winFlag: "beat_jazz", record: "rec_jazz", xp: 20,
   },
   extra: [
     { type: "collectible", set: "radiators", idx: 0, x: 8, y: 21 },
@@ -190,7 +191,7 @@ const SEA = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_gregg", crimp: "gregg", name: "Old Gregg",
     dialog: "gregg_pre", winDialog: "gregg_win", loseDialog: "gregg_lose", afterDialog: "gregg_after",
-    winFlag: "beat_gregg", record: "rec_gregg", unlock: "forest", xp: 28,
+    winFlag: "beat_gregg", record: "rec_gregg", xp: 28,
   },
   extra: [
     { type: "collectible", set: "jazzrecs", idx: 1, x: 10, y: 19 },
@@ -213,7 +214,7 @@ const FOREST = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_crackfox", crimp: "crackfox", name: "The Crack Fox",
     dialog: "crackfox_pre", winDialog: "crackfox_win", loseDialog: "crackfox_lose", afterDialog: "crackfox_after",
-    winFlag: "beat_crackfox", record: "rec_crackfox", unlock: "night", xp: 36,
+    winFlag: "beat_crackfox", record: "rec_crackfox", xp: 36,
   },
   extra: [
     { type: "collectible", set: "radiators", idx: 1, x: 20, y: 15 },
@@ -236,7 +237,7 @@ const NIGHT = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_nana", crimp: "nana", name: "Nanageddon",
     dialog: "nana_pre", winDialog: "nana_win", loseDialog: "nana_lose", afterDialog: "nana_after",
-    winFlag: "beat_nana", record: "rec_nana", unlock: "moon", xp: 44,
+    winFlag: "beat_nana", record: "rec_nana", xp: 44,
   },
   extra: [
     { type: "collectible", set: "radiators", idx: 2, x: 18, y: 20 },
@@ -259,7 +260,7 @@ const MOON = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_moon", crimp: "moon", name: "The Moon",
     dialog: "moon_pre", winDialog: "moon_win", loseDialog: "moon_lose", afterDialog: "moon_after",
-    winFlag: "beat_moon", record: "rec_moon", unlock: "temple", xp: 52,
+    winFlag: "beat_moon", record: "rec_moon", xp: 52,
   },
   extra: [
     { type: "collectible", set: "jazzrecs", idx: 2, x: 8, y: 17 },
@@ -289,7 +290,36 @@ const TEMPLE = makeWorld({
   ],
 });
 
+// Yeti Woods — Act 1's optional breather: no record, pure flavour and loot.
+// "Call of the Yeti" energy: pines, a hot spring, something fuzzy watching.
+const YETI = makeWorld({
+  id: "yeti", name: "Yeti Woods", tileset: "tiles_yeti", music: "amb_yeti",
+  weather: "leaves", onEnter: "yeti_enter", color: "#9fffb0", note: "note_yeti",
+  toast: "Roots untangle a path to the north-east!",
+  layout: {
+    rocks: [[7, 8], [23, 9], [11, 16], [21, 17], [15, 12], [6, 21]],
+    deco: [[9, 12], [19, 10], [12, 20], [24, 14], [16, 18]],
+    walls: [{ o: "h", x: 7, y: 14, n: 12, gap: [4, 5] }],
+    pocket: { x: 22, y: 4, w: 5, h: 5, door: [22, 6], note: [24, 6] },
+    noteA: [5, 19], chest: [9, 6], sw: [12, 9],
+    searches: [[8, 18, "bush", "search1_yeti", 8], [22, 21, "rock", "search2_yeti", 8], [17, 8, "bush", "search3_yeti", 14]],
+  },
+  boss: {
+    type: "boss", x: 15, y: 3, sprite: "boss_yeti", crimp: "yeti", name: "The Grand Yeti",
+    dialog: "yeti_pre", winDialog: "yeti_win", loseDialog: "yeti_lose", afterDialog: "yeti_after",
+    winFlag: "beat_yeti", xp: 30,
+  },
+  extra: [
+    { type: "npc", x: 6, y: 10, sprite: "fossil", dialog: "kodiak" },
+    { type: "collectible", set: "tufts", idx: 0, x: 12, y: 18 },
+    { type: "collectible", set: "tufts", idx: 1, x: 25, y: 11 },
+    { type: "collectible", set: "tufts", idx: 2, x: 5, y: 9 },
+    { type: "collectible", set: "tufts", idx: 3, x: 18, y: 21 },
+  ],
+});
+
 export const ZONES = {
   hub: HUB, nabootique: NABOOTIQUE,
   tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE,
+  yeti: YETI,
 };

@@ -281,6 +281,49 @@ def tony():
     save_boss("boss_tony", parts)
 
 
+def yeti():
+    fur = (228, 232, 238); furhi = (250, 252, 255); mid = (196, 202, 212); dk = (158, 166, 180)
+    skin = (120, 130, 150); amber = (236, 168, 84)
+
+    body = Vox()                                    # the mountain of shag
+    body.ellipsoid(0, 12, 0, 9, 11, 7, fur)
+    body.ellipsoid(-4, 16, 2, 4, 4, 3, furhi)
+    body.ellipsoid(5, 8, -2, 4, 4, 3, mid)
+    for y in range(3, 22, 3):                       # shag rows
+        for x in range(-8, 9, 3):
+            if (x + y) % 2:
+                body.set(x, y, 7 if abs(x) < 6 else 5, dk)
+    legL = Vox(); legL.box(-6, 0, -2, 4, 4, 5, mid); legL.set(-5, 0, 3, (70, 76, 92))
+    legR = Vox(); legR.box(2, 0, -2, 4, 4, 5, mid); legR.set(3, 0, 3, (70, 76, 92))
+    armL = Vox()
+    armL.ellipsoid(-11, 11, 0, 3, 7, 3, fur)
+    armL.ellipsoid(-11, 4, 1, 3, 2, 3, skin)
+    armR = Vox()
+    armR.ellipsoid(11, 11, 0, 3, 7, 3, fur)
+    armR.ellipsoid(11, 4, 1, 3, 2, 3, skin)
+
+    head = Vox()
+    head.ellipsoid(0, 27, 0, 6, 5, 5, fur)
+    # the face plate sits proud on the front
+    for x in range(-4, 5):
+        for y in range(24, 31):
+            if x * x + (y - 27) * (y - 27) <= 18:
+                head.set(x, y, 5, skin)
+    _eyes(head, 27, -3, 1, 5, amber, (255, 220, 150))
+    for x in range(-3, 4):                          # brow shadow
+        head.set(x, 29, 5, dk)
+    head.set(-3, 24, 5, furhi); head.set(3, 24, 5, furhi)   # tusks
+    for x in range(-5, 6, 2):                       # fur crown
+        head.set(x, 31 + (x % 2), 3, furhi if x % 4 else fur)
+    parts = [("body", body, (0.0, 0.0, 0.0)),
+             ("legL", legL, (-4.0, 4.0, 0.5)),
+             ("legR", legR, (4.0, 4.0, 0.5)),
+             ("armL", armL, (-11.0, 17.0, 0.0)),
+             ("armR", armR, (11.0, 17.0, 0.0)),
+             ("head", head, (0.0, 22.0, 0.5))]
+    save_boss("boss_yeti", parts)
+
+
 def main():
     jazz()
     gregg()
@@ -288,6 +331,7 @@ def main():
     nana()
     moon()
     tony()
+    yeti()
 
 
 if __name__ == "__main__":

@@ -144,6 +144,7 @@ export const MANIFEST = {
   boss_nana: "assets/sprites/boss_nana.png",
   boss_moon: "assets/sprites/boss_moon.png",
   boss_tony: "assets/sprites/boss_tony.png",
+  boss_yeti: "assets/sprites/boss_yeti.png",
   // companion normal maps for per-pixel boss lighting in the crimp
   boss_jazz_n: "assets/sprites/boss_jazz_n.png",
   boss_gregg_n: "assets/sprites/boss_gregg_n.png",
@@ -151,6 +152,7 @@ export const MANIFEST = {
   boss_nana_n: "assets/sprites/boss_nana_n.png",
   boss_moon_n: "assets/sprites/boss_moon_n.png",
   boss_tony_n: "assets/sprites/boss_tony_n.png",
+  boss_yeti_n: "assets/sprites/boss_yeti_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",
@@ -158,6 +160,7 @@ export const MANIFEST = {
   tiles_night: "assets/tiles/night.png",
   tiles_moon: "assets/tiles/moon.png",
   tiles_temple: "assets/tiles/temple.png",
+  tiles_yeti: "assets/tiles/yeti.png",
   items: "assets/items/items.png",
   props: "assets/sprites/props.png",
   bg_stars: "assets/bg/stars.png",
@@ -175,6 +178,7 @@ export const MANIFEST = {
   model_boss_nana: "assets/models/boss_nana.glb",
   model_boss_moon: "assets/models/boss_moon.glb",
   model_boss_tony: "assets/models/boss_tony.glb",
+  model_boss_yeti: "assets/models/boss_yeti.glb",
   model_tilekit_hub: "assets/models/tilekit_hub.glb",
   model_tilekit_tundra: "assets/models/tilekit_tundra.glb",
   model_tilekit_sea: "assets/models/tilekit_sea.glb",
@@ -182,6 +186,7 @@ export const MANIFEST = {
   model_tilekit_night: "assets/models/tilekit_night.glb",
   model_tilekit_moon: "assets/models/tilekit_moon.glb",
   model_tilekit_temple: "assets/models/tilekit_temple.glb",
+  model_tilekit_yeti: "assets/models/tilekit_yeti.glb",
 };
 
 const images = {};
