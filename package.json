@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "serve:legacy": "node tools/serve.js",
-    "assets": "python3 tools/gen_all.py",
+    "assets": "python tools/gen_all.py",
     "validate": "node tools/validate_zones.mjs",
     "prebuild": "npm run assets && npm run validate",
     "typecheck": "tsc --noEmit",
@@ -20,5 +20,8 @@
     "vite": "^8.0.0",
     "vitest": "^4.1.8"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "three": "0.184.0"
+  }
 }

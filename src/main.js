@@ -10,6 +10,7 @@ import { CRIMPS } from "./data/crimps.js";
 import { Title } from "./game/title.js";
 import { GS } from "./game/state.js";
 import { initTouch } from "./engine/touch.js";
+import { Demo3D } from "./game/demo3d.js";
 
 // restore the saved visual-FX preset (off | soft | crt)
 Renderer.setPreset(Save.optGet("fx", "soft"));
@@ -28,6 +29,7 @@ window.__BOOSH = {
   Audio: { debug: audioDebug, getReactive, duckMusic, setMusicBrightness },
   midiStatus,
   startCrimp: (key = "jazz") => { const c = new Crimp(CRIMPS[key]); Scenes.push(c); c.begin(); return c; },
+  demo3d: () => { const d = new Demo3D(); Scenes.push(d); return d; },
 };
 
 // optional WebMIDI — play the crimp on a real keyboard/pad if one is present

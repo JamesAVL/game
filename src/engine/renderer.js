@@ -56,21 +56,36 @@ void main() {
   gl_Position = vec4(p, 0.0, 1.0);
 }`;
 
+// The presented frame is a composite: an optional 3D world layer (captured
+// from the backbuffer after three.js renders — see captureWorld) under the 2D
+// overlay canvas (straight alpha). When no world was captured this frame,
+// comp() returns exactly the overlay's RGB — bit-identical to the pre-3D path.
+const COMPOSITE = `
+uniform sampler2D uWorld;
+uniform float uHasWorld;
+vec3 comp(sampler2D ov, vec2 uv) {
+  vec4 o = texture(ov, uv);
+  vec3 w = texture(uWorld, uv).rgb;
+  return mix(o.rgb, w * (1.0 - o.a) + o.rgb * o.a, uHasWorld);
+}`;
+
 const FRAG_COPY = `#version 300 es
 precision highp float;
 uniform sampler2D uTex;
+${COMPOSITE}
 in vec2 vUv;
 out vec4 frag;
-void main() { frag = texture(uTex, vUv); }`;
+void main() { frag = vec4(comp(uTex, vUv), 1.0); }`;
 
 const FRAG_BRIGHT = `#version 300 es
 precision highp float;
 uniform sampler2D uTex;
 uniform float uThreshold, uKnee;
+${COMPOSITE}
 in vec2 vUv;
 out vec4 frag;
 void main() {
-  vec3 c = texture(uTex, vUv).rgb;
+  vec3 c = comp(uTex, vUv);
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
   float k = smoothstep(uThreshold, uThreshold + uKnee, l);
   frag = vec4(c * k, 1.0);
@@ -100,6 +115,7 @@ uniform sampler2D uScene;
 uniform sampler2D uBloom;
 uniform float uBloomAmt, uSat, uContrast, uVignette, uScan, uAberr, uCurve;
 uniform vec2 uRes;
+${COMPOSITE}
 in vec2 vUv;
 out vec4 frag;
 
@@ -121,11 +137,11 @@ void main() {
   vec3 col;
   if (uAberr > 0.0) {
     vec2 dir = (uv - 0.5);
-    col.r = texture(uScene, uv + dir * uAberr).r;
-    col.g = texture(uScene, uv).g;
-    col.b = texture(uScene, uv - dir * uAberr).b;
+    col.r = comp(uScene, uv + dir * uAberr).r;
+    col.g = comp(uScene, uv).g;
+    col.b = comp(uScene, uv - dir * uAberr).b;
   } else {
-    col = texture(uScene, uv).rgb;
+    col = comp(uScene, uv);
   }
 
   // grade the SCENE first (contrast around 0.5, then saturation) so bloom isn't
@@ -220,7 +236,7 @@ export const Renderer = {
       gl = displayCanvas.getContext("webgl2", {
         antialias: false,
         alpha: false,
-        depth: false,
+        depth: true, // three.js (scene3d.js) shares this context and needs Z
         stencil: false,
         premultipliedAlpha: false,
         preserveDrawingBuffer: false,
@@ -269,20 +285,40 @@ export const Renderer = {
     const gl = this.gl;
     this._vao = gl.createVertexArray();
     this._sceneTex = this._makeTex(gl.NEAREST);
+    // the captured 3D world layer (see captureWorld); allocated once so the
+    // per-frame copy is a cheap copyTexSubImage2D. RGB8, not RGBA8: the
+    // backbuffer is alpha:false (RGB), and copyTexSubImage2D may not invent
+    // components the source framebuffer lacks.
+    this._worldTex = this._makeTex(gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, this._W, this._H, 0,
+      gl.RGB, gl.UNSIGNED_BYTE, null);
+    this._worldCaptured = false;
     this._fboA = this._makeFBO(this._bw, this._bh);
     this._fboB = this._makeFBO(this._bw, this._bh);
     this._progs = {
-      copy: makeProgram(gl, FRAG_COPY, ["uTex"]),
-      bright: makeProgram(gl, FRAG_BRIGHT, ["uTex", "uThreshold", "uKnee"]),
+      copy: makeProgram(gl, FRAG_COPY, ["uTex", "uWorld", "uHasWorld"]),
+      bright: makeProgram(gl, FRAG_BRIGHT, ["uTex", "uThreshold", "uKnee", "uWorld", "uHasWorld"]),
       blur: makeProgram(gl, FRAG_BLUR, ["uTex", "uDir"]),
       final: makeProgram(gl, FRAG_FINAL, [
         "uScene", "uBloom", "uBloomAmt", "uSat", "uContrast",
-        "uVignette", "uScan", "uAberr", "uCurve", "uRes",
+        "uVignette", "uScan", "uAberr", "uCurve", "uRes", "uWorld", "uHasWorld",
       ]),
     };
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     gl.clearColor(0, 0, 0, 1);
+  },
+
+  // Grab the backbuffer (just rendered by three.js) into _worldTex so the
+  // present chain can composite the 2D overlay over it. GPU-to-GPU; no stalls.
+  captureWorld() {
+    if (this.mode !== "gl") return;
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this._worldTex);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, this._W, this._H);
+    this._worldCaptured = true;
   },
 
   _makeTex(filter) {
@@ -337,11 +373,28 @@ export const Renderer = {
     if (this.mode !== "gl") return; // context lost; skip frame
 
     const gl = this.gl;
+    const hasWorld = this._worldCaptured ? 1 : 0;
+    this._worldCaptured = false;
+    // three.js may have rendered this frame (scene3d.js) and left state
+    // behind — reset everything the post chain assumes, cheaply, every frame.
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.colorMask(true, true, true, true);
     // upload the finished 2D frame (flip Y for GL convention)
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this._sceneTex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this._scene);
+    // leave FLIP_Y off for three.js: texImage3D uploads (its internal LUTs)
+    // are spec-forbidden while FLIP_Y is set
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.bindVertexArray(this._vao);
+    // world layer rides on unit 2 through every composite-aware pass
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this._worldTex);
 
     const fx = PRESETS[this.preset];
     if (!fx) {
@@ -352,6 +405,8 @@ export const Renderer = {
       gl.bindTexture(gl.TEXTURE_2D, this._sceneTex);
       gl.useProgram(this._progs.copy.prog);
       gl.uniform1i(this._progs.copy.u.uTex, 0);
+      gl.uniform1i(this._progs.copy.u.uWorld, 2);
+      gl.uniform1f(this._progs.copy.u.uHasWorld, hasWorld);
       this._draw(this._progs.copy);
       gl.bindVertexArray(null);
       return;
@@ -364,6 +419,8 @@ export const Renderer = {
     gl.bindTexture(gl.TEXTURE_2D, this._sceneTex);
     gl.useProgram(this._progs.bright.prog);
     gl.uniform1i(this._progs.bright.u.uTex, 0);
+    gl.uniform1i(this._progs.bright.u.uWorld, 2);
+    gl.uniform1f(this._progs.bright.u.uHasWorld, hasWorld);
     gl.uniform1f(this._progs.bright.u.uThreshold, fx.bloomThreshold);
     gl.uniform1f(this._progs.bright.u.uKnee, fx.bloomKnee);
     this._draw(this._progs.bright);
@@ -402,6 +459,8 @@ export const Renderer = {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, bloomTex);
     gl.uniform1i(f.u.uBloom, 1);
+    gl.uniform1i(f.u.uWorld, 2);
+    gl.uniform1f(f.u.uHasWorld, hasWorld);
     gl.uniform1f(f.u.uBloomAmt, fx.bloomAmount * (1 + beat * (fx.beatBloom || 0)));
     gl.uniform1f(f.u.uSat, fx.saturation);
     gl.uniform1f(f.u.uContrast, fx.contrast);

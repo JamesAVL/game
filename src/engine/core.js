@@ -4,6 +4,7 @@
 import { Renderer } from "./renderer.js";
 import { Particles, Juice } from "./particles.js";
 import { getReactive } from "./audio.js";
+import { loadModel } from "./gltf.js";
 
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
@@ -161,6 +162,12 @@ export const MANIFEST = {
   props: "assets/sprites/props.png",
   bg_stars: "assets/bg/stars.png",
   bg_title: "assets/bg/title.png",
+  // voxel GLB models (tools/gen_vox_*.py) — parsed by engine/gltf.js
+  model_vince: "assets/models/vince.glb",
+  model_howard: "assets/models/howard.glb",
+  model_naboo: "assets/models/naboo.glb",
+  model_bollo: "assets/models/bollo.glb",
+  model_fossil: "assets/models/fossil.glb",
 };
 
 const images = {};
@@ -169,10 +176,16 @@ export function img(key) { return images[key]; }
 export function loadAll(onProgress) {
   const keys = Object.keys(MANIFEST);
   let loaded = 0;
+  const tick = (res) => () => { loaded++; onProgress && onProgress(loaded, keys.length); res(); };
   return Promise.all(keys.map((k) => new Promise((res) => {
+    const ok = tick(res);
+    if (MANIFEST[k].endsWith(".glb")) {
+      loadModel(k, MANIFEST[k]).then(ok, (e) => { console.warn("missing model", k, e); ok(); });
+      return;
+    }
     const im = new Image();
-    im.onload = () => { images[k] = im; loaded++; onProgress && onProgress(loaded, keys.length); res(); };
-    im.onerror = () => { console.warn("missing asset", k, MANIFEST[k]); loaded++; res(); };
+    im.onload = () => { images[k] = im; ok(); };
+    im.onerror = () => { console.warn("missing asset", k, MANIFEST[k]); ok(); };
     im.src = MANIFEST[k];
   })));
 }

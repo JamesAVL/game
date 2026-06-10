@@ -4,3 +4,4 @@ dist/
 assets/ui/_*.png
 __pycache__/
 *.pyc
+tools/_*

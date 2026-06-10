@@ -33,7 +33,9 @@ function booshAssets() {
         stat(file)
           .then((s) => {
             if (!s.isFile()) return next();
-            res.setHeader("Content-Type", "image/png");
+            const types = { png: "image/png", glb: "model/gltf-binary", json: "application/json" };
+            const ext = file.split(".").pop().toLowerCase();
+            res.setHeader("Content-Type", types[ext] || "application/octet-stream");
             createReadStream(file).pipe(res);
           })
           .catch(() => next());
@@ -73,6 +75,12 @@ export default defineConfig({
     // keep pixel-art PNGs from being inlined as data URIs
     assetsInlineLimit: 0,
     target: "es2022",
+    // three.js in its own chunk: the game code iterates fast, three never does
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => (id.includes("node_modules/three") ? "three" : undefined),
+      },
+    },
   },
   plugins: [booshAssets()],
 });
