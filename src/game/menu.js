@@ -9,6 +9,7 @@ import { ITEMS } from "../data/items.js";
 import { Quests } from "./quests.js";
 import { crimpPerks } from "./perks.js";
 import { GEAR, GEAR_SLOTS, SLOT_LABEL } from "../data/gear.js";
+import { MAP_NODES } from "../data/map.js";
 
 export const FX_LABELS = { off: "Off", soft: "Soft", crt: "CRT" };
 export function cycleFx() {
@@ -21,9 +22,10 @@ export class PauseMenu {
   constructor(overworld) {
     this.ow = overworld;
     this.sel = 0;
-    this.items = ["Resume", "Journal", "Party", "Items", "Wardrobe", "Difficulty", "Visual FX", "Save", "Quit to title"];
+    this.items = ["Resume", "Journal", "Map", "Party", "Items", "Wardrobe", "Difficulty", "Visual FX", "Save", "Quit to title"];
     this.view = "menu";
     this.wSlot = 0;            // wardrobe slot cursor
+    this.mSel = 0;             // map node cursor
     this.block = 0.12;
   }
 
@@ -39,6 +41,7 @@ export class PauseMenu {
   update(dt) {
     this.block = Math.max(0, this.block - dt);
     if (this.view === "wardrobe") { this.updateWardrobe(); return; }
+    if (this.view === "map") { this.updateMap(); return; }
     if (this.view !== "menu") {
       if (Input.pressed("cancel") || Input.pressed("confirm") || Input.pressed("pause")) { Sfx.cancel(); this.view = "menu"; }
       return;
@@ -61,6 +64,7 @@ export class PauseMenu {
       Sfx.confirm();
       if (choice === "Resume") Scenes.pop();
       else if (choice === "Journal") this.view = "journal";
+      else if (choice === "Map") { this.view = "map"; this.mSel = 0; }
       else if (choice === "Party") this.view = "party";
       else if (choice === "Items") this.view = "items";
       else if (choice === "Wardrobe") this.view = "wardrobe";
@@ -78,7 +82,60 @@ export class PauseMenu {
     else if (this.view === "party") this.renderParty(ctx);
     else if (this.view === "journal") this.renderJournal(ctx);
     else if (this.view === "wardrobe") this.renderWardrobe(ctx);
+    else if (this.view === "map") this.renderMap(ctx);
     else this.renderItems(ctx);
+  }
+
+  // ---- Map: hub-spoke chart of the worlds; carpet thread = fast travel ----
+  _mapList() {
+    return Object.keys(MAP_NODES).filter((z) => GS.isUnlocked(z));
+  }
+
+  updateMap() {
+    if (Input.pressed("cancel") || Input.pressed("pause")) { Sfx.cancel(); this.view = "menu"; return; }
+    const list = this._mapList();
+    if (Input.pressed("left") || Input.pressed("up")) { this.mSel = (this.mSel + list.length - 1) % list.length; Sfx.move(); }
+    if (Input.pressed("right") || Input.pressed("down")) { this.mSel = (this.mSel + 1) % list.length; Sfx.move(); }
+    if (Input.pressed("confirm") && this.block <= 0) {
+      const z = list[this.mSel];
+      if (!GS.hasGear("charm_carpet")) { Sfx.cancel(); return; }
+      if (z === GS.data.zone) { Sfx.cancel(); return; }
+      Sfx.warp();
+      Scenes.pop();
+      this.ow.warpTo(z);
+    }
+  }
+
+  renderMap(ctx) {
+    const w = 230 * ART, h = 138 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    panel(ctx, x, y, w, h);
+    textCentered(ctx, "THE WORLDS", VIEW_W / 2, y + 7 * ART, { color: "#ffd86a" });
+    const list = this._mapList();
+    const ix = x + 12 * ART, iy = y + 18 * ART, iw = w - 24 * ART, ih = h - 40 * ART;
+    // spokes from the hub
+    const hubN = MAP_NODES.hub;
+    ctx.strokeStyle = "rgba(154,122,223,0.35)"; ctx.lineWidth = 1 * ART;
+    for (const z of list) {
+      if (z === "hub") continue;
+      const n = MAP_NODES[z];
+      ctx.beginPath();
+      ctx.moveTo(ix + hubN.x * iw, iy + hubN.y * ih);
+      ctx.lineTo(ix + n.x * iw, iy + n.y * ih);
+      ctx.stroke();
+    }
+    list.forEach((z, i) => {
+      const n = MAP_NODES[z];
+      const nx = ix + n.x * iw, ny = iy + n.y * ih;
+      const here = z === GS.data.zone, sel = i === this.mSel;
+      ctx.fillStyle = here ? "#ffd86a" : GS.data.visited[z] ? "#9fd0ff" : "#5a5a78";
+      ctx.beginPath(); ctx.arc(nx, ny, (sel ? 4 : 2.6) * ART, 0, Math.PI * 2); ctx.fill();
+      if (sel) { ctx.strokeStyle = "#ffd86a"; ctx.beginPath(); ctx.arc(nx, ny, 6 * ART, 0, Math.PI * 2); ctx.stroke(); }
+      drawText(ctx, n.label, nx - 18 * ART, ny + 7 * ART, { color: sel ? "#ffd86a" : "#cfcfe6" });
+    });
+    const hint = GS.hasGear("charm_carpet")
+      ? "</> pick   z carpet-travel   esc back"
+      : "(the Carpet Thread charm unlocks fast travel)";
+    drawText(ctx, hint, x + 12 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 
   // ---- Journal: active quests with current goals, done quests below -------

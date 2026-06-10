@@ -28,6 +28,7 @@ import { ShopMenu } from "./shop.js";
 import { SHOPS } from "../data/shops.js";
 import { crimpPerks } from "./perks.js";
 import { WorldView3D } from "./world3d.js";
+import { tick as clockTick, ambientFor } from "./clock.js";
 
 // shrapnel paid per crimp grade (scaled by zone tier + perks; repeats pay 25%)
 const PAYOUT = { S: 60, A: 40, B: 25, C: 12, F: 0 };
@@ -338,6 +339,17 @@ export class Overworld {
   checkStanding() {
     const cx = this.party.centerX(), cy = this.party.feetY() - 4;
     const tx = Math.floor(cx / TILE), ty = Math.floor(cy / TILE);
+    // walking through a secret wall: a one-time chime per spot
+    const row = this.def.map[ty];
+    if (row && row[tx] === "%") {
+      const f = "secret_" + this.def.id + "_" + tx + "_" + ty;
+      if (!GS.flag(f)) {
+        GS.setFlag(f);
+        Sfx.warp();
+        this.toast("A hidden way!");
+        Juice.flash("#cfe8ff", 0.3, 0.25);
+      }
+    }
     for (const e of this.entities) {
       const ex = Math.floor(e.px / TILE), ey = Math.floor(e.py / TILE);
       if (ex !== tx || ey !== ty) continue;
@@ -382,6 +394,34 @@ export class Overworld {
     }
   }
 
+  // gentle NPC strolls: pick a nearby free tile every few seconds, drift to it.
+  // Wandering NPCs don't block (world.js skips their solid), so no pathfinding.
+  updateWander(dt) {
+    for (const e of this.entities) {
+      if (e.type !== "npc" || !e.wander) continue;
+      if (e._tx === undefined) { e._hx = e.px; e._hy = e.py; e._tx = e.px; e._ty = e.py; e._wt = 1 + (e.animT % 2); }
+      e._wt -= dt;
+      if (e._wt <= 0) {
+        e._wt = 2 + ((e.px / TILE + e.animT * 7) % 2.5);
+        const r = e.wander * TILE;
+        const cand = [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE], [0, 0]];
+        const pick = cand[Math.floor(((e.px + e.py) / TILE + GS.data.clock) % cand.length)];
+        const nx = e._tx + pick[0], ny = e._ty + pick[1];
+        const tx = Math.floor(nx / TILE), ty = Math.floor(ny / TILE);
+        const inRange = Math.abs(nx - e._hx) <= r && Math.abs(ny - e._hy) <= r;
+        if (inRange && this.tilemap.solids[ty] && !this.tilemap.solids[ty][tx]) { e._tx = nx; e._ty = ny; }
+      }
+      const sp = 26 * ART * dt;
+      const dx = e._tx - e.px, dy = e._ty - e.py;
+      e._moving = Math.abs(dx) > 1 || Math.abs(dy) > 1;
+      if (e._moving) {
+        e.px += Math.sign(dx) * Math.min(sp, Math.abs(dx));
+        e.py += Math.sign(dy) * Math.min(sp, Math.abs(dy));
+        e.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+      }
+    }
+  }
+
   updateWeather(dt) {
     const cfg = WEATHER_CFG[this.weather];
     if (!cfg) { this.particles.length = 0; return; }
@@ -421,9 +461,12 @@ export class Overworld {
 
   update(dt) {
     GS.data.playtime += dt;
+    // the world clock only runs while you're actually out in the world
+    if (clockTick(GS, dt)) this.toast("A new day in the Zooniverse.");
     if (this.toastT > 0) this.toastT -= dt;
     if (this.fadeT > 0) this.fadeT -= dt;
     this.updateWeather(dt);
+    this.updateWander(dt);
 
     if (Input.pressed("pause") || Input.pressed("cancel")) { Scenes.push(new PauseMenu(this)); return; }
     if (Input.pressed("mute")) { import("../engine/audio.js").then((m) => { const muted = m.toggleMute(); this.toast(muted ? "Muted" : "Sound on"); }); }
@@ -564,9 +607,9 @@ export class Overworld {
 
     this.renderWeather(ctx);
 
-    // ---- dynamic lighting (dark zones only) ----
-    const amb = this.ambient || ZONE_LIGHT[GS.data.zone];
-    if (amb && amb.level < 1) renderLighting(ctx, amb.level, this.buildLights(), VIEW_W, VIEW_H);
+    // ---- dynamic lighting (dark zones + outdoor night, clock-driven) ----
+    const lvl = ambientFor(GS.data.zone, GS);
+    if (lvl < 1) renderLighting(ctx, lvl, this.buildLights(), VIEW_W, VIEW_H);
 
     // ---- HUD ----
     this.renderHud(ctx);
@@ -591,6 +634,7 @@ export class Overworld {
       drawText(ctx, GS.shrapnel() + " shrapnel", sx, sy, { color: "#ffe9a0", shadow: "#000" });
     }
     drawText(ctx, "Lv " + GS.data.stats.level, VIEW_W - 36 * ART, 5 * ART, { color: "#9fd0ff", shadow: "#000" });
+    drawText(ctx, GS.clockHM(), VIEW_W - 36 * ART, 14 * ART, { color: "#cfcfe6", shadow: "#000" });
 
     // collectible objective for the current zone
     const col = this.def.collect;

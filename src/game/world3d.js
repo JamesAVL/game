@@ -25,6 +25,7 @@ import { GS } from "./state.js";
 import { ITEM_INDEX } from "../data/items.js";
 import { COLLECTIONS } from "../data/collectibles.js";
 import { ZONE_LIGHT } from "../data/zones.js";
+import { ambientFor } from "./clock.js";
 
 const PITCH = (-55 * Math.PI) / 180;
 const DIST = 13;
@@ -155,7 +156,8 @@ export class WorldView3D {
 
     // ---- solid tiles: tilekit prototypes merged per type ------------------
     const kit = instantiate(kitKey);
-    const PROTO = { "#": "wall", "=": "wall_alt", "X": "feature", "O": "obstacle" };
+    // "%" is the secret passage: renders as wall, walks like floor
+    const PROTO = { "#": "wall", "=": "wall_alt", "X": "feature", "O": "obstacle", "%": "wall" };
     const buckets = { wall: [], wall_alt: [], feature: [], obstacle: [] };
     const rows = def.map;
     for (let y = 0; y < rows.length; y++) {
@@ -337,7 +339,9 @@ export class WorldView3D {
     for (const v of this.views) {
       const e = v.e;
       if (e._gone) { v.group.visible = false; continue; }
-      if (v.rig) { face(v.rig, e.facing || "down", dt || 0.016); walk(v.rig, this.t + e.animT, false, dt || 0.016); }
+      if (e.type === "npc" && e.wander) // strollers track the sim's px/py
+        v.group.position.set(e.px / TILE + 0.5, 0, e.py / TILE + 1.0);
+      if (v.rig) { face(v.rig, e.facing || "down", dt || 0.016); walk(v.rig, this.t + e.animT, !!e._moving, dt || 0.016); }
       if (v.mesh) v.mesh.traverse((o) => { if (o.isMesh) o.material = GS.flag(v.searchFlag) ? fadedMaterial : voxMaterial; });
       if (v.up) { const on = GS.flag("sw_" + e.gate); v.up.visible = !on; v.down && (v.down.visible = on); }
       if (v.closed) { const open = GS.flag("sw_" + e.gate) || e._open; v.closed.visible = !open; v.open && (v.open.visible = open); }
@@ -367,6 +371,21 @@ export class WorldView3D {
     this.sun.position.set(this.target.x + 6, 11, this.target.z + 4);
     this.sun.target.position.copy(this.target);
     if (this.torch) this.torch.position.set(px, 1.2, pz - 0.3);
+
+    // outdoor zones breathe with the world clock (dawn/dusk/night)
+    const amb = ambientFor(this.ow.def.id, GS);
+    if (amb !== this._amb) {
+      this._amb = amb;
+      this.sun.intensity = 2.2 * (0.25 + 0.75 * amb);
+      this.sun.color.set(amb < 0.6 ? 0x9fb0e8 : amb < 0.9 ? 0xffd9b0 : 0xfff2dd);
+      if (amb < 0.8 && !this.torch) {
+        this.torch = new THREE.PointLight(0xffe2aa, 12, 6.5, 1.6);
+        this.scene.add(this.torch);
+      } else if (amb >= 0.95 && this.torch) {
+        this.scene.remove(this.torch);
+        this.torch = null;
+      }
+    }
   }
 
   // draw the 3D world into the present chain, then the few 2D world-space

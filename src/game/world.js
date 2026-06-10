@@ -5,6 +5,7 @@ import { TILE, img } from "../engine/core.js";
 import { Tilemap } from "../engine/tilemap.js";
 import { ZONES } from "../data/zones.js";
 import { GS } from "./state.js";
+import { phase } from "./clock.js";
 
 // Shared tile-index convention used by every generated tileset (gen_tiles.py):
 //  0 floor   1 floor-variant   2 wall          3 wall-alt(solid)
@@ -23,6 +24,7 @@ export const LEGEND = {
   "+": { t: 9 },
   "*": { t: 10 },
   "X": { t: 11, solid: true },
+  "%": { t: 2, solid: false, secret: true },  // looks like wall, walks like floor
 };
 
 export function getZone(id) { return ZONES[id]; }
@@ -51,6 +53,14 @@ export function buildZone(id) {
   const entities = (def.entities || [])
     // collected collectibles stay collected across visits
     .filter((e) => !(e.type === "collectible" && GS.collHas(e.set, e.idx)))
+    // conditional presence: { when: { phase, flag, minRecords } }, checked on entry
+    .filter((e) => {
+      if (!e.when) return true;
+      if (e.when.flag && !GS.flag(e.when.flag)) return false;
+      if (e.when.minRecords && GS.recordCount() < e.when.minRecords) return false;
+      if (e.when.phase && phase(GS) !== e.when.phase) return false;
+      return true;
+    })
     .map((e) => ({
       ...e,
       px: e.x * TILE,
@@ -64,6 +74,8 @@ export function buildZone(id) {
   // solid characters/obstacles block walking; warps/items/triggers/switches do not
   const inb = (e) => e.y >= 0 && e.y < h && e.x >= 0 && e.x < w;
   for (const e of entities) {
+    // wandering NPCs drift off their tile, so they don't block (you can brush past)
+    if (e.type === "npc" && e.wander) continue;
     if (e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" ||
         e.type === "search" || e.type === "minigame") {
       if (inb(e)) solids[e.y][e.x] = true;

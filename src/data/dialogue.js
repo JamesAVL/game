@@ -69,6 +69,16 @@ export const DIALOG = {
     F("LOOK just go and do your singing thing and make the place nice again. GO ON. SHOO."),
   ],
 
+  hub_storeroom: (api) => [
+    V("A secret room! Full of... jars of loose change?"),
+    H("Naboo's 'broken till' savings, no doubt. We were PAID, Vince. Retroactively."),
+  ],
+  night_polos: (api) => [
+    V("Someone's left a polo mint on this rock. Placed. Deliberate."),
+    H("Pocket it and walk away, Vince. Some mysteries want to stay mysterious."),
+    { speaker: "", text: "(Somewhere in the dark, something says 'oi oi'.)" },
+  ],
+
   // ---- the Nabootique (shop interior) -------------------------------------
   nabootique_enter: (api) => ({
     pages: [

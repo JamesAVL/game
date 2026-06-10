@@ -45,8 +45,11 @@ function hubMap() {
   rect(m, 24, 3, 6, 4, "~"); set(m, 23, 4, "~"); set(m, 30, 4, "~"); // pond
   rect(m, 11, 9, 12, 5, "_");                                        // plaza
   scatter(m, "O", [[14, 4], [19, 5], [5, 16], [28, 16], [12, 17], [22, 18]]);
-  scatter(m, "\"", [[8, 8], [26, 9], [4, 12], [30, 12], [16, 19], [9, 19]]);
+  scatter(m, "\"", [[8, 8], [26, 9], [30, 12], [16, 19], [9, 19]]);
   scatter(m, "+", [[5, 18], [10, 18], [15, 18], [20, 18], [25, 18], [29, 8]]);
+  // an old store room nobody remembers; its east wall isn't all wall ("%")
+  pocket(m, 2, 11, 4, 3);
+  set(m, 5, 12, "%");
   return m;
 }
 
@@ -60,10 +63,15 @@ const HUB = {
     { type: "warp", x: 6, y: 5, to: "nabootique", tox: 6, toy: 8, todir: "up" },
     { type: "warp", x: 7, y: 5, to: "nabootique", tox: 7, toy: 8, todir: "up" },
     { type: "npc", x: 4, y: 7, sprite: "naboo", dialog: "naboo" },
-    { type: "npc", x: 9, y: 7, sprite: "bollo", dialog: "bollo" },
-    { type: "npc", x: 20, y: 6, sprite: "fossil", dialog: "fossil" },
+    { type: "npc", x: 9, y: 7, sprite: "bollo", dialog: "bollo", wander: 2 },
+    { type: "npc", x: 20, y: 6, sprite: "fossil", dialog: "fossil", wander: 3 },
     { type: "search", x: 13, y: 8, prop: "crate", dialog: "hub_search1", xp: 3 },
     { type: "search", x: 27, y: 10, prop: "bin", dialog: "hub_search2", xp: 3 },
+    // the forgotten store room (behind the secret wall at (5,12))
+    { type: "search", x: 3, y: 12, prop: "crate", dialog: "hub_storeroom", shrapnel: 40, xp: 6 },
+    // at night, someone leaves polos by the east bin. nobody asks why.
+    { type: "search", x: 24, y: 12, prop: "rock", dialog: "night_polos", item: "polo",
+      flag: "night_polos_found", when: { phase: "night" } },
     { type: "portal", x: 5, y: 18, to: "tundra", color: "#9fe0ff", label: "Tundra" },
     { type: "portal", x: 10, y: 18, to: "sea", color: "#5affc0", label: "The Sea" },
     { type: "portal", x: 15, y: 18, to: "forest", color: "#ff9a5a", label: "The Bins" },
