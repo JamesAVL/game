@@ -8,14 +8,7 @@ import { renderLighting } from "../engine/light.js";
 import { drawText, textCentered, textWidth, panel, drawFrame } from "../engine/gfx.js";
 import { Camera } from "../engine/gfx.js";
 
-// per-zone ambient gloom (level 1 = fully lit, skipped). Sunlit zones stay 1;
-// the surreal/indoor worlds get atmospheric darkness that light sources cut through.
-const ZONE_LIGHT = {
-  night: { level: 0.34 },
-  moon: { level: 0.5 },
-  sea: { level: 0.52 },
-  temple: { level: 0.58 },
-};
+import { ZONE_LIGHT } from "../data/zones.js";
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
 import { buildZone, getZone } from "./world.js";
 import { Party } from "./player.js";
@@ -27,6 +20,18 @@ import { CRIMPS } from "../data/crimps.js";
 import { ITEMS, ITEM_INDEX, PROP_INDEX } from "../data/items.js";
 import { TRACKS } from "../data/music.js";
 import { PauseMenu } from "./menu.js";
+import { Quests } from "./quests.js";
+import { QUESTS } from "../data/quests.js";
+import { COLLECTIONS } from "../data/collectibles.js";
+import { GEAR } from "../data/gear.js";
+import { ShopMenu } from "./shop.js";
+import { SHOPS } from "../data/shops.js";
+import { crimpPerks } from "./perks.js";
+import { WorldView3D } from "./world3d.js";
+import { tick as clockTick, ambientFor } from "./clock.js";
+
+// shrapnel paid per crimp grade (scaled by zone tier + perks; repeats pay 25%)
+const PAYOUT = { S: 60, A: 40, B: 25, C: 12, F: 0 };
 
 // per-zone ambient weather (screen-space particles for atmosphere)
 const WEATHER = {
@@ -41,6 +46,8 @@ const WEATHER_CFG = {
   stars: { n: 50, color: "#fff6c0", vy: [-6, -2], vx: [-2, 2], size: [1, 2], rise: true, sway: 4, alpha: 0.9, twinkle: true },
   dust: { n: 36, color: "#e6d2a0", vy: [-4, 4], vx: [-5, 5], size: [1, 1], rise: false, sway: 6, alpha: 0.4 },
   pollen: { n: 24, color: "#dfe8a0", vy: [-5, 5], vx: [-6, 6], size: [1, 1], rise: false, sway: 8, alpha: 0.5 },
+  rain: { n: 80, color: "#9fc4e8", vy: [130, 190], vx: [-22, -14], size: [1, 2], rise: false, sway: 0, alpha: 0.5 },
+  glints: { n: 26, color: "#ffffff", vy: [-3, 3], vx: [-3, 3], size: [1, 1], rise: false, sway: 3, alpha: 0.8, twinkle: true },
 };
 
 function rr(a, b) { return a + Math.random() * (b - a); }
@@ -57,25 +64,95 @@ export class Overworld {
 
   api() {
     const self = this;
+    const bump = () => self.questBump();
     return {
       gs: GS,
       flag: (k) => GS.flag(k),
-      setFlag: (k, v = true) => GS.setFlag(k, v),
+      setFlag: (k, v = true) => { GS.setFlag(k, v); bump(); },
       has: (id) => GS.has(id),
       count: (id) => GS.count(id),
-      give: (id, n = 1) => { GS.addItem(id, n); self.toast("Got " + (ITEMS[id] ? ITEMS[id].name : id) + "!"); Sfx.pickup(); },
-      take: (id, n = 1) => GS.removeItem(id, n),
+      give: (id, n = 1) => { GS.addItem(id, n); self.toast("Got " + (ITEMS[id] ? ITEMS[id].name : id) + "!"); Sfx.pickup(); bump(); },
+      take: (id, n = 1) => { GS.removeItem(id, n); bump(); },
       addXp: (n) => self.grantXp(n),
       unlock: (z) => { if (!GS.isUnlocked(z)) { GS.unlock(z); self.toast("New path opened!"); } },
-      addRecord: (id) => GS.addRecord(id),
+      addRecord: (id) => { GS.addRecord(id); bump(); },
       hasRecord: (id) => GS.hasRecord(id),
       recordCount: () => GS.recordCount(),
+      // ---- the deep-gameplay layer ------------------------------------
+      shrapnel: () => GS.shrapnel(),
+      addShrapnel: (n) => { GS.addShrapnel(n); self.toast("+" + n + " shrapnel"); Sfx.pickup(); bump(); },
+      spend: (n) => { const ok = GS.spend(n); if (ok) bump(); return ok; },
+      quests: {
+        start: (id) => {
+          if (Quests.start(GS, id)) { self.toast("New quest: " + QUESTS[id].name); Sfx.confirm(); bump(); }
+        },
+        advance: (id) => { GS.advanceQuest(id); bump(); },
+        state: (id) => GS.questState(id),
+        isDone: (id) => { const q = GS.questState(id); return !!q && q.state === "done"; },
+        isActive: (id) => { const q = GS.questState(id); return !!q && q.state === "active"; },
+      },
+      openShop: (id) => { if (SHOPS[id]) Scenes.push(new ShopMenu(SHOPS[id], self)); },
       toast: (m) => self.toast(m),
       goto: (z, sp) => self.warpTo(z, sp),
       startCrimp: (id, onResult) => self.beginCrimp(id, onResult),
       say: (pages, onDone) => Scenes.push(new Dialogue(pages, onDone)),
       save: () => { GS.save(); self.toast("Game saved."); },
     };
+  }
+
+  // act-gated openness: worlds unlock in waves as records come home, not in
+  // a fixed chain — Act 1 (tundra/forest/yeti) opens at the intro; two records
+  // crack open Act 2's first wave; four summon the Moon; five the Temple.
+  checkActs() {
+    const r = GS.recordCount();
+    const open = (z, msg) => {
+      if (!GS.isUnlocked(z)) { GS.unlock(z); if (msg) this.toast(msg); return true; }
+      return false;
+    };
+    if (r >= 2) {
+      const a = open("sea", "");
+      const b = open("night", "");
+      if ((a || b) && !GS.flag("act2_started")) {
+        GS.setFlag("act2_started");
+        this.toast("New portals hum to life: The Sea and the Nightosphere!");
+      }
+    }
+    // four records wake the mirror; the rest of the worlds wait for Act 3
+    if (r >= 4 && !GS.flag("twist_seen") && !GS.flag("twist_hint")) {
+      GS.setFlag("twist_hint");
+      this.toast("Naboo's mirror is humming. Best pop back to the Nabootique...");
+    }
+    if (GS.flag("beat_zeus1")) {
+      open("moon", "A pale light beckons: the Moon portal is open!");
+      open("temple", "Xooberon Temple unseals. The Board of Shamen await.");
+      open("onion", "The Velvet Onion lights its marquee for the Grand Crimp-Off!");
+    }
+  }
+
+  // re-evaluate active quests after any state change (zero polling); toast
+  // journal updates and pay completed quests' rewards
+  questBump() {
+    for (const adv of Quests.check(GS)) {
+      if (adv.completed) {
+        this.toast("Quest complete: " + adv.name);
+        Sfx.win();
+        this.grantReward(QUESTS[adv.id].reward);
+      } else {
+        this.toast("Journal updated: " + adv.goalText);
+        Sfx.confirm();
+      }
+    }
+  }
+
+  grantReward(r) {
+    if (!r) return;
+    if (r.shrapnel) GS.addShrapnel(r.shrapnel * (this.def.tier || 1));
+    if (r.xp) this.grantXp(r.xp);
+    if (r.item) { GS.addItem(r.item); this.toast("Got " + (ITEMS[r.item] ? ITEMS[r.item].name : r.item) + "!"); }
+    if (r.gear && !GS.hasGear(r.gear)) {
+      GS.ownGear(r.gear);
+      this.toast("New gear: " + (GEAR[r.gear] ? GEAR[r.gear].name : r.gear) + "! (Wardrobe)");
+    }
   }
 
   loadZone(id, spawn) {
@@ -86,6 +163,7 @@ export class Overworld {
     this.entities = z.entities;
     this.cam.setBounds(this.tilemap.pxW, this.tilemap.pxH);
     GS.data.zone = id;
+    GS.data.visited[id] = true;
     this.fadeT = 0.55;                 // fade in on arrival
     this.weather = z.def.weather || WEATHER[id] || "none";
     this.particles.length = 0;
@@ -94,6 +172,12 @@ export class Overworld {
     // higher so its feet land in that tile (not the tile below).
     this.party = new Party(sp.x * TILE, sp.y * TILE - 8 * ART, sp.dir || "down");
     this.cam.follow(this.party.centerX(), this.party.feetY());
+    // voxel-3D view for flagged zones; 2D render path is the automatic fallback
+    if (this.view3d) { this.view3d.dispose(); this.view3d = null; }
+    if (z.def.view === "3d") {
+      const v = new WorldView3D(this);
+      if (v.ok) this.view3d = v;
+    }
     this.toast(z.def.name);
     const mk = z.def.music;
     if (mk && mk !== this.musicKey && TRACKS[mk]) { playMusic(TRACKS[mk]); this.musicKey = mk; }
@@ -159,13 +243,26 @@ export class Overworld {
       return;
     }
     const pre = this.buildDialog(ent.dialog);
+    const repeat = ent.winFlag ? GS.flag(ent.winFlag) : false;
     const onDone = () => {
-      self.beginCrimp(ent.crimp, (win) => {
+      self.beginCrimp(ent.crimp, (win, perf) => {
         if (win) {
           if (ent.winFlag) GS.setFlag(ent.winFlag);
           if (ent.record) GS.addRecord(ent.record);
           if (ent.unlock) { GS.unlock(ent.unlock); }
-          if (ent.xp) self.grantXp(ent.xp);
+          if (ent.xp && !repeat) self.grantXp(ent.xp);
+          self.checkActs();
+        }
+        // grade pays shrapnel (even a brave loss pays nothing but records best)
+        if (perf) {
+          GS.setBest(ent.crimp, perf);
+          const pay = Math.round(
+            (PAYOUT[perf.grade] || 0) * (self.def.tier || 1) *
+            crimpPerks(GS).shrapMul * (repeat ? 0.25 : 1));
+          if (pay > 0) { GS.addShrapnel(pay); self.toast("Grade " + perf.grade + "  +" + pay + " shrapnel"); }
+          self.questBump();
+        }
+        if (win) {
           GS.save();
           if (ent.winDialog) self.startDialog(ent.winDialog);
         } else {
@@ -208,6 +305,8 @@ export class Overworld {
       if (e.type === "boss") { this.doBoss(e); return true; }
       if (e.type === "portal") { this.portalPrompt(e); return true; }
       if (e.type === "search") { this.doSearch(e); return true; }
+      if (e.type === "shop") { Sfx.confirm(); Scenes.push(new ShopMenu(SHOPS[e.shop], this)); return true; }
+      if (e.type === "minigame") { this.startMinigame(e); return true; }
     }
     return false;
   }
@@ -219,11 +318,21 @@ export class Overworld {
       e._searched = true;
       if (e.item) { GS.addItem(e.item); this.toast("Found " + (ITEMS[e.item] ? ITEMS[e.item].name : e.item) + "!"); Sfx.pickup(); }
       else Sfx.confirm();
+      if (e.shrapnel) { GS.addShrapnel(e.shrapnel); this.toast("+" + e.shrapnel + " shrapnel!"); Sfx.pickup(); }
       if (e.xp) this.grantXp(e.xp);
       if (e.dialog) this.startDialog(e.dialog);
+      this.questBump();
     } else {
       if (e.emptyDialog) this.startDialog(e.emptyDialog);
       else { Sfx.cancel(); this.toast(e.emptyText || "Nothing left in there."); }
+    }
+  }
+
+  startMinigame(e) {
+    if (e.game === "potion") {
+      if (Quests.start(GS, "q_potion_apprentice"))
+        this.toast("New quest: " + QUESTS.q_potion_apprentice.name);
+      import("./potion.js").then((m) => Scenes.push(new m.PotionGame(this)));
     }
   }
 
@@ -240,6 +349,17 @@ export class Overworld {
   checkStanding() {
     const cx = this.party.centerX(), cy = this.party.feetY() - 4;
     const tx = Math.floor(cx / TILE), ty = Math.floor(cy / TILE);
+    // walking through a secret wall: a one-time chime per spot
+    const row = this.def.map[ty];
+    if (row && row[tx] === "%") {
+      const f = "secret_" + this.def.id + "_" + tx + "_" + ty;
+      if (!GS.flag(f)) {
+        GS.setFlag(f);
+        Sfx.warp();
+        this.toast("A hidden way!");
+        Juice.flash("#cfe8ff", 0.3, 0.25);
+      }
+    }
     for (const e of this.entities) {
       const ex = Math.floor(e.px / TILE), ey = Math.floor(e.py / TILE);
       if (ex !== tx || ey !== ty) continue;
@@ -257,6 +377,18 @@ export class Overworld {
           if (e.onGet) this.startDialog(e.onGet);
         }
       }
+      if (e.type === "collectible") {
+        if (GS.collFound(e.set, e.idx)) {
+          const set = COLLECTIONS[e.set];
+          Sfx.pickup();
+          this.toast(set.name + "  " + GS.collCount(e.set) + "/" + set.total);
+          e._gone = true;
+          const px = e.px - this.cam.x + 8 * ART, py = e.py - this.cam.y + 8 * ART;
+          Particles.burst(px, py, 22, { color: [180, 230, 255], speed: 80, life: 0.7, size: 1.5 * ART, gravity: -32 * ART, drag: 2 });
+          Juice.shake(2 * ART, 0.14);
+          this.questBump();
+        }
+      }
       if (e.type === "trigger" && e.dialog) {
         const f = "trig_" + e.x + "_" + e.y;
         if (!e.once || !GS.flag(f)) { if (e.once) GS.setFlag(f); this.startDialog(e.dialog); }
@@ -268,6 +400,34 @@ export class Overworld {
           this.openGate(e.gate);
           this.toast(e.toast || "Something rumbles open nearby!");
         }
+      }
+    }
+  }
+
+  // gentle NPC strolls: pick a nearby free tile every few seconds, drift to it.
+  // Wandering NPCs don't block (world.js skips their solid), so no pathfinding.
+  updateWander(dt) {
+    for (const e of this.entities) {
+      if (e.type !== "npc" || !e.wander) continue;
+      if (e._tx === undefined) { e._hx = e.px; e._hy = e.py; e._tx = e.px; e._ty = e.py; e._wt = 1 + (e.animT % 2); }
+      e._wt -= dt;
+      if (e._wt <= 0) {
+        e._wt = 2 + ((e.px / TILE + e.animT * 7) % 2.5);
+        const r = e.wander * TILE;
+        const cand = [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE], [0, 0]];
+        const pick = cand[Math.floor(((e.px + e.py) / TILE + GS.data.clock) % cand.length)];
+        const nx = e._tx + pick[0], ny = e._ty + pick[1];
+        const tx = Math.floor(nx / TILE), ty = Math.floor(ny / TILE);
+        const inRange = Math.abs(nx - e._hx) <= r && Math.abs(ny - e._hy) <= r;
+        if (inRange && this.tilemap.solids[ty] && !this.tilemap.solids[ty][tx]) { e._tx = nx; e._ty = ny; }
+      }
+      const sp = 26 * ART * dt;
+      const dx = e._tx - e.px, dy = e._ty - e.py;
+      e._moving = Math.abs(dx) > 1 || Math.abs(dy) > 1;
+      if (e._moving) {
+        e.px += Math.sign(dx) * Math.min(sp, Math.abs(dx));
+        e.py += Math.sign(dy) * Math.min(sp, Math.abs(dy));
+        e.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
       }
     }
   }
@@ -311,9 +471,12 @@ export class Overworld {
 
   update(dt) {
     GS.data.playtime += dt;
+    // the world clock only runs while you're actually out in the world
+    if (clockTick(GS, dt)) this.toast("A new day in the Zooniverse.");
     if (this.toastT > 0) this.toastT -= dt;
     if (this.fadeT > 0) this.fadeT -= dt;
     this.updateWeather(dt);
+    this.updateWander(dt);
 
     if (Input.pressed("pause") || Input.pressed("cancel")) { Scenes.push(new PauseMenu(this)); return; }
     if (Input.pressed("mute")) { import("../engine/audio.js").then((m) => { const muted = m.toggleMute(); this.toast(muted ? "Muted" : "Sound on"); }); }
@@ -327,6 +490,7 @@ export class Overworld {
     this.entities = this.entities.filter((e) => !e._gone);
 
     this.cam.follow(this.party.centerX(), this.party.feetY());
+    if (this.view3d) this.view3d.sync(dt);
   }
 
   drawEntity(ctx, e) {
@@ -343,6 +507,18 @@ export class Overworld {
       const idx = ITEM_INDEX[e.item] || 0;
       const bob = Math.sin(performance.now() / 300 + e.px) * 1.5 * ART;
       if (im) ctx.drawImage(im, idx * TILE, 0, TILE, TILE, dx, dy + bob, TILE, TILE);
+    } else if (e.type === "collectible") {
+      const im = img("items");
+      const set = COLLECTIONS[e.set];
+      const idx = (set && set.icon) || 0;
+      const tnow = performance.now() / 1000;
+      const bob = Math.sin(tnow * 3 + e.px) * 1.5 * ART;
+      if (im && im.width > idx * TILE) ctx.drawImage(im, idx * TILE, 0, TILE, TILE, dx, dy + bob, TILE, TILE);
+      // a little glint so collectibles read as special
+      ctx.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(tnow * 4 + e.py));
+      ctx.fillStyle = "#dff4ff";
+      ctx.fillRect(dx + 12 * ART, dy + bob - 2 * ART, 1.5 * ART, 1.5 * ART);
+      ctx.globalAlpha = 1;
     } else if (e.type === "search") {
       const im = img("props");
       const idx = PROP_INDEX[e.prop] != null ? PROP_INDEX[e.prop] : PROP_INDEX.crate;
@@ -350,6 +526,9 @@ export class Overworld {
       ctx.globalAlpha = done ? 0.45 : 1;
       if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, idx, 0, dx, dy - 8 * ART);
       ctx.globalAlpha = 1;
+    } else if (e.type === "minigame") {
+      const im = img("props");
+      if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, PROP_INDEX.urn, 0, dx, dy - 8 * ART);
     } else if (e.type === "switch") {
       const im = img("props");
       const on = GS.flag("sw_" + e.gate);
@@ -410,12 +589,24 @@ export class Overworld {
   }
 
   render(ctx) {
+    // ---- voxel-3D path: the world renders through the present bridge; only
+    // weather, HUD and fades stay on the 2D overlay ----
+    if (this.view3d && this.view3d.render(ctx)) {
+      this.renderWeather(ctx);
+      this.renderHud(ctx);
+      if (this.fadeT > 0) {
+        ctx.fillStyle = "rgba(8,6,16," + Math.min(1, this.fadeT / 0.55) + ")";
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      }
+      return;
+    }
+
     this.tilemap.renderGround(ctx, this.cam);
 
     // y-sorted drawables: entities + party
     const list = [];
     for (const e of this.entities) {
-      if (["npc", "boss", "item", "portal", "search", "switch", "gate"].includes(e.type))
+      if (["npc", "boss", "item", "collectible", "portal", "search", "switch", "gate", "minigame"].includes(e.type))
         list.push({ y: e.py + 16 * ART, draw: (c) => this.drawEntity(c, e) });
     }
     for (const d of this.party.drawables()) list.push(d);
@@ -426,9 +617,9 @@ export class Overworld {
 
     this.renderWeather(ctx);
 
-    // ---- dynamic lighting (dark zones only) ----
-    const amb = this.ambient || ZONE_LIGHT[GS.data.zone];
-    if (amb && amb.level < 1) renderLighting(ctx, amb.level, this.buildLights(), VIEW_W, VIEW_H);
+    // ---- dynamic lighting (dark zones + outdoor night, clock-driven) ----
+    const lvl = ambientFor(GS.data.zone, GS);
+    if (lvl < 1) renderLighting(ctx, lvl, this.buildLights(), VIEW_W, VIEW_H);
 
     // ---- HUD ----
     this.renderHud(ctx);
@@ -441,9 +632,21 @@ export class Overworld {
   }
 
   renderHud(ctx) {
-    // top status strip
-    drawText(ctx, "Records " + GS.recordCount() + "/6", 6 * ART, 5 * ART, { color: "#ffd86a", shadow: "#000" });
+    // top status strip (the records grey to "?" while the Zeus hold them)
+    const stolen = GS.flag("records_stolen") && !GS.flag("records_recovered");
+    drawText(ctx, "Records " + (stolen ? "?" : GS.recordCount()) + "/6", 6 * ART, 5 * ART,
+      { color: stolen ? "#8a8aa6" : "#ffd86a", shadow: "#000" });
+    // shrapnel purse (coin icon from the items strip, if baked)
+    const items = img("items");
+    const sx = 6 * ART, sy = 14 * ART;
+    if (items && items.width >= 12 * TILE) {
+      ctx.drawImage(items, (ITEM_INDEX.shrapnel || 11) * TILE, 0, TILE, TILE, sx - 4 * ART, sy - 4 * ART, TILE, TILE);
+      drawText(ctx, String(GS.shrapnel()), sx + 11 * ART, sy, { color: "#ffe9a0", shadow: "#000" });
+    } else {
+      drawText(ctx, GS.shrapnel() + " shrapnel", sx, sy, { color: "#ffe9a0", shadow: "#000" });
+    }
     drawText(ctx, "Lv " + GS.data.stats.level, VIEW_W - 36 * ART, 5 * ART, { color: "#9fd0ff", shadow: "#000" });
+    drawText(ctx, GS.clockHM(), VIEW_W - 36 * ART, 14 * ART, { color: "#cfcfe6", shadow: "#000" });
 
     // collectible objective for the current zone
     const col = this.def.collect;

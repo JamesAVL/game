@@ -4,6 +4,7 @@
 import { Renderer } from "./renderer.js";
 import { Particles, Juice } from "./particles.js";
 import { getReactive } from "./audio.js";
+import { loadModel } from "./gltf.js";
 
 // ART is the global art/render scale. The internal canvas, every layout
 // constant, and the generated PNG assets are all expressed as base * ART so a
@@ -143,6 +144,10 @@ export const MANIFEST = {
   boss_nana: "assets/sprites/boss_nana.png",
   boss_moon: "assets/sprites/boss_moon.png",
   boss_tony: "assets/sprites/boss_tony.png",
+  boss_yeti: "assets/sprites/boss_yeti.png",
+  boss_hitcher: "assets/sprites/boss_hitcher.png",
+  boss_zeus: "assets/sprites/boss_zeus.png",
+  boss_saboo: "assets/sprites/boss_saboo.png",
   // companion normal maps for per-pixel boss lighting in the crimp
   boss_jazz_n: "assets/sprites/boss_jazz_n.png",
   boss_gregg_n: "assets/sprites/boss_gregg_n.png",
@@ -150,6 +155,10 @@ export const MANIFEST = {
   boss_nana_n: "assets/sprites/boss_nana_n.png",
   boss_moon_n: "assets/sprites/boss_moon_n.png",
   boss_tony_n: "assets/sprites/boss_tony_n.png",
+  boss_yeti_n: "assets/sprites/boss_yeti_n.png",
+  boss_hitcher_n: "assets/sprites/boss_hitcher_n.png",
+  boss_zeus_n: "assets/sprites/boss_zeus_n.png",
+  boss_saboo_n: "assets/sprites/boss_saboo_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",
@@ -157,10 +166,40 @@ export const MANIFEST = {
   tiles_night: "assets/tiles/night.png",
   tiles_moon: "assets/tiles/moon.png",
   tiles_temple: "assets/tiles/temple.png",
+  tiles_yeti: "assets/tiles/yeti.png",
+  tiles_eelpit: "assets/tiles/eelpit.png",
+  tiles_mirror: "assets/tiles/mirror.png",
   items: "assets/items/items.png",
   props: "assets/sprites/props.png",
   bg_stars: "assets/bg/stars.png",
   bg_title: "assets/bg/title.png",
+  // voxel GLB models (tools/gen_vox_*.py) — parsed by engine/gltf.js
+  model_vince: "assets/models/vince.glb",
+  model_howard: "assets/models/howard.glb",
+  model_naboo: "assets/models/naboo.glb",
+  model_bollo: "assets/models/bollo.glb",
+  model_fossil: "assets/models/fossil.glb",
+  model_props: "assets/models/props.glb",
+  model_boss_jazz: "assets/models/boss_jazz.glb",
+  model_boss_gregg: "assets/models/boss_gregg.glb",
+  model_boss_crackfox: "assets/models/boss_crackfox.glb",
+  model_boss_nana: "assets/models/boss_nana.glb",
+  model_boss_moon: "assets/models/boss_moon.glb",
+  model_boss_tony: "assets/models/boss_tony.glb",
+  model_boss_yeti: "assets/models/boss_yeti.glb",
+  model_boss_hitcher: "assets/models/boss_hitcher.glb",
+  model_boss_zeus: "assets/models/boss_zeus.glb",
+  model_boss_saboo: "assets/models/boss_saboo.glb",
+  model_tilekit_hub: "assets/models/tilekit_hub.glb",
+  model_tilekit_tundra: "assets/models/tilekit_tundra.glb",
+  model_tilekit_sea: "assets/models/tilekit_sea.glb",
+  model_tilekit_forest: "assets/models/tilekit_forest.glb",
+  model_tilekit_night: "assets/models/tilekit_night.glb",
+  model_tilekit_moon: "assets/models/tilekit_moon.glb",
+  model_tilekit_temple: "assets/models/tilekit_temple.glb",
+  model_tilekit_yeti: "assets/models/tilekit_yeti.glb",
+  model_tilekit_eelpit: "assets/models/tilekit_eelpit.glb",
+  model_tilekit_mirror: "assets/models/tilekit_mirror.glb",
 };
 
 const images = {};
@@ -169,27 +208,25 @@ export function img(key) { return images[key]; }
 export function loadAll(onProgress) {
   const keys = Object.keys(MANIFEST);
   let loaded = 0;
+  const tick = (res) => () => { loaded++; onProgress && onProgress(loaded, keys.length); res(); };
   return Promise.all(keys.map((k) => new Promise((res) => {
+    const ok = tick(res);
+    if (MANIFEST[k].endsWith(".glb")) {
+      loadModel(k, MANIFEST[k]).then(ok, (e) => { console.warn("missing model", k, e); ok(); });
+      return;
+    }
     const im = new Image();
-    im.onload = () => { images[k] = im; loaded++; onProgress && onProgress(loaded, keys.length); res(); };
-    im.onerror = () => { console.warn("missing asset", k, MANIFEST[k]); loaded++; res(); };
+    im.onload = () => { images[k] = im; ok(); };
+    im.onerror = () => { console.warn("missing asset", k, MANIFEST[k]); ok(); };
     im.src = MANIFEST[k];
   })));
 }
 
 // ---------------------------------------------------------------------------
-// Save system (localStorage)
+// Save system (localStorage) — lives in save.js (DOM-free) so the game-state
+// layer can import it under node; re-exported here for engine callers.
 // ---------------------------------------------------------------------------
-const SAVE_KEY = "boosh_save_v1";
-export const Save = {
-  write(data) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); return true; } catch (e) { return false; } },
-  read() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } },
-  clear() { localStorage.removeItem(SAVE_KEY); },
-  exists() { return !!localStorage.getItem(SAVE_KEY); },
-  // standalone settings (persist even before a game save exists)
-  optGet(k, def) { try { const v = localStorage.getItem("boosh_opt_" + k); return v === null ? def : v; } catch (e) { return def; } },
-  optSet(k, v) { try { localStorage.setItem("boosh_opt_" + k, v); } catch (e) {} },
-};
+export { Save } from "./save.js";
 
 // ---------------------------------------------------------------------------
 // Scene stack — scenes implement {enter, update(dt), render(ctx), exit, onTop}.

@@ -25,10 +25,11 @@ export const DIALOG = {
       N("Exactly. Without them the whole place goes flat. Lifeless. No funk."),
       H("So what do we do, little man?"),
       N("You two travel to each world, out-crimp whoever's guarding the record, and bring it home."),
-      N("I've opened the first portal for you. The Frozen Tundra. Off you pop."),
+      N("I've opened three portals: the Frozen Tundra, the Forest of Bins, and Yeti Woods."),
+      N("Any order you like. The woods is just woods, mind. Woods with a vibe."),
       V("A crimping quest! This is going to be brilliant."),
     ],
-    onDone: () => { api.unlock("tundra"); api.setFlag("intro_done"); },
+    onDone: () => { api.unlock("tundra"); api.unlock("forest"); api.unlock("yeti"); api.setFlag("intro_done"); },
   }),
 
   // ---- hub NPCs ----------------------------------------------------------
@@ -36,7 +37,7 @@ export const DIALOG = {
     let practice = false;
     const done = api.recordCount();
     const pages = [
-      N("Alright. " + (done === 0 ? "First record's out in the Tundra." : "You've got " + done + " of the 6 records.")),
+      N("Alright. " + (done === 0 ? "Records are out in the Tundra and the Bins. Yeti Woods is... recreational." : "You've got " + done + " of the 6 records.")),
       N("Step into a glowing portal to travel. Sealed ones open as you win records."),
     ];
     if (done >= 6) pages.push(N("You did it. The Zooniverse is funky again. Nice one, you absolute legends."));
@@ -68,6 +69,325 @@ export const DIALOG = {
     F("LOOK just go and do your singing thing and make the place nice again. GO ON. SHOO."),
   ],
 
+  hub_storeroom: (api) => [
+    V("A secret room! Full of... jars of loose change?"),
+    H("Naboo's 'broken till' savings, no doubt. We were PAID, Vince. Retroactively."),
+  ],
+  night_polos: (api) => [
+    V("Someone's left a polo mint on this rock. Placed. Deliberate."),
+    H("Pocket it and walk away, Vince. Some mysteries want to stay mysterious."),
+    { speaker: "", text: "(Somewhere in the dark, something says 'oi oi'.)" },
+  ],
+
+  // ---- ACT 2: the twist ------------------------------------------------------
+  the_twist: (api) => {
+    if (api.flag("twist_seen")) return [NAR("The shattered mirror hums faintly. Something of yours is on the other side.")];
+    return {
+      pages: [
+        NAR("The record shrine begins to resonate. The wall mirror answers — one long, flat chord."),
+        N("...That's not ideal."),
+        NAR("The mirror SHATTERS outward. Two figures step through the frame — and they look horribly familiar."),
+        { speaker: "Lance", text: "Evening. We're you — but retail-ready. Lance Dior." },
+        { speaker: "Harold", text: "Harold Boon. Your whole vibe, but ironed. We'll be taking the records." },
+        V("Howard, they're nicking our funk! Do something man-of-action-y!"),
+        NAR("The records lift off the shrine and stream through the broken frame."),
+        { speaker: "Hitcher", text: "Evenin'. Removals. They pay me in whatever I fancy... and I fancy the big one." },
+        H("Vince? VINCE. Tell my stationery I lov—" ),
+        NAR("And they're gone. The mirror frame stands empty. The shop is very, very quiet."),
+        N("Right. The green one's the Hitcher — Old London type. He'll hole up in the Eel Pit."),
+        N("Get Howard back first. Then we deal with your reflections. Off you pop. Alone, I'm afraid."),
+        B("...Bollo had a bad feeling about the mirror. Bollo SAID."),
+      ],
+      onDone: () => {
+        api.setFlag("twist_seen");
+        api.setFlag("records_stolen");
+        api.setFlag("howard_taken");
+        api.unlock("eelpit");
+        api.toast("The Eel Pit yawns open beneath Old London...");
+      },
+    };
+  },
+
+  mirror_polish: (api) => ({
+    pages: [
+      N("Howard's back. Good. Now: your reflections. Can't chase them through a broken mirror..."),
+      N("...unless someone happens to stock artisanal mirror polish. Shaman grade. Don't ask what's in it."),
+      NAR("Naboo works the polish into the shattered frame. The shards drink it in and knit together, wrong-ways."),
+      N("There. The Mirror's open in the back. Go get our funk back, you berks."),
+    ],
+    onDone: () => { api.setFlag("mirror_key"); api.unlock("mirror"); api.toast("The Mirror stands open in the Nabootique."); },
+  }),
+
+  // ---- the Nabootique (shop interior) -------------------------------------
+  nabootique_enter: (api) => ({
+    pages: [
+      V("The Nabootique! Smells like incense and questionable decisions."),
+      N("Welcome in. Counter's there. Don't lick the stock."),
+      H("Why would we lick the— "),
+      N("Last customer licked the stock. Now he's a hatstand. Browse responsibly."),
+      N("Oh — and your wages. Till's broken, innit. Save up your own shrapnel."),
+    ],
+    onDone: () => api.quests.start("q_wages"),
+  }),
+
+  naboo_shop: (api) => {
+    // act 2 priority: once Howard's home, the mirror gets polished
+    if (api.flag("howard_back") && !api.flag("mirror_key")) return DIALOG.mirror_polish(api);
+    const q = api.quests.state("q_radiators");
+    if (!q) {
+      let yes = false;
+      return {
+        pages: [
+          N("Alright. Listen. I had three celebrity radiators in stock. Very rare. Very warm."),
+          N("They've gone walkabout through the portals. Radiators do that. It's a known thing."),
+          { choice: "Track down Naboo's 3 celebrity radiators?",
+            options: [
+              { label: "We're on it, Naboo", act: () => { yes = true; } },
+              { label: "We're not radiator people" },
+            ] },
+        ],
+        onDone: () => { if (yes) api.quests.start("q_radiators"); },
+      };
+    }
+    if (q.state === "active" && q.stage === 1) {
+      return {
+        pages: [
+          N("All three radiators. Still warm. You've done the shop a service."),
+          N("Take this carpet thread. It remembers being a magic carpet. Useful, that."),
+        ],
+        onDone: () => api.setFlag("q_radiators_turnin"),
+      };
+    }
+    if (q.state === "done") return [N("Shop's never been warmer. Buy something or stop loitering.")];
+    return [N("Radiators. Three of them. Out there somewhere, radiating at strangers. It's not right.")];
+  },
+
+  bollo_decks: (api) => {
+    let practice = false;
+    return {
+      pages: [
+        B("Bollo runs the decks now. Naboo say Bollo has 'the touch'."),
+        B("Bollo mostly has the volume. Want to practice your crimp?"),
+        { choice: "Run a practice crimp with Bollo?",
+          options: [
+            { label: "Drop the beat, Bollo", act: () => { practice = true; } },
+            { label: "Later" },
+          ] },
+      ],
+      onDone: () => {
+        if (practice) api.startCrimp("tutorial", (win) => {
+          api.say([B(win ? "Harsh, but fair. Bollo approve." : "Bollo got a bad feeling about your timing.")]);
+        });
+      },
+    };
+  },
+
+  howard_crate: (api) => ({
+    pages: [
+      H("My record crate! Vince, someone's had it open. My jazz rares are GONE."),
+      V("Howard, nobody steals jazz. People pay to make jazz stop."),
+      H("Four originals, Vince. Scattered who-knows-where. This is a man's SOUL in vinyl form."),
+    ],
+    onDone: () => api.quests.start("q_jazzrares"),
+  }),
+
+  // ---- the Eel Pit (Vince alone) -------------------------------------------
+  eelpit_enter: (api) => [
+    V("Old London. Rain, cobbles, fog... and no Howard."),
+    V("It's fine. I'm fine. I'm a solo artist anyway. ...It's really quiet though."),
+  ],
+  eleanor: (api) => [
+    { speaker: "Eleanor", text: "Well HELLO, big man's little friend. All alone down here?" },
+    { speaker: "Eleanor", text: "Your large gentleman? The green fella's got him in the cellar, past the sluice." },
+    { speaker: "Eleanor", text: "He only talks business over polos. The mint with the hole. Bring three or don't bother." },
+    { speaker: "Eleanor", text: "Also: I've put you down for two tickets to me one-woman show. Non-refundable." },
+  ],
+  search1_eelpit: (api) => [V("A bin full of eels. The eels look... organised.")],
+  search2_eelpit: (api) => [V("Someone's carved 'OI OI' into this stone about nine hundred times.")],
+  search3_eelpit: (api) => [V("A soggy playbill: 'ELEANOR — ONE WOMAN, NO INTERVAL, NO EXITS.' Chilling.")],
+  collect_eelpit: (api) => [
+    { speaker: "Hitcher", text: "Three little notes first, boyo. Even a nightmare respects the format." },
+  ],
+  chest_eelpit: (api) => [V("A chest of confiscated buskers' gear. And one crimp note, going spare.")],
+  hitcher_need_polo: (api) => [
+    { speaker: "Hitcher", text: "No polos, no parley. Them's the rules of the pit, sunshine." },
+    V("Right. Polos. The mint with the hole. This place has GOT to have some lying about."),
+  ],
+  hitcher_pre: (api) => [
+    { speaker: "Hitcher", text: "Evenin'. Lovely night for an abduction. Your mate's drying out nicely." },
+    { speaker: "Hitcher", text: "Want him back? Then it's a crimp-off, innit. Me and thee. Eels as witnesses." },
+    V("I've never crimped solo. ...Alright, you cockney nightmare. For Howard."),
+  ],
+  hitcher_win: (api) => ({
+    pages: [
+      { speaker: "Hitcher", text: "...Well I never. The little one's got the funk all on his own. Take the big fella. He cries in his sleep." },
+      H("Vince! You came alone? Through the RAIN? Your hair must be DEVASTATED."),
+      V("Howard! It held its shape. And so did I. Come on — Naboo's got a plan about the mirror."),
+      H("A solo rescue crimp. That's... that's proper, Vince. That's man-of-action stuff, that is."),
+    ],
+    onDone: () => { api.setFlag("howard_taken", false); api.setFlag("howard_back"); api.toast("Howard rejoins the party!"); },
+  }),
+  hitcher_lose: (api) => [{ speaker: "Hitcher", text: "Back to the rain with you, boyo. The big one stays. He's learning the eel trade." }],
+  hitcher_after: (api) => [
+    { speaker: "Hitcher", text: "No hard feelings. Want any eels? You'll have some eels. Everyone gets eels eventually." },
+  ],
+
+  // ---- the Mirror World -------------------------------------------------------
+  mirror_enter: (api) => [
+    V("It's the Zooniverse. But backwards. And clean. TOO clean, Howard."),
+    H("Even the bins are alphabetised. This place is an abomination."),
+  ],
+  mirror_naboo: (api) => [
+    { speaker: "oobaN", text: "Welcome welcome. Lovely to see you. Please do lick the stock." },
+    V("It's Naboo but POLITE. Run, Howard. Nothing here is real."),
+  ],
+  mirror_fossil: (api) => [
+    { speaker: "lissoF", text: "Good afternoon. The animals are thriving. I have completed all my paperwork." },
+    H("...This is the single most frightening thing I have ever heard."),
+  ],
+  mirror_storeroom: (api) => [
+    V("Even the secret room's mirrored. The change is stacked in NEAT TOWERS. Monsters."),
+  ],
+  zeus_pre: (api) => [
+    { speaker: "Lance", text: "Oh look, Harold. The rough drafts have arrived." },
+    { speaker: "Harold", text: "We've had your records appraised. They suit US better. We've got shelving." },
+    V("That's MY haircut you've ironed, mate."),
+    H("And that moustache is in breach of copyright. Let's take it back, Vince. All of it."),
+  ],
+  zeus_win: (api) => ({
+    pages: [
+      { speaker: "Lance", text: "...They crimped it forwards AND backwards, Harold." },
+      { speaker: "Harold", text: "Unprecedented. Our market research said nothing about heart." },
+      NAR("The six Crimp Records spill from their chrome display case and rush home through the glass."),
+      NAR("Before the mirror seals, robed figures shimmer into the white space between worlds..."),
+      { speaker: "Dennis", text: "ENOUGH. The Board of Shamen have CONVENED. This funk-custody dispute will be settled..." },
+      { speaker: "Dennis", text: "...the shaman way. A GRAND CRIMP-OFF. The Velvet Onion. Bring the six records. Bring your finest harmonies." },
+      V("A tournament, Howard. We're going to the Velvet Onion."),
+      H("The big stage, Vince. The full lineup. ...I'll bring the jazz."),
+    ],
+    onDone: () => {
+      api.setFlag("records_recovered");
+      api.setFlag("act3_started");
+      api.toast("The records are home! The Moon and the Temple call...");
+    },
+  }),
+  zeus_lose: (api) => [
+    { speaker: "Lance", text: "Sloppy. Derivative. Come back when you've rehearsed being us." },
+  ],
+  zeus_after: (api) => [
+    { speaker: "Harold", text: "We'll see you at the Onion, originals. The encore isn't over." },
+  ],
+
+  // ---- ACT 3: the Velvet Onion + the Grand Crimp-Off --------------------------
+  onion_enter: (api) => [
+    V("The Velvet Onion! The actual stage, Howard. The boards that launched a thousand looks."),
+    H("Stay focused, Vince. Tonight we're not the support act. Tonight we're the MAIN EVENT."),
+  ],
+  onion_merch: (api) => [V("Tour merch! 'CRIMP OF LEGENDS - LIVE'. They printed it before the result. Confident.")],
+  dennis: (api) => {
+    const D = (text) => ({ speaker: "Dennis", text });
+    if (api.recordCount() < 6) {
+      return [
+        D("WE CONVENE. ...You appear to be " + (6 - api.recordCount()) + " record(s) short."),
+        D("The format is SACRED. Six records. The Moon has one. Tony Harrison hoards the other. Off you go."),
+      ];
+    }
+    if (!api.flag("tourney_r1")) {
+      let pick = null;
+      return {
+        pages: [
+          D("Six records. The funk is whole. The GRAND CRIMP-OFF begins."),
+          D("ROUND ONE: the Remix Gauntlet. Champion's choice — face a legend at plus-eight tempo."),
+          { choice: "Choose your round-one remix:",
+            options: [
+              { label: "Spirit of Jazz", act: () => { pick = "jazz_remix"; } },
+              { label: "Old Gregg", act: () => { pick = "gregg_remix"; } },
+              { label: "Tony Harrison", act: () => { pick = "tony_remix"; } },
+              { label: "Not ready yet" },
+            ] },
+        ],
+        onDone: () => {
+          if (!pick) return;
+          api.startCrimp(pick, (win) => {
+            if (win) {
+              api.setFlag("tourney_r1");
+              api.toast("ROUND ONE WON! Saboo & Kirk take the stage...");
+              api.say([D("Adequate. EXTREMELY adequate. Round two: Saboo. And Kirk. Gawp respectfully.")]);
+            } else {
+              api.say([D("The remix claims another. Compose yourself and try again.")]);
+            }
+          });
+        },
+      };
+    }
+    if (!api.flag("beat_saboo")) return [
+      D("Round two stands upon the stage: Saboo, acquainted with the crunch. And Kirk. Who is... Kirk."),
+    ];
+    if (!api.flag("beat_zeus_final")) return [
+      D("THE FINAL. Your reflections have plugged themselves into the house system. This is EXTREMELY shamanic."),
+      D("Win, and the Power of Crimp is yours in perpetuity. Lose, and we all dress like THEM forever."),
+    ];
+    return [
+      D("Champions of the Grand Crimp-Off. The Board is satisfied. I'm going back to my soak."),
+      D("The Onion's stage is yours whenever you fancy an encore. The format... remains sacred."),
+    ];
+  },
+
+  saboo_pre: (api) => [
+    { speaker: "Saboo", text: "Come to gawp? Good. Gawp at a man ACQUAINTED with the crunch." },
+    { speaker: "Saboo", text: "I was robbed at Crimp-Off oh-six. The board remembers. The CRUNCH remembers." },
+    H("The crunch is a myth, sir. There's only the funk and its consequences."),
+    { speaker: "Saboo", text: "...Kirk, do the thing." },
+    NAR("(Kirk does the thing. The tempo rises unnaturally.)"),
+  ],
+  saboo_win: (api) => [
+    { speaker: "Saboo", text: "...So that's the crunch. It was inside you two berks the whole time. TYPICAL." },
+    { speaker: "", text: "(Kirk applauds. Once. It is somehow deafening.)" },
+    V("Cheers Kirk. You're an enigma and I respect it."),
+  ],
+  saboo_lose: (api) => [{ speaker: "Saboo", text: "Banished to the bin of sound. NEXT." }],
+  saboo_after: (api) => [{ speaker: "Saboo", text: "The final awaits. Do not embarrass the format." }],
+
+  zeusfinal_pre: (api) => [
+    { speaker: "Lance", text: "The originals. How retro. We've gone PLATINUM since the mirror, boys." },
+    { speaker: "Harold", text: "Six records of YOUR funk, remastered into OUR catalogue. The encore begins." },
+    V("That's our whole act, our whole look, our whole LIFE you've laminated."),
+    H("One last crimp, Vince. Forwards, backwards, and everything we've got."),
+    { speaker: "Tony", text: "(from the judges' table) This is an OUTRAGE. ...But it's also quite good. FIGHT." },
+  ],
+  ending: (api) => ({
+    pages: [
+      NAR("The last note lands. The house lights blaze. For one long second: silence."),
+      NAR("Then the Velvet Onion ERUPTS. Naboo nods, which from Naboo is a standing ovation."),
+      { speaker: "Lance", text: "...They crimped it better, Harold. Forwards AND backwards. With FEELING." },
+      { speaker: "Harold", text: "Market verdict accepted. We'll see ourselves back through the glass." },
+      NAR("The reflections bow — genuinely, this once — and fold away into nothing."),
+      { speaker: "Dennis", text: "THE BOARD DECREES: the Power of Crimp resides, in perpetuity, with these two berks." },
+      { speaker: "", text: "(Bollo, on the decks, drops the beat. The whole Zooniverse - jazz spirits, demon nans, the actual Moon - does the final chant.)" },
+      V("We did it, Howard. Legends. ACTUAL legends. How's the jazz feeling?"),
+      H("The jazz, Vince... the jazz feels MIGHTY."),
+      NAR("THE MIGHTY BOOSH: CRIMP OF LEGENDS"),
+      NAR("(The Onion stays open. The worlds stay weird. The crimping never stops.)"),
+    ],
+    onDone: () => {
+      api.setFlag("tourney_champion");
+      api.addShrapnel(300);
+      api.toast("CHAMPIONS OF THE GRAND CRIMP-OFF!  +300 shrapnel");
+    },
+  }),
+  zeusfinal_lose: (api) => [
+    { speaker: "Lance", text: "Lovely effort. Very authentic. Very... opening act." },
+    { speaker: "Harold", text: "Rehearse. Return. We do enjoy an encore." },
+  ],
+  zeusfinal_after: (api) => [
+    { speaker: "", text: "The stage hums quietly. Somewhere beyond the glass, two plastic boys are rehearsing humility." },
+  ],
+
+  greenroom_jazz: (api) => [{ speaker: "Jazz", text: "Daddy-o, the green room tea is WEAK. Good crimpin' out there tonight." }],
+  greenroom_gregg: (api) => [{ speaker: "Gregg", text: "I brought me watercolours. Painted the crowd. They're all you, mostly." }],
+  greenroom_nana: (api) => [{ speaker: "Nana", text: "I've done a crossword and cursed two roadies. Lovely venue." }],
+  greenroom_tony: (api) => [{ speaker: "Tony", text: "I'm JUDGING tonight. The tassels are regulation. NOTHING is an outrage so far. Unsettling." }],
+
   // ---- world entry banter ------------------------------------------------
   tundra_enter: (api) => [
     V("Brrr! It's a proper winter wonderland. My hair's gone all static."),
@@ -93,6 +413,43 @@ export const DIALOG = {
     H("Xooberon Temple. End of the line. The Board of Shaman await."),
     V("One more crimp-off, Howard. Then we're legends. Let's go."),
   ],
+
+  // ---- yeti woods ----------------------------------------------------------
+  yeti_enter: (api) => [
+    V("Pine trees! Actual countryside. My boots are NOT rated for moss."),
+    H("Hear that, Vince? Nothing. Proper wilderness silence. ...Why is the silence breathing?"),
+  ],
+  kodiak: (api) => [
+    { speaker: "Kodiak", text: "Name's Kodiak Jack. Trapper. Tracker. Soup enthusiast." },
+    { speaker: "Kodiak", text: "Them woods is bouncy this time o' year. Don't make eye contact with the moss." },
+    V("Bouncy? Woods can't be bouncy."),
+    { speaker: "Kodiak", text: "Tell that to the big fella up the hill. He INVENTED bouncy. Mind how you crimp." },
+  ],
+  search1_yeti: (api) => [H("Berries. Dozens of berry stems, all picked clean from two metres up. ...Tall pickers round here.")],
+  search2_yeti: (api) => [V("Someone's scratched a little chart into this rock. Tally marks and the word BOUNCE.")],
+  search3_yeti: (api) => [
+    V("There's a whole nest of white fluff in here. It's... warm."),
+    H("Don't nest in the fluff, Vince. We've talked about this."),
+  ],
+  collect_yeti: (api) => [
+    { speaker: "Yeti", text: "HhhRRMMM. (A claw points at your pockets, then the woods.)" },
+    H("I think he wants the three notes first, Vince. Even legends respect the format."),
+  ],
+  chest_yeti: (api) => [V("A chest in the woods! Bit suspicious. Bit brilliant.")],
+  yeti_pre: (api) => [
+    { speaker: "Yeti", text: "HhhrrRRMMM. RRMM-bouncy. (The ground shakes in 4/4.)" },
+    H("It's challenging us, Vince. The forest itself is the backing track."),
+    V("Then let's give the moss something to remember."),
+  ],
+  yeti_win: (api) => ({
+    pages: [
+      { speaker: "Yeti", text: "...rrmm. Bouncy. Good time, such a good time. (It bows, shedding gently.)" },
+      V("We out-bounced a myth, Howard. That's going in the memoirs."),
+    ],
+    onDone: () => api.give("cream"),
+  }),
+  yeti_lose: (api) => [{ speaker: "Yeti", text: "RRMMM. (It means: more bounce. Come back when you have it.)" }],
+  yeti_after: (api) => [{ speaker: "Yeti", text: "Hrrm hrrm hrrm. (It is humming your set. You are the forest's favourite band.)" }],
 
   // ---- tundra ------------------------------------------------------------
   tundra_explorer: (api) => [
@@ -141,7 +498,25 @@ export const DIALOG = {
     V("Lovely chap once you get past the... everything."),
   ],
   gregg_lose: (api) => [{ speaker: "Gregg", text: "You don't love me! Come back when ya feel the funk!" }],
-  gregg_after: (api) => [{ speaker: "Gregg", text: "You're me best mate now. Want to see me downstairs mix-up? No? Okay." }],
+  gregg_after: (api) => {
+    const q = api.quests.state("q_gregg_encore");
+    if (!q) {
+      let yes = false;
+      return {
+        pages: [
+          { speaker: "Gregg", text: "You're me best mate now. But best mates LOVE the album." },
+          { choice: "Gregg wants a PROPER performance. Grade A. Do you love him that much?",
+            options: [
+              { label: "Course we do, Gregg", act: () => { yes = true; } },
+              { label: "Easy now, fishman" },
+            ] },
+        ],
+        onDone: () => { if (yes) api.quests.start("q_gregg_encore"); },
+      };
+    }
+    if (q.state === "done") return [{ speaker: "Gregg", text: "Grade A love. I'm gonna frame it. Next to me watercolours." }];
+    return [{ speaker: "Gregg", text: "Still waiting on that grade A crimp, little man. Love Games never end." }];
+  },
 
   // ---- forest / Crack Fox ------------------------------------------------
   forest_naboo: (api) => [
@@ -165,7 +540,31 @@ export const DIALOG = {
     H("I need a wash. And a lie down. And possibly an exorcism."),
   ],
   crackfox_lose: (api) => [{ speaker: "CrackFox", text: "Too slow! The Crack Fox keeps his record! Wheeee!" }],
-  crackfox_after: (api) => [{ speaker: "CrackFox", text: "Hello shiny friends! Got any more shiny? No? Scuttle." }],
+  crackfox_after: (api) => {
+    const q = api.quests.state("q_fox_shinies");
+    if (!q) {
+      let yes = false;
+      return {
+        pages: [
+          { speaker: "CrackFox", text: "Hello shiny friends! The fox is going LEGITIMATE. A shiny shop! A shiny empire!" },
+          { choice: "He needs 4 Shiny Things for 'start-up capital'. Help the fox?",
+            options: [
+              { label: "Go on then, fox", act: () => { yes = true; } },
+              { label: "Absolutely not" },
+            ] },
+        ],
+        onDone: () => { if (yes) api.quests.start("q_fox_shinies"); },
+      };
+    }
+    if (q.state === "active" && q.stage === 1) {
+      return {
+        pages: [{ speaker: "CrackFox", text: "SHINY! Give 'em here! Wheee! The fox is a BUSINESSMAN now!" }],
+        onDone: () => api.setFlag("q_shinies_turnin"),
+      };
+    }
+    if (q.state === "done") return [{ speaker: "CrackFox", text: "Business is BOOMING. I ate the profits. Scuttle." }];
+    return [{ speaker: "CrackFox", text: "Four shinies! Shiny shiny! The bins provide, friends. The bins provide." }];
+  },
 
   // ---- nightosphere / Nanageddon -----------------------------------------
   night_naboo: (api) => [

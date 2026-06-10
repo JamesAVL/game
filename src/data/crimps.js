@@ -26,8 +26,48 @@ function lyrics(lines, totalBeats) {
   return lines.map((t, i) => [Math.round(step * (i + 1)), t]);
 }
 
+// deterministic post-pass: convert notes with breathing room into HOLDS
+// ([step, lane] -> [step, lane, holdSteps]). Counts never change, so the
+// locked chart invariants survive; only the shape gains a third field.
+export function addHolds(notes, seed = 1, chance = 0.18) {
+  let s = (seed * 2654435761) >>> 0 || 1;
+  const rnd = () => { s = (Math.imul(s, 1103515245) + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  return notes.map(([step, lane], i) => {
+    const next = notes[i + 1];
+    const gap = next ? next[0] - step : 8;
+    if (gap >= 4 && rnd() < chance) return [step, lane, Math.min(gap - 1, 6)];
+    return [step, lane];
+  });
+}
+
+// deterministic mirror transform: from `fromStep` onward every lane flips
+// left<->right (lane -> 3-lane). The Flighty Zeus crimp it backwards.
+export function mirrorPass(notes, fromStep) {
+  return notes.map(([step, lane, hold]) => {
+    const l = step >= fromStep ? 3 - lane : lane;
+    return hold ? [step, l, hold] : [step, l];
+  });
+}
+
+// a rematch chart: same song, denser + reseeded. tier 1+ for remixes/NG+.
+export function makeVariant(id, tier = 1) {
+  const base = CRIMPS[id];
+  if (!base || !base._chart) return base;
+  const c = base._chart;
+  const notes = makeChart({
+    seed: c.seed + tier * 7919,
+    length: c.length,
+    base: Math.max(1, c.base - 1),
+    runChance: Math.min(0.4, c.runChance + 0.06 * tier),
+    doubleChance: Math.min(0.3, c.doubleChance + 0.04 * tier),
+  });
+  return { ...base, notes, tier, name: base.name + " (remix)", bpm: base.bpm + 8 * tier };
+}
+
 function crimp(o) {
-  const notes = makeChart(o.chart);
+  let notes = makeChart(o.chart);
+  if (o.holds !== false) notes = addHolds(notes, o.chart.seed, o.holds || 0.16);
+  if (o.mirror) notes = mirrorPass(notes, o.mirror);
   const lastStep = notes[notes.length - 1][0];
   const beats = lastStep / 4;
   return {
@@ -40,6 +80,7 @@ function crimp(o) {
     intro: o.intro || "",
     notes,
     lyrics: lyrics(o.lyrics, beats),
+    _chart: o.chart,
   };
 }
 
@@ -50,6 +91,57 @@ export const CRIMPS = {
     intro: "Just feel the rhythm, you berks...",
     chart: { seed: 7, length: 96, base: 4, runChance: 0, doubleChance: 0 },
     lyrics: ["Come with me", "on a journey", "through the crimp", "feel the funk", "and let it flow", "nice one"],
+  }),
+
+  yeti: crimp({
+    name: "The Grand Yeti", face: "boss_yeti", trackKey: "crimp_yeti", bpm: 100,
+    bg0: "#0e1c14", bg1: "#1e3a26", bossScale: 2,
+    intro: "HhhrrRRMMM. (It means: crimp-off.)",
+    chart: { seed: 404, length: 180, base: 4, runChance: 0.06, doubleChance: 0.14 },
+    lyrics: ["we are the forest", "we are the fuzz", "bouncy bouncy", "moss in our minds", "sap in our veins",
+      "the trees taught us this one", "bouncy bouncy", "fuzzy forever", "up the mountain", "good time, such a good time"],
+  }),
+
+  saboo: crimp({
+    name: "Saboo & Kirk", face: "boss_saboo", trackKey: "crimp_saboo", bpm: 142,
+    bg0: "#160a24", bg1: "#2c1444", bossScale: 2,
+    intro: "You know NOTHING of the crunch.",
+    chart: { seed: 999, length: 230, base: 2, runChance: 0.18, doubleChance: 0.08 },
+    lyrics: ["behold the crunch", "you know nothing of the crunch", "I was robbed in oh-six", "the board remembers",
+      "Kirk, do the thing", "(Kirk does the thing)", "ouija up the tempo", "your funk is provisional",
+      "banished to the bin of sound", "the crunch! the crunch!"],
+  }),
+
+  zeus_final: crimp({
+    name: "Flighty Zeus Ultimate", face: "boss_zeus", trackKey: "crimp_zeus_final", bpm: 148,
+    bg0: "#241430", bg1: "#4a2a5a", bossScale: 2,
+    intro: "Six records deep. We are the ENCORE.",
+    chart: { seed: 1212, length: 260, base: 2, runChance: 0.20, doubleChance: 0.10 },
+    mirror: 130, holds: 0.22,
+    lyrics: ["the final reflection", "six records deep", "we are the encore", "you're the rehearsal",
+      "give us the funk, boys", "it fits us better", "you've nicked my trousers", "you've nicked my JAZZ",
+      "two worlds, one stage", "smash the glass", "crimp of legends", "no more mirrors"],
+  }),
+
+  hitcher: crimp({
+    name: "The Hitcher", face: "boss_hitcher", trackKey: "crimp_hitcher", bpm: 134,
+    bg0: "#0c120c", bg1: "#1e2c1a", bossScale: 2,
+    intro: "Evenin'. Lovely night for an abduction.",
+    chart: { seed: 666, length: 220, base: 2, runChance: 0.14, doubleChance: 0.05 },
+    lyrics: ["evenin', little man", "I'm the cockney nightmare", "green as a gooseberry", "thumb like a skeleton key",
+      "eels in the kettle", "eels in the post", "eels up the drainpipe", "want any? want any?",
+      "polos for the eel man", "your mate's in the cellar", "London says goodnight", "oi oi", "eels eels eels"],
+  }),
+
+  zeus: crimp({
+    name: "The Flighty Zeus", face: "boss_zeus", trackKey: "crimp_zeus", bpm: 126,
+    bg0: "#1a2030", bg1: "#3a4464", bossScale: 2,
+    intro: "We're you. But retail-ready.",
+    chart: { seed: 515, length: 210, base: 2, runChance: 0.16, doubleChance: 0.06 },
+    mirror: 105, // halfway through, every lane flips: they crimp it backwards
+    lyrics: ["we're the Flighty Zeus", "better than the real thing", "mirror mirror men", "your haircut, but improved",
+      "your banter, but managed", "we crimp it backwards", "left is right tonight", "two plastic boys",
+      "shinier than you", "go on, catch your reflection", "we already did"],
   }),
 
   jazz: crimp({
@@ -107,3 +199,9 @@ export const CRIMPS = {
       "out-crimp the council", "this is a circus", "an OUTRAGE I say", "the crimp of legends"],
   }),
 };
+
+// tournament round 1: every beaten boss has a remix on the shelf (+8bpm,
+// denser, reseeded) — the champion picks their own gauntlet.
+for (const id of ["jazz", "gregg", "crackfox", "nana", "moon", "tony"]) {
+  CRIMPS[id + "_remix"] = makeVariant(id, 1);
+}

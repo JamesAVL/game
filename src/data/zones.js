@@ -7,6 +7,17 @@
 // search themed scenery for XP/lore, help a side-quest NPC, then out-crimp the
 // boss (gated on the 3 notes). Crimps are boss-only.
 
+// per-zone ambient gloom, the single source for BOTH render paths (2D light
+// pass + 3D sun/hemisphere scaling). level 1 = fully lit (entry omitted).
+export const ZONE_LIGHT = {
+  night: { level: 0.34 },
+  moon: { level: 0.5 },
+  sea: { level: 0.52 },
+  temple: { level: 0.58 },
+  eelpit: { level: 0.4 },
+  mirror: { level: 0.66 },
+};
+
 function blank(w, h, edge = "#", floor = ".") {
   const m = [];
   for (let y = 0; y < h; y++) {
@@ -36,27 +47,78 @@ function hubMap() {
   rect(m, 24, 3, 6, 4, "~"); set(m, 23, 4, "~"); set(m, 30, 4, "~"); // pond
   rect(m, 11, 9, 12, 5, "_");                                        // plaza
   scatter(m, "O", [[14, 4], [19, 5], [5, 16], [28, 16], [12, 17], [22, 18]]);
-  scatter(m, "\"", [[8, 8], [26, 9], [4, 12], [30, 12], [16, 19], [9, 19]]);
+  scatter(m, "\"", [[8, 8], [26, 9], [30, 12], [16, 19], [9, 19]]);
   scatter(m, "+", [[5, 18], [10, 18], [15, 18], [20, 18], [25, 18], [29, 8]]);
+  // an old store room nobody remembers; its east wall isn't all wall ("%")
+  pocket(m, 2, 11, 4, 3);
+  set(m, 5, 12, "%");
   return m;
 }
 
 const HUB = {
   id: "hub", name: "The Zooniverse", tileset: "tiles_hub", music: "hub",
+  view: "3d",
   spawn: { x: 16, y: 11, dir: "down" },
   map: hubMap(),
   entities: [
-    { type: "npc", x: 6, y: 6, sprite: "naboo", dialog: "naboo" },
-    { type: "npc", x: 9, y: 7, sprite: "bollo", dialog: "bollo" },
-    { type: "npc", x: 20, y: 6, sprite: "fossil", dialog: "fossil" },
+    // the Nabootique door tiles lead inside (shop, wardrobe stock, potions)
+    { type: "warp", x: 6, y: 5, to: "nabootique", tox: 6, toy: 8, todir: "up" },
+    { type: "warp", x: 7, y: 5, to: "nabootique", tox: 7, toy: 8, todir: "up" },
+    { type: "npc", x: 4, y: 7, sprite: "naboo", dialog: "naboo" },
+    { type: "npc", x: 9, y: 7, sprite: "bollo", dialog: "bollo", wander: 2 },
+    { type: "npc", x: 20, y: 6, sprite: "fossil", dialog: "fossil", wander: 3 },
     { type: "search", x: 13, y: 8, prop: "crate", dialog: "hub_search1", xp: 3 },
     { type: "search", x: 27, y: 10, prop: "bin", dialog: "hub_search2", xp: 3 },
+    // the forgotten store room (behind the secret wall at (5,12))
+    { type: "search", x: 3, y: 12, prop: "crate", dialog: "hub_storeroom", shrapnel: 40, xp: 6 },
+    // at night, someone leaves polos by the east bin. nobody asks why.
+    { type: "search", x: 24, y: 12, prop: "rock", dialog: "night_polos", item: "polo",
+      flag: "night_polos_found", when: { phase: "night" } },
     { type: "portal", x: 5, y: 18, to: "tundra", color: "#9fe0ff", label: "Tundra" },
     { type: "portal", x: 10, y: 18, to: "sea", color: "#5affc0", label: "The Sea" },
     { type: "portal", x: 15, y: 18, to: "forest", color: "#ff9a5a", label: "The Bins" },
     { type: "portal", x: 20, y: 18, to: "night", color: "#c77aff", label: "Nightosphere" },
     { type: "portal", x: 25, y: 18, to: "moon", color: "#fff2a0", label: "The Moon" },
     { type: "portal", x: 29, y: 8, to: "temple", color: "#ff7ad8", label: "Temple" },
+    { type: "portal", x: 29, y: 14, to: "yeti", color: "#9fffb0", label: "Yeti Woods" },
+    { type: "portal", x: 31, y: 11, to: "onion", color: "#ffb0e8", label: "Velvet Onion" },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// THE NABOOTIQUE — Naboo's shop interior: counter (buy/sell), Howard's record
+// crate, and the potion back room. Always unlocked; entered via the hub doors.
+// ---------------------------------------------------------------------------
+function nabootiqueMap() {
+  const m = blank(14, 10, "#", ".");
+  set(m, 11, 0, "D");                          // back-room door (dressing)
+  rect(m, 2, 3, 4, 1, "X");                    // the counter
+  scatter(m, "X", [[1, 1], [12, 4], [1, 4]]);  // shelving units of dodgy stock
+  scatter(m, "\"", [[9, 2], [3, 7]]);          // rugs/incense
+  set(m, 6, 9, "D"); set(m, 7, 9, "D");        // doorway back to the hub
+  return m;
+}
+
+const NABOOTIQUE = {
+  id: "nabootique", name: "The Nabootique", tileset: "tiles_hub", music: "hub",
+  view: "3d",
+  spawn: { x: 6, y: 7, dir: "up" },
+  onEnter: "nabootique_enter",
+  map: nabootiqueMap(),
+  entities: [
+    { type: "shop", x: 3, y: 3, shop: "nabootique" },
+    { type: "shop", x: 4, y: 3, shop: "nabootique" },
+    { type: "npc", x: 6, y: 2, sprite: "naboo", dialog: "naboo_shop" },
+    { type: "npc", x: 9, y: 5, sprite: "bollo", dialog: "bollo_decks" },
+    { type: "search", x: 10, y: 6, prop: "crate", dialog: "howard_crate", flag: "howard_crate_seen" },
+    { type: "minigame", x: 11, y: 1, game: "potion", label: "Potion room" },
+    // THE TWIST: at four records the shrine mirror has had enough
+    { type: "trigger", x: 6, y: 8, dialog: "the_twist", once: true, when: { minRecords: 4 } },
+    { type: "trigger", x: 7, y: 8, dialog: "the_twist", once: true, when: { minRecords: 4 } },
+    // the way into the Mirror World, once Naboo's polish does its work
+    { type: "portal", x: 12, y: 7, to: "mirror", color: "#cfd8f4", label: "The Mirror", when: { flag: "mirror_key" } },
+    { type: "warp", x: 6, y: 9, to: "hub", tox: 6, toy: 6, todir: "down" },
+    { type: "warp", x: 7, y: 9, to: "hub", tox: 7, toy: 6, todir: "down" },
   ],
 };
 
@@ -84,6 +146,7 @@ function makeWorld(cfg) {
   const searches = L.searches.map((s) => ({ type: "search", x: s[0], y: s[1], prop: s[2], dialog: s[3], xp: s[4] }));
   return {
     id: cfg.id, name: cfg.name, tileset: cfg.tileset, music: cfg.music,
+    view: "3d",
     weather: cfg.weather, onEnter: cfg.onEnter,
     spawn: { x: sp[0], y: sp[1], dir: "up" },
     collect: { item: cfg.note, need: 3, label: "Crimp Notes", dialog: "collect_" + cfg.id },
@@ -100,6 +163,8 @@ function makeWorld(cfg) {
       { type: "switch", x: L.sw[0], y: L.sw[1], gate: cfg.id + "_g", toast: L.toast || "A gate grinds open somewhere..." },
       { type: "gate", x: pk.door[0], y: pk.door[1], gate: cfg.id + "_g" },
       cfg.boss,
+      // per-world extras: collectibles, side-quest props, secrets
+      ...(cfg.extra || []),
     ],
   };
 }
@@ -119,8 +184,12 @@ const TUNDRA = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_jazz", crimp: "jazz", name: "Spirit of Jazz",
     dialog: "jazz_pre", winDialog: "jazz_win", loseDialog: "jazz_lose", afterDialog: "jazz_after",
-    winFlag: "beat_jazz", record: "rec_jazz", unlock: "sea", xp: 20,
+    winFlag: "beat_jazz", record: "rec_jazz", xp: 20,
   },
+  extra: [
+    { type: "collectible", set: "radiators", idx: 0, x: 8, y: 21 },
+    { type: "collectible", set: "jazzrecs", idx: 0, x: 22, y: 17 },
+  ],
 });
 
 const SEA = makeWorld({
@@ -138,8 +207,12 @@ const SEA = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_gregg", crimp: "gregg", name: "Old Gregg",
     dialog: "gregg_pre", winDialog: "gregg_win", loseDialog: "gregg_lose", afterDialog: "gregg_after",
-    winFlag: "beat_gregg", record: "rec_gregg", unlock: "forest", xp: 28,
+    winFlag: "beat_gregg", record: "rec_gregg", xp: 28,
   },
+  extra: [
+    { type: "collectible", set: "jazzrecs", idx: 1, x: 10, y: 19 },
+    { type: "collectible", set: "shinies", idx: 0, x: 20, y: 12 },
+  ],
 });
 
 const FOREST = makeWorld({
@@ -157,8 +230,12 @@ const FOREST = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_crackfox", crimp: "crackfox", name: "The Crack Fox",
     dialog: "crackfox_pre", winDialog: "crackfox_win", loseDialog: "crackfox_lose", afterDialog: "crackfox_after",
-    winFlag: "beat_crackfox", record: "rec_crackfox", unlock: "night", xp: 36,
+    winFlag: "beat_crackfox", record: "rec_crackfox", xp: 36,
   },
+  extra: [
+    { type: "collectible", set: "radiators", idx: 1, x: 20, y: 15 },
+    { type: "collectible", set: "shinies", idx: 1, x: 7, y: 13 },
+  ],
 });
 
 const NIGHT = makeWorld({
@@ -176,8 +253,12 @@ const NIGHT = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_nana", crimp: "nana", name: "Nanageddon",
     dialog: "nana_pre", winDialog: "nana_win", loseDialog: "nana_lose", afterDialog: "nana_after",
-    winFlag: "beat_nana", record: "rec_nana", unlock: "moon", xp: 44,
+    winFlag: "beat_nana", record: "rec_nana", xp: 44,
   },
+  extra: [
+    { type: "collectible", set: "radiators", idx: 2, x: 18, y: 20 },
+    { type: "collectible", set: "shinies", idx: 2, x: 12, y: 18 },
+  ],
 });
 
 const MOON = makeWorld({
@@ -195,8 +276,12 @@ const MOON = makeWorld({
   boss: {
     type: "boss", x: 15, y: 3, sprite: "boss_moon", crimp: "moon", name: "The Moon",
     dialog: "moon_pre", winDialog: "moon_win", loseDialog: "moon_lose", afterDialog: "moon_after",
-    winFlag: "beat_moon", record: "rec_moon", unlock: "temple", xp: 52,
+    winFlag: "beat_moon", record: "rec_moon", xp: 52,
   },
+  extra: [
+    { type: "collectible", set: "jazzrecs", idx: 2, x: 8, y: 17 },
+    { type: "collectible", set: "shinies", idx: 3, x: 20, y: 11 },
+  ],
 });
 
 const TEMPLE = makeWorld({
@@ -216,6 +301,133 @@ const TEMPLE = makeWorld({
     dialog: "tony_pre", winDialog: "tony_win", loseDialog: "tony_lose", afterDialog: "tony_after",
     winFlag: "beat_tony", record: "rec_tony", xp: 80,
   },
+  extra: [
+    { type: "collectible", set: "jazzrecs", idx: 3, x: 18, y: 20 },
+  ],
 });
 
-export const ZONES = { hub: HUB, tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE };
+// Yeti Woods — Act 1's optional breather: no record, pure flavour and loot.
+// "Call of the Yeti" energy: pines, a hot spring, something fuzzy watching.
+const YETI = makeWorld({
+  id: "yeti", name: "Yeti Woods", tileset: "tiles_yeti", music: "amb_yeti",
+  weather: "leaves", onEnter: "yeti_enter", color: "#9fffb0", note: "note_yeti",
+  toast: "Roots untangle a path to the north-east!",
+  layout: {
+    rocks: [[7, 8], [23, 9], [11, 16], [21, 17], [15, 12], [6, 21]],
+    deco: [[9, 12], [19, 10], [12, 20], [24, 14], [16, 18]],
+    walls: [{ o: "h", x: 7, y: 14, n: 12, gap: [4, 5] }],
+    pocket: { x: 22, y: 4, w: 5, h: 5, door: [22, 6], note: [24, 6] },
+    noteA: [5, 19], chest: [9, 6], sw: [12, 9],
+    searches: [[8, 18, "bush", "search1_yeti", 8], [22, 21, "rock", "search2_yeti", 8], [17, 8, "bush", "search3_yeti", 14]],
+  },
+  boss: {
+    type: "boss", x: 15, y: 3, sprite: "boss_yeti", crimp: "yeti", name: "The Grand Yeti",
+    dialog: "yeti_pre", winDialog: "yeti_win", loseDialog: "yeti_lose", afterDialog: "yeti_after",
+    winFlag: "beat_yeti", xp: 30,
+  },
+  extra: [
+    { type: "npc", x: 6, y: 10, sprite: "fossil", dialog: "kodiak" },
+    { type: "collectible", set: "tufts", idx: 0, x: 12, y: 18 },
+    { type: "collectible", set: "tufts", idx: 1, x: 25, y: 11 },
+    { type: "collectible", set: "tufts", idx: 2, x: 5, y: 9 },
+    { type: "collectible", set: "tufts", idx: 3, x: 18, y: 21 },
+  ],
+});
+
+// The Eel Pit, Old London — Act 2's story descent. Vince goes in ALONE
+// (Howard is the Hitcher's "wages"); the follower system simply has nobody
+// to follow, and you feel it. Polos buy an audience with the boss.
+const EELPIT = makeWorld({
+  id: "eelpit", name: "The Eel Pit", tileset: "tiles_eelpit", music: "amb_eel",
+  weather: "rain", onEnter: "eelpit_enter", color: "#9fdca0", note: "note_eelpit",
+  toast: "A sluice gate shudders open to the north-west!",
+  layout: {
+    rocks: [[8, 8], [22, 10], [12, 15], [20, 18], [6, 18], [25, 21]],
+    deco: [[10, 11], [18, 12], [9, 20], [24, 16], [14, 19]],
+    walls: [{ o: "v", x: 14, y: 6, n: 10, gap: [4, 5] }],
+    pocket: { x: 3, y: 4, w: 5, h: 5, door: [5, 8], note: [4, 6] },
+    noteA: [25, 7], chest: [20, 21], sw: [22, 13],
+    searches: [[7, 14, "bin", "search1_eelpit", 10], [24, 8, "rock", "search2_eelpit", 10], [16, 20, "bin", "search3_eelpit", 16]],
+  },
+  boss: {
+    type: "boss", x: 15, y: 3, sprite: "boss_hitcher", crimp: "hitcher", name: "The Hitcher",
+    dialog: "hitcher_pre", winDialog: "hitcher_win", loseDialog: "hitcher_lose", afterDialog: "hitcher_after",
+    winFlag: "beat_hitcher", xp: 60,
+    require: "polo", requireDialog: "hitcher_need_polo",
+  },
+  extra: [
+    { type: "npc", x: 8, y: 10, sprite: "naboo", dialog: "eleanor" },
+    { type: "item", x: 11, y: 19, item: "polo", flag: "eel_polo1" },
+    { type: "item", x: 23, y: 18, item: "polo", flag: "eel_polo2" },
+    { type: "item", x: 6, y: 12, item: "polo", flag: "eel_polo3" },
+  ],
+});
+
+// Mirror World — the hub, reflected and wrong. Authored by literally
+// flipping the hub map; everyone here is a smug reverse of someone you know.
+function mirrorMap() {
+  return hubMap().map((row) => row.split("").reverse().join(""));
+}
+const MX = (x) => 33 - x; // mirror an x coordinate across the hub's width
+
+const MIRROR = {
+  id: "mirror", name: "Mirror World", tileset: "tiles_mirror", music: "amb_mirror",
+  view: "3d",
+  weather: "glints", onEnter: "mirror_enter",
+  spawn: { x: MX(16), y: 11, dir: "down" },
+  map: mirrorMap(),
+  entities: [
+    { type: "npc", x: MX(4), y: 7, sprite: "naboo", dialog: "mirror_naboo" },
+    { type: "npc", x: MX(20), y: 6, sprite: "fossil", dialog: "mirror_fossil" },
+    { type: "boss", x: MX(16), y: 16, sprite: "boss_zeus", crimp: "zeus", name: "The Flighty Zeus",
+      dialog: "zeus_pre", winDialog: "zeus_win", loseDialog: "zeus_lose", afterDialog: "zeus_after",
+      winFlag: "beat_zeus1", xp: 70 },
+    { type: "search", x: MX(3), y: 12, prop: "crate", dialog: "mirror_storeroom", shrapnel: 60, xp: 8 },
+    { type: "portal", x: MX(5), y: 18, to: "hub", color: "#cfd8f4", label: "Back through" },
+  ],
+};
+
+// The Velvet Onion — the tournament venue. The stage up top, the green room
+// filling with beaten bosses as you win, Dennis running the format.
+function onionMap() {
+  const m = blank(24, 14, "#", ".");
+  rect(m, 4, 2, 16, 3, "_");                       // the stage
+  scatter(m, "X", [[2, 2], [21, 2], [2, 4], [21, 4]]); // PA stacks
+  rect(m, 3, 9, 18, 1, "\"");                      // the green-room carpet
+  scatter(m, "O", [[1, 7], [22, 7]]);
+  set(m, 11, 13, "D"); set(m, 12, 13, "D");        // doors to the street
+  return m;
+}
+
+const ONION = {
+  id: "onion", name: "The Velvet Onion", tileset: "tiles_night", music: "amb_onion",
+  view: "3d",
+  spawn: { x: 11, y: 11, dir: "up" },
+  onEnter: "onion_enter",
+  map: onionMap(),
+  entities: [
+    { type: "npc", x: 12, y: 6, sprite: "naboo", dialog: "dennis" },
+    // round two waits on the stage once round one is won
+    { type: "boss", x: 8, y: 3, sprite: "boss_saboo", crimp: "saboo", name: "Saboo & Kirk",
+      dialog: "saboo_pre", winDialog: "saboo_win", loseDialog: "saboo_lose", afterDialog: "saboo_after",
+      winFlag: "beat_saboo", xp: 80, when: { flag: "tourney_r1" } },
+    // and the final: your reflections, plugged into all six records
+    { type: "boss", x: 15, y: 3, sprite: "boss_zeus", crimp: "zeus_final", name: "Flighty Zeus Ultimate",
+      dialog: "zeusfinal_pre", winDialog: "ending", loseDialog: "zeusfinal_lose", afterDialog: "zeusfinal_after",
+      winFlag: "beat_zeus_final", xp: 120, when: { flag: "beat_saboo" } },
+    // the green room fills up as legends fall
+    { type: "npc", x: 4, y: 10, sprite: "boss_jazz", dialog: "greenroom_jazz", when: { flag: "beat_jazz" } },
+    { type: "npc", x: 7, y: 10, sprite: "boss_gregg", dialog: "greenroom_gregg", when: { flag: "beat_gregg" } },
+    { type: "npc", x: 16, y: 10, sprite: "boss_nana", dialog: "greenroom_nana", when: { flag: "beat_nana" } },
+    { type: "npc", x: 19, y: 10, sprite: "boss_tony", dialog: "greenroom_tony", when: { flag: "beat_tony" } },
+    { type: "search", x: 21, y: 11, prop: "crate", dialog: "onion_merch", shrapnel: 25, xp: 5 },
+    { type: "warp", x: 11, y: 13, to: "hub", tox: 31, toy: 12, todir: "down" },
+    { type: "warp", x: 12, y: 13, to: "hub", tox: 31, toy: 12, todir: "down" },
+  ],
+};
+
+export const ZONES = {
+  hub: HUB, nabootique: NABOOTIQUE,
+  tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE,
+  yeti: YETI, eelpit: EELPIT, mirror: MIRROR, onion: ONION,
+};
