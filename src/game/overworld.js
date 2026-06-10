@@ -8,14 +8,7 @@ import { renderLighting } from "../engine/light.js";
 import { drawText, textCentered, textWidth, panel, drawFrame } from "../engine/gfx.js";
 import { Camera } from "../engine/gfx.js";
 
-// per-zone ambient gloom (level 1 = fully lit, skipped). Sunlit zones stay 1;
-// the surreal/indoor worlds get atmospheric darkness that light sources cut through.
-const ZONE_LIGHT = {
-  night: { level: 0.34 },
-  moon: { level: 0.5 },
-  sea: { level: 0.52 },
-  temple: { level: 0.58 },
-};
+import { ZONE_LIGHT } from "../data/zones.js";
 import { Sfx, playMusic, stopMusic } from "../engine/audio.js";
 import { buildZone, getZone } from "./world.js";
 import { Party } from "./player.js";

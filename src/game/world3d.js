@@ -24,6 +24,7 @@ import { drawText, textWidth } from "../engine/gfx.js";
 import { GS } from "./state.js";
 import { ITEM_INDEX } from "../data/items.js";
 import { COLLECTIONS } from "../data/collectibles.js";
+import { ZONE_LIGHT } from "../data/zones.js";
 
 const PITCH = (-55 * Math.PI) / 180;
 const DIST = 13;
@@ -93,11 +94,13 @@ export class WorldView3D {
     const scene = new THREE.Scene();
     const fog = FOG[def.id] !== undefined ? FOG[def.id] : 0x141220;
     scene.background = new THREE.Color(fog);
-    scene.fog = new THREE.Fog(fog, 16, 34);
+    // dark zones: closer fog sells the gloom the 2D light pass used to paint
+    const amb = (ZONE_LIGHT[def.id] && ZONE_LIGHT[def.id].level) || 1;
+    scene.fog = new THREE.Fog(fog, amb < 1 ? 9 : 16, amb < 1 ? 22 : 34);
     this.scene = scene;
 
     // ---- lights ----------------------------------------------------------
-    const sun = new THREE.DirectionalLight(0xfff2dd, 2.2);
+    const sun = new THREE.DirectionalLight(amb < 1 ? 0xcfd4ff : 0xfff2dd, 2.2 * (0.25 + 0.75 * amb));
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     sun.shadow.camera.left = -11; sun.shadow.camera.right = 11;
@@ -106,7 +109,25 @@ export class WorldView3D {
     sun.shadow.normalBias = 0.03;
     scene.add(sun); scene.add(sun.target);
     this.sun = sun;
-    scene.add(new THREE.HemisphereLight(0xb8c0e8, 0x3a3448, 1.15));
+    scene.add(new THREE.HemisphereLight(0xb8c0e8, 0x3a3448, 1.15 * (0.3 + 0.7 * amb)));
+
+    // dark zones carry their own light: a warm torch on the party plus glow
+    // pools on portals and the lurking boss (the buildLights() port)
+    if (amb < 1) {
+      this.torch = new THREE.PointLight(0xffe2aa, 14, 7, 1.6);
+      this.torch.position.y = 1.2;
+      scene.add(this.torch);
+      let glows = 0;
+      for (const e of ow.entities) {
+        if (glows >= 5) break;
+        const col = e.type === "portal" ? 0x968cff : e.type === "boss" ? 0xff6e78 : 0;
+        if (!col) continue;
+        const pl = new THREE.PointLight(col, 8, 5.5, 1.7);
+        pl.position.set(e.px / TILE + 0.5, 0.7, e.py / TILE + 0.5);
+        scene.add(pl);
+        glows++;
+      }
+    }
 
     // ---- ground: the 2D tileset baked to one textured plane ---------------
     const bake = document.createElement("canvas");
@@ -345,6 +366,7 @@ export class WorldView3D {
     // sun follows the camera target so the shadow map stays where the eye is
     this.sun.position.set(this.target.x + 6, 11, this.target.z + 4);
     this.sun.target.position.copy(this.target);
+    if (this.torch) this.torch.position.set(px, 1.2, pz - 0.3);
   }
 
   // draw the 3D world into the present chain, then the few 2D world-space

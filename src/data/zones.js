@@ -7,6 +7,15 @@
 // search themed scenery for XP/lore, help a side-quest NPC, then out-crimp the
 // boss (gated on the 3 notes). Crimps are boss-only.
 
+// per-zone ambient gloom, the single source for BOTH render paths (2D light
+// pass + 3D sun/hemisphere scaling). level 1 = fully lit (entry omitted).
+export const ZONE_LIGHT = {
+  night: { level: 0.34 },
+  moon: { level: 0.5 },
+  sea: { level: 0.52 },
+  temple: { level: 0.58 },
+};
+
 function blank(w, h, edge = "#", floor = ".") {
   const m = [];
   for (let y = 0; y < h; y++) {
@@ -120,6 +129,7 @@ function makeWorld(cfg) {
   const searches = L.searches.map((s) => ({ type: "search", x: s[0], y: s[1], prop: s[2], dialog: s[3], xp: s[4] }));
   return {
     id: cfg.id, name: cfg.name, tileset: cfg.tileset, music: cfg.music,
+    view: "3d",
     weather: cfg.weather, onEnter: cfg.onEnter,
     spawn: { x: sp[0], y: sp[1], dir: "up" },
     collect: { item: cfg.note, need: 3, label: "Crimp Notes", dialog: "collect_" + cfg.id },
