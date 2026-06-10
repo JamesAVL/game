@@ -36,6 +36,7 @@ const FOG = {
   hub: 0x1a2616, nabootique: 0x171022,
   tundra: 0x1c2a38, sea: 0x06202a, forest: 0x161e10,
   night: 0x140822, moon: 0x0a0a20, temple: 0x241408,
+  yeti: 0x101c12, eelpit: 0x10160f, mirror: 0x232c44,
 };
 
 const fadedMaterial = voxMaterial.clone();
@@ -328,6 +329,7 @@ export class WorldView3D {
       walk(this.vince, this.t, ow.party.moving, dt || 0.016);
     }
     if (this.howard) {
+      this.howard.group.visible = !GS.flag("howard_taken");
       const f = ow.party.followerPose();
       this.howard.group.position.x = (f.x + 8 * ART) / TILE;
       this.howard.group.position.z = (f.y + 23 * ART) / TILE;

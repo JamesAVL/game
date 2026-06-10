@@ -145,6 +145,8 @@ export const MANIFEST = {
   boss_moon: "assets/sprites/boss_moon.png",
   boss_tony: "assets/sprites/boss_tony.png",
   boss_yeti: "assets/sprites/boss_yeti.png",
+  boss_hitcher: "assets/sprites/boss_hitcher.png",
+  boss_zeus: "assets/sprites/boss_zeus.png",
   // companion normal maps for per-pixel boss lighting in the crimp
   boss_jazz_n: "assets/sprites/boss_jazz_n.png",
   boss_gregg_n: "assets/sprites/boss_gregg_n.png",
@@ -153,6 +155,8 @@ export const MANIFEST = {
   boss_moon_n: "assets/sprites/boss_moon_n.png",
   boss_tony_n: "assets/sprites/boss_tony_n.png",
   boss_yeti_n: "assets/sprites/boss_yeti_n.png",
+  boss_hitcher_n: "assets/sprites/boss_hitcher_n.png",
+  boss_zeus_n: "assets/sprites/boss_zeus_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",
@@ -161,6 +165,8 @@ export const MANIFEST = {
   tiles_moon: "assets/tiles/moon.png",
   tiles_temple: "assets/tiles/temple.png",
   tiles_yeti: "assets/tiles/yeti.png",
+  tiles_eelpit: "assets/tiles/eelpit.png",
+  tiles_mirror: "assets/tiles/mirror.png",
   items: "assets/items/items.png",
   props: "assets/sprites/props.png",
   bg_stars: "assets/bg/stars.png",
@@ -179,6 +185,8 @@ export const MANIFEST = {
   model_boss_moon: "assets/models/boss_moon.glb",
   model_boss_tony: "assets/models/boss_tony.glb",
   model_boss_yeti: "assets/models/boss_yeti.glb",
+  model_boss_hitcher: "assets/models/boss_hitcher.glb",
+  model_boss_zeus: "assets/models/boss_zeus.glb",
   model_tilekit_hub: "assets/models/tilekit_hub.glb",
   model_tilekit_tundra: "assets/models/tilekit_tundra.glb",
   model_tilekit_sea: "assets/models/tilekit_sea.glb",
@@ -187,6 +195,8 @@ export const MANIFEST = {
   model_tilekit_moon: "assets/models/tilekit_moon.glb",
   model_tilekit_temple: "assets/models/tilekit_temple.glb",
   model_tilekit_yeti: "assets/models/tilekit_yeti.glb",
+  model_tilekit_eelpit: "assets/models/tilekit_eelpit.glb",
+  model_tilekit_mirror: "assets/models/tilekit_mirror.glb",
 };
 
 const images = {};

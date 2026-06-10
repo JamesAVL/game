@@ -46,6 +46,8 @@ const WEATHER_CFG = {
   stars: { n: 50, color: "#fff6c0", vy: [-6, -2], vx: [-2, 2], size: [1, 2], rise: true, sway: 4, alpha: 0.9, twinkle: true },
   dust: { n: 36, color: "#e6d2a0", vy: [-4, 4], vx: [-5, 5], size: [1, 1], rise: false, sway: 6, alpha: 0.4 },
   pollen: { n: 24, color: "#dfe8a0", vy: [-5, 5], vx: [-6, 6], size: [1, 1], rise: false, sway: 8, alpha: 0.5 },
+  rain: { n: 80, color: "#9fc4e8", vy: [130, 190], vx: [-22, -14], size: [1, 2], rise: false, sway: 0, alpha: 0.5 },
+  glints: { n: 26, color: "#ffffff", vy: [-3, 3], vx: [-3, 3], size: [1, 1], rise: false, sway: 3, alpha: 0.8, twinkle: true },
 };
 
 function rr(a, b) { return a + Math.random() * (b - a); }
@@ -115,8 +117,15 @@ export class Overworld {
         this.toast("New portals hum to life: The Sea and the Nightosphere!");
       }
     }
-    if (r >= 4) open("moon", "A pale light beckons: the Moon portal is open!");
-    if (r >= 5) open("temple", "Xooberon Temple unseals. The Board of Shamen await.");
+    // four records wake the mirror; the rest of the worlds wait for Act 3
+    if (r >= 4 && !GS.flag("twist_seen") && !GS.flag("twist_hint")) {
+      GS.setFlag("twist_hint");
+      this.toast("Naboo's mirror is humming. Best pop back to the Nabootique...");
+    }
+    if (GS.flag("beat_zeus1")) {
+      open("moon", "A pale light beckons: the Moon portal is open!");
+      open("temple", "Xooberon Temple unseals. The Board of Shamen await.");
+    }
   }
 
   // re-evaluate active quests after any state change (zero polling); toast
@@ -622,8 +631,10 @@ export class Overworld {
   }
 
   renderHud(ctx) {
-    // top status strip
-    drawText(ctx, "Records " + GS.recordCount() + "/6", 6 * ART, 5 * ART, { color: "#ffd86a", shadow: "#000" });
+    // top status strip (the records grey to "?" while the Zeus hold them)
+    const stolen = GS.flag("records_stolen") && !GS.flag("records_recovered");
+    drawText(ctx, "Records " + (stolen ? "?" : GS.recordCount()) + "/6", 6 * ART, 5 * ART,
+      { color: stolen ? "#8a8aa6" : "#ffd86a", shadow: "#000" });
     // shrapnel purse (coin icon from the items strip, if baked)
     const items = img("items");
     const sx = 6 * ART, sy = 14 * ART;

@@ -323,6 +323,83 @@ def yeti():
     save_with_outline(cv, "boss_yeti")
 
 
+def hitcher():
+    cv = Canvas(56, 92, cs=CS)
+    skin = (110, 160, 96); skinhi = (150, 200, 130); coat = (34, 36, 42); coathi = (64, 68, 78)
+    hat = (22, 22, 28); white = (240, 245, 240)
+    cx = 28
+    # long victorian coat
+    cv.fill_poly([(cx - 13, 88), (cx - 10, 40), (cx + 10, 40), (cx + 13, 88)], coat)
+    cv.rect(cx - 10, 40, 6, 48, coathi)
+    cv.line(cx, 42, cx, 86, (16, 16, 20))
+    for by in (48, 58, 68):
+        cv.set(cx - 3, by, (180, 180, 190)); cv.set(cx + 3, by, (180, 180, 190))
+    # arms; one raised thumb (the eternal hitch)
+    cv.rect(cx - 16, 44, 5, 20, coat); cv.rect(cx + 11, 30, 5, 18, coat)
+    cv.rect(cx + 12, 24, 4, 7, skin)                    # the thumb, up
+    cv.set(cx + 13, 23, skinhi)
+    cv.rect(cx - 16, 63, 5, 4, skin)
+    # green cockney head
+    cv.ellipse(cx, 24, 11, 11, skin)
+    cv.ellipse(cx - 4, 19, 5, 4, skinhi)
+    # the polo eye + squint
+    cv.ellipse(cx - 5, 22, 5, 5, white)
+    cv.ellipse(cx - 5, 22, 2, 2, (20, 20, 24))
+    cv.ellipse(cx - 5, 22, 5, 5, (200, 205, 200), fill=False)
+    cv.line(cx + 2, 21, cx + 8, 22, (40, 70, 40))       # squinting other eye
+    # crooked grin
+    cv.line(cx - 5, 31, cx + 6, 30, (30, 50, 32))
+    for gx in (cx - 3, cx + 1, cx + 4):
+        cv.vline(gx, 29, 2, white)
+    # battered top hat
+    cv.rect(cx - 11, 10, 22, 4, hat)
+    cv.rect(cx - 8, 0, 16, 11, hat)
+    cv.rect(cx - 7, 1, 3, 8, (50, 50, 60))
+    cv.rect(cx - 8, 8, 16, 2, (90, 160, 90))            # mouldy band
+    # eels coiling at the hem
+    for (ex, ey) in [(cx - 10, 84), (cx + 6, 86), (cx - 2, 88)]:
+        cv.ellipse(ex, ey, 4, 2, (70, 100, 80)); cv.set(ex + 3, ey - 1, (140, 180, 150))
+    save_with_outline(cv, "boss_hitcher")
+
+
+def zeus():
+    # the Flighty Zeus: Lance Dior + Harold Boon, your reflections gone retail
+    cv = Canvas(76, 84, cs=CS)
+    chrome = (190, 198, 216); chromehi = (230, 236, 248); ink = (40, 34, 52)
+    lt = (150, 170, 210); lthi = (210, 224, 248)       # Lance: vince-ish blues
+    ht = (150, 116, 72); hthi = (190, 158, 110)        # Harold: howard-ish tans
+    for (cx, top, tophi, mane) in ((24, lt, lthi, True), (52, ht, hthi, False)):
+        # legs + torso, sharper than the real thing
+        cv.rect(cx - 8, 52, 6, 22, ink); cv.rect(cx + 2, 52, 6, 22, ink)
+        cv.rect(cx - 10, 32, 20, 21, top)
+        cv.rect(cx - 10, 32, 6, 21, tophi)
+        cv.line(cx, 33, cx, 51, shade(top, -0.25))
+        cv.rect(cx - 4, 34, 8, 5, chrome)              # chrome cravat
+        cv.set(cx - 2, 36, chromehi)
+        # head: chrome-pale, smug
+        cv.ellipse(cx, 20, 9, 9, (232, 224, 226))
+        cv.ellipse(cx - 3, 16, 4, 3, (248, 244, 246))
+        # mirrored shades
+        cv.rect(cx - 7, 18, 6, 3, chrome); cv.rect(cx + 1, 18, 6, 3, chrome)
+        cv.set(cx - 5, 18, chromehi); cv.set(cx + 3, 18, chromehi)
+        # one raised eyebrow each (opposite sides: they're reflections)
+        cv.hline(cx - 7 if mane else cx + 2, 14, 5, ink)
+        cv.line(cx - 3, 26, cx + 3, 25, (150, 90, 110))  # smirk
+        if mane:
+            for x in range(cx - 13, cx + 14):
+                h2 = 14 - abs(x - cx)
+                if h2 > 0:
+                    for y in range(10 - h2 // 2, 12):
+                        cv.set(x, y, ink)
+            cv.rect(cx - 4, 8, 3, 2, chrome)            # chrome streak
+        else:
+            cv.rect(cx - 8, 11, 16, 4, (96, 64, 40))
+            cv.hline(cx - 5, 24, 10, (96, 64, 40))      # the moustache, ironed
+    # they share a mirrored floor glint
+    cv.ellipse(38, 80, 30, 3, (210, 220, 240, 90))
+    save_with_outline(cv, "boss_zeus")
+
+
 def main():
     global OUT
     here = os.path.dirname(__file__)
@@ -334,6 +411,8 @@ def main():
     moon()
     tony()
     yeti()
+    hitcher()
+    zeus()
 
 
 if __name__ == "__main__":

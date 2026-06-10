@@ -324,6 +324,79 @@ def yeti():
     save_boss("boss_yeti", parts)
 
 
+def hitcher():
+    skin = (110, 160, 96); skinhi = (150, 200, 130); coat = (34, 36, 42)
+    coathi = (64, 68, 78); hat = (22, 22, 28); white = (240, 245, 240)
+
+    body = Vox()
+    for y in range(0, 16):                          # long coat, flaring at the hem
+        r = 5 + (3 if y < 4 else 1 if y < 8 else 0)
+        for x in range(-r, r + 1):
+            for z in range(-3, 4):
+                if abs(z) <= 3 - (abs(x) > r - 2):
+                    body.set(x, y, z, coathi if x < -r + 3 else coat)
+    for y in range(2, 15, 4):
+        body.set(-1, y, 3, (180, 180, 190)); body.set(2, y, 3, (180, 180, 190))
+    for (ex, ez) in ((-4, 2), (3, 1), (0, 3)):      # eels at the hem
+        body.set(ex, 0, ez + 1, (70, 100, 80)); body.set(ex + 1, 0, ez + 1, (140, 180, 150))
+
+    armL = Vox(); armL.box(-8, 8, -1, 2, 8, 2, coat); armL.box(-8, 6, -1, 2, 2, 2, skin)
+    armR = Vox()                                    # raised, thumb up forever
+    armR.box(6, 14, -1, 2, 6, 2, coat)
+    armR.box(6, 20, -1, 2, 3, 2, skin)
+    armR.set(7, 23, 0, skinhi)
+
+    head = Vox()
+    head.ellipsoid(0, 21, 0, 5, 5, 5, skin)
+    head.ellipsoid(-2, 24, 1, 2, 2, 2, skinhi)
+    def face(u, v, c):
+        if v == 21 and u in (-3, -2, -1):
+            return white if u != -2 else (20, 20, 24)   # the polo eye
+        if v == 21 and u in (2, 3):
+            return (40, 70, 40)                          # the squint
+        if v == 18 and -2 <= u <= 2:
+            return (30, 50, 32) if u % 2 else white      # crooked grin
+        return None
+    head.paint_shell(2, 1, face)
+    for x in range(-6, 7):                          # battered top hat brim
+        for z in range(-6, 7):
+            if x * x + z * z <= 32:
+                head.set(x, 26, z, hat)
+    head.box(-4, 27, -4, 9, 6, 9, hat)
+    for x in range(-4, 5):
+        head.set(x, 27, 4, (90, 160, 90))           # mouldy band
+    parts = [("body", body, (0.0, 0.0, 0.5)),
+             ("armL", armL, (-7.0, 16.0, 0.0)),
+             ("armR", armR, (7.0, 14.0, 0.0)),
+             ("head", head, (0.0, 16.0, 0.5))]
+    save_boss("boss_hitcher", parts)
+
+
+def zeus():
+    # Lance Dior & Harold Boon: one rig, two smug reflections. The pair share
+    # a root; Lance sways as armL's parent, Harold as armR's — so dance() makes
+    # them bob in counterphase like a double act.
+    from voxlib import build_person
+    import artlib
+    vince, howard = artlib.hero_palettes()
+    chrome = (190, 198, 216)
+    lance = dict(vince); lance["top"] = (170, 182, 210); lance["top_hi"] = (226, 232, 248)
+    lance["hair_hi"] = chrome
+    harold = dict(howard); harold["top"] = (164, 136, 96); harold["top_hi"] = (208, 184, 140)
+    harold["accessory"] = "moustache"
+
+    glb_parts = []
+    for name, pal, ox in (("armL", lance, -10), ("armR", harold, 10)):
+        merged = Vox()
+        for _, vox, _pivot in build_person(pal):
+            merged.merge(vox, dx=ox)
+        # chrome cravat: stamp over the collar
+        for x in range(ox - 2, ox + 3):
+            merged.set(x, 16, 3, chrome)
+        glb_parts.append((name, merged, (float(ox), 0.0, 0.5)))
+    save_boss("boss_zeus", glb_parts)
+
+
 def main():
     jazz()
     gregg()
@@ -332,6 +405,8 @@ def main():
     moon()
     tony()
     yeti()
+    hitcher()
+    zeus()
 
 
 if __name__ == "__main__":

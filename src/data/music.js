@@ -108,6 +108,32 @@ export const TRACKS = {
     { wave: "noise", gain: 0.12, seq: D("k . k h s . h k k . k h s . h . k h k h s . h k k . k h s h h h") },
   ]),
 
+  // the Eel Pit: gaslit dread — vibrato square over a low saw, barrel-organ plucks
+  amb_eel: track(78, [
+    { wave: "sawtooth", gain: 0.08, env: E_PAD, seq: S("E2 - - - - - - - C2 - - - - - - - D2 - - - - - - - B1 - - - - - - -") },
+    { wave: "square", gain: 0.06, env: E_LEAD, seq: S("- - E4 - - F4 - - - E4 - - - - - - - - D4 - - D#4 - - - D4 - - - - - -") },
+    { wave: "triangle", gain: 0.05, env: E_PLUCK, seq: S("- - - - - - - - E3 G3 B3 - - - - - - - - - - - - - D3 F3 A3 - - - - -") },
+  ]),
+  // mirror world: every phrase answered by its own inversion
+  amb_mirror: track(70, [
+    { wave: "sine", gain: 0.12, env: E_PAD, seq: S("A2 - - - - - - - E3 - - - - - - - F3 - - - - - - - C3 - - - - - - -") },
+    { wave: "square", gain: 0.06, env: E_PLUCK, seq: S("A4 - C5 - E5 - - - E4 - C4 - A3 - - - F4 - A4 - C5 - - - C4 - A3 - F3 - - -") },
+  ]),
+
+  // hitcher crimp: music-hall oom-pah gone wrong — chromatic vibrato lead
+  crimp_hitcher: track(134, [
+    { wave: "square", gain: 0.11, env: E_LEAD, seq: S("E4 - F4 - E4 - D#4 - E4 - G4 - F#4 - F4 - E4 - B4 - A#4 - A4 - G#4 - A4 - B4 - E4 -") },
+    { wave: "sawtooth", gain: 0.13, env: E_BASS, seq: S("E2 - E3 - E2 - E3 - A1 - A2 - A1 - A2 - C2 - C3 - C2 - C3 - B1 - B2 - B1 - B2 -") },
+    { wave: "noise", gain: 0.12, seq: D("k . h . s . h . k . h . s . h . k . h . s . h . k . h . s . h h") },
+  ]),
+  // flighty zeus: two leads trading two-bar phrases — square Lance, saw Harold
+  crimp_zeus: track(126, [
+    { wave: "square", gain: 0.10, env: E_LEAD, seq: S("A4 - C5 - E5 - C5 - A4 - E5 - C5 - A4 - - - - - - - - - - - - - - - - - - -") },
+    { wave: "sawtooth", gain: 0.09, env: E_LEAD, seq: S("- - - - - - - - - - - - - - - - E5 - C5 - A4 - C5 - E5 - A4 - E4 - A4 - -") },
+    { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("A2 - A2 - E3 - - - F2 - F2 - C3 - - - D3 - D3 - A2 - - - E3 - E2 - A2 - - -") },
+    { wave: "noise", gain: 0.12, seq: D("k . h h k . h . k . h h k . h . k . h h k . h . k . h h k s h h") },
+  ]),
+
   // yeti crimp: a stomp-chant — saw bass on the ones, horn-ish unison lead
   crimp_yeti: track(100, [
     { wave: "triangle", gain: 0.12, env: E_LEAD, seq: S("E4 - - - G4 - E4 - B4 - - - A4 - G4 - E4 - - - G4 - A4 - B4 - A4 - G4 - E4 -") },

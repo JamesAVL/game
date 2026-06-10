@@ -78,8 +78,10 @@ export class Crimp {
     // remap each chart lane (authored 0..3) onto the active lane count, keeping
     // its left->right position; deterministic so charts stay reproducible.
     const remap = (lane) => Math.min(this.laneCount - 1, Math.floor(lane * this.laneCount / 4));
-    const raw = def.notes.map(([step, lane]) => ({ t: step * sd, lane: remap(lane), dead: false }))
-      .sort((a, b) => a.t - b.t);
+    const raw = def.notes.map(([step, lane, hold]) => ({
+      t: step * sd, lane: remap(lane), hold: (hold || 0) * sd, dead: false,
+    })).sort((a, b) => a.t - b.t);
+    this.held = new Array(4).fill(null);  // active hold per lane
     // enforce a global minimum spacing so charts can't be denser than playable
     this.notes = [];
     let lastT = -Infinity;
@@ -138,8 +140,14 @@ export class Crimp {
     Particles.burst(VIEW_W / 2 + 40 * ART, VIEW_H / 2 - 10 * ART, 60, { color: col, speed: 170, life: 0.9, size: 2 * ART, gravity: 40 * ART, drag: 1.8 });
   }
 
+  // crowd hype: combo milestones multiply meter gain (never the windows)
+  hypeMult() {
+    const tier = this.combo >= 50 ? 4 : this.combo >= 25 ? 2 : 1;
+    return 1 + (tier - 1) * (this.perks.hypeRate || 1) * 0.5;
+  }
+
   judgeHit(kind) {
-    const D = this.D, g = this.gainMul;
+    const D = this.D, g = this.gainMul * this.hypeMult();
     if (kind === "perfect") { this.you += 4.6 * g; this.boss -= 4.8 * g; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
     else if (kind === "good") { this.you += 3.2 * g; this.boss -= 3.4 * g; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
     else if (this.shield > 0 && this.combo > 0) {
@@ -174,6 +182,7 @@ export class Crimp {
     if (best && bestD <= this.goodWin) {
       best.dead = true;
       const perfect = bestD <= this.perfWin;
+      if (best.hold > 0) { best.holding = true; this.held[lane] = best; }
       this.judgeHit(perfect ? "perfect" : "good");
       // celebratory burst at the struck receptor — additive, so bloom glows it
       const cx = this.laneX(lane) + LANE_W / 2;
@@ -211,6 +220,26 @@ export class Crimp {
       // lane input — arrow keys / touch arrows mapped per lane direction
       for (let i = 0; i < this.laneCount; i++) if (Input.pressed(this.dirs[i])) this.tryLane(i);
       const t = this.now();
+      // active holds: keep the lane pressed to milk the ribbon
+      for (let i = 0; i < this.laneCount; i++) {
+        const hn = this.held[i];
+        if (!hn) continue;
+        if (t >= hn.t + hn.hold) {
+          // rode it to the end: a flourish
+          this.held[i] = null; hn.holding = false;
+          this.you = clamp(this.you + 1.6 * this.gainMul, 0, 100);
+          Particles.burst(this.laneX(i) + LANE_W / 2, HIT_Y + 5 * ART, 12,
+            { color: hexRGB(this.laneCols[i]), speed: 80, life: 0.5, size: 1.5 * ART, gravity: 40 * ART });
+        } else if (!Input.isDown(this.dirs[i])) {
+          this.held[i] = null; hn.holding = false;  // let go early: no penalty, no milk
+        } else {
+          const g = this.gainMul * this.hypeMult();
+          this.you = clamp(this.you + 2.2 * dt * g, 0, 100);
+          this.boss = clamp(this.boss - 1.5 * dt * g, 0, 100);
+          if (Math.random() < dt * 14) Particles.burst(this.laneX(i) + LANE_W / 2, HIT_Y + 5 * ART, 1,
+            { color: hexRGB(this.laneCols[i]), speed: 40, life: 0.35, size: 1.2 * ART, gravity: -30 * ART });
+        }
+      }
       // missed notes (passed hit line without being struck)
       for (const n of this.notes) {
         if (!n.dead && n.t < t - this.goodWin) { n.dead = true; this.judgeHit("miss"); }
@@ -287,17 +316,31 @@ export class Crimp {
       ctx.globalAlpha = 1;
     }
 
-    // ---- notes (arrows falling toward the receptor) ----
+    // ---- notes (arrows falling toward the receptor; holds trail a ribbon) ----
     if (this.state !== "count") {
       const t = this.now();
+      const yFor = (noteT) => {
+        const prog = 1 - (noteT - t) / this.travel;
+        return TOP_Y + prog * (HIT_Y - TOP_Y) + 5 * ART;
+      };
       for (const n of this.notes) {
+        const cx = this.laneX(n.lane) + LANE_W / 2;
+        // the ribbon: from the head (or the hit line while holding) up to the tail
+        if (n.hold > 0 && (!n.dead || n.holding)) {
+          const tailT = n.t + n.hold;
+          if (tailT - t > -0.1 && n.t - t < this.travel) {
+            const yHead = n.holding ? HIT_Y + 5 * ART : Math.min(yFor(n.t), HIT_Y + 5 * ART);
+            const yTail = Math.max(yFor(tailT), TOP_Y);
+            ctx.globalAlpha = n.holding ? 0.85 : 0.45;
+            ctx.fillStyle = this.laneCols[n.lane];
+            ctx.fillRect(cx - 3 * ART, yTail, 6 * ART, Math.max(0, yHead - yTail));
+            ctx.globalAlpha = 1;
+          }
+        }
         if (n.dead) continue;
         const dt = n.t - t;
         if (dt > this.travel || dt < -0.25) continue;
-        const prog = 1 - dt / this.travel;     // 0 at spawn, 1 at hit line
-        const y = TOP_Y + prog * (HIT_Y - TOP_Y) + 5 * ART;
-        const cx = this.laneX(n.lane) + LANE_W / 2;
-        this._arrow(ctx, cx, y, this.dirs[n.lane], LANE_W * 0.42, this.laneCols[n.lane], false);
+        this._arrow(ctx, cx, yFor(n.t), this.dirs[n.lane], LANE_W * 0.42, this.laneCols[n.lane], false);
       }
     }
 
@@ -307,6 +350,8 @@ export class Crimp {
 
     if (this.combo >= 3) {
       textCentered(ctx, this.combo + " CRIMP COMBO", VIEW_W / 2, 30 * ART, { color: "#ffd86a", shadow: "#000" });
+      const tier = this.combo >= 50 ? 4 : this.combo >= 25 ? 2 : 1;
+      if (tier > 1) textCentered(ctx, "HYPE x" + tier, VIEW_W / 2, 40 * ART, { color: "#ff9fd0", shadow: "#000" });
     }
     if (this.judgeT > 0) {
       const s = this.judgeT > 0.4 ? 2 : 1;

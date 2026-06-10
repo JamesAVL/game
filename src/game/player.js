@@ -4,6 +4,7 @@
 import { Input, TILE, ART } from "../engine/core.js";
 import { drawFrame } from "../engine/gfx.js";
 import { img } from "../engine/core.js";
+import { GS } from "./state.js";
 
 const SPEED = 70 * ART;          // px / second
 const FW = 16 * ART, FH = 24 * ART; // character frame size
@@ -78,13 +79,16 @@ export class Party {
     return { x: this.px, y: this.py + 2 * ART, dir: this.dir };
   }
 
+  // the Hitcher's "wages": while Howard is taken, Vince walks alone
+  solo() { return GS.flag("howard_taken"); }
+
   drawables() {
     const vCol = ANIM[this.frame];
     const f = this.followerPose();
     const hFrame = this.moving ? this.frame : 0;
     const draws = [];
-    // Howard (follower)
-    draws.push({
+    // Howard (follower) — unless the story has him elsewhere
+    if (!this.solo()) draws.push({
       y: f.y + 23 * ART,
       draw: (ctx, cam) => drawFrame(ctx, img("howard"), FW, FH, ANIM[hFrame], ROW[f.dir], f.x - cam.x, f.y - cam.y),
     });

@@ -14,6 +14,8 @@ export const ZONE_LIGHT = {
   moon: { level: 0.5 },
   sea: { level: 0.52 },
   temple: { level: 0.58 },
+  eelpit: { level: 0.4 },
+  mirror: { level: 0.66 },
 };
 
 function blank(w, h, edge = "#", floor = ".") {
@@ -109,6 +111,11 @@ const NABOOTIQUE = {
     { type: "npc", x: 9, y: 5, sprite: "bollo", dialog: "bollo_decks" },
     { type: "search", x: 10, y: 6, prop: "crate", dialog: "howard_crate", flag: "howard_crate_seen" },
     { type: "minigame", x: 11, y: 1, game: "potion", label: "Potion room" },
+    // THE TWIST: at four records the shrine mirror has had enough
+    { type: "trigger", x: 6, y: 8, dialog: "the_twist", once: true, when: { minRecords: 4 } },
+    { type: "trigger", x: 7, y: 8, dialog: "the_twist", once: true, when: { minRecords: 4 } },
+    // the way into the Mirror World, once Naboo's polish does its work
+    { type: "portal", x: 12, y: 7, to: "mirror", color: "#cfd8f4", label: "The Mirror", when: { flag: "mirror_key" } },
     { type: "warp", x: 6, y: 9, to: "hub", tox: 6, toy: 6, todir: "down" },
     { type: "warp", x: 7, y: 9, to: "hub", tox: 7, toy: 6, todir: "down" },
   ],
@@ -326,8 +333,61 @@ const YETI = makeWorld({
   ],
 });
 
+// The Eel Pit, Old London — Act 2's story descent. Vince goes in ALONE
+// (Howard is the Hitcher's "wages"); the follower system simply has nobody
+// to follow, and you feel it. Polos buy an audience with the boss.
+const EELPIT = makeWorld({
+  id: "eelpit", name: "The Eel Pit", tileset: "tiles_eelpit", music: "amb_eel",
+  weather: "rain", onEnter: "eelpit_enter", color: "#9fdca0", note: "note_eelpit",
+  toast: "A sluice gate shudders open to the north-west!",
+  layout: {
+    rocks: [[8, 8], [22, 10], [12, 15], [20, 18], [6, 18], [25, 21]],
+    deco: [[10, 11], [18, 12], [9, 20], [24, 16], [14, 19]],
+    walls: [{ o: "v", x: 14, y: 6, n: 10, gap: [4, 5] }],
+    pocket: { x: 3, y: 4, w: 5, h: 5, door: [5, 8], note: [4, 6] },
+    noteA: [25, 7], chest: [20, 21], sw: [22, 13],
+    searches: [[7, 14, "bin", "search1_eelpit", 10], [24, 8, "rock", "search2_eelpit", 10], [16, 20, "bin", "search3_eelpit", 16]],
+  },
+  boss: {
+    type: "boss", x: 15, y: 3, sprite: "boss_hitcher", crimp: "hitcher", name: "The Hitcher",
+    dialog: "hitcher_pre", winDialog: "hitcher_win", loseDialog: "hitcher_lose", afterDialog: "hitcher_after",
+    winFlag: "beat_hitcher", xp: 60,
+    require: "polo", requireDialog: "hitcher_need_polo",
+  },
+  extra: [
+    { type: "npc", x: 8, y: 10, sprite: "naboo", dialog: "eleanor" },
+    { type: "item", x: 11, y: 19, item: "polo", flag: "eel_polo1" },
+    { type: "item", x: 23, y: 18, item: "polo", flag: "eel_polo2" },
+    { type: "item", x: 6, y: 12, item: "polo", flag: "eel_polo3" },
+  ],
+});
+
+// Mirror World — the hub, reflected and wrong. Authored by literally
+// flipping the hub map; everyone here is a smug reverse of someone you know.
+function mirrorMap() {
+  return hubMap().map((row) => row.split("").reverse().join(""));
+}
+const MX = (x) => 33 - x; // mirror an x coordinate across the hub's width
+
+const MIRROR = {
+  id: "mirror", name: "Mirror World", tileset: "tiles_mirror", music: "amb_mirror",
+  view: "3d",
+  weather: "glints", onEnter: "mirror_enter",
+  spawn: { x: MX(16), y: 11, dir: "down" },
+  map: mirrorMap(),
+  entities: [
+    { type: "npc", x: MX(4), y: 7, sprite: "naboo", dialog: "mirror_naboo" },
+    { type: "npc", x: MX(20), y: 6, sprite: "fossil", dialog: "mirror_fossil" },
+    { type: "boss", x: MX(16), y: 16, sprite: "boss_zeus", crimp: "zeus", name: "The Flighty Zeus",
+      dialog: "zeus_pre", winDialog: "zeus_win", loseDialog: "zeus_lose", afterDialog: "zeus_after",
+      winFlag: "beat_zeus1", xp: 70 },
+    { type: "search", x: MX(3), y: 12, prop: "crate", dialog: "mirror_storeroom", shrapnel: 60, xp: 8 },
+    { type: "portal", x: MX(5), y: 18, to: "hub", color: "#cfd8f4", label: "Back through" },
+  ],
+};
+
 export const ZONES = {
   hub: HUB, nabootique: NABOOTIQUE,
   tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE,
-  yeti: YETI,
+  yeti: YETI, eelpit: EELPIT, mirror: MIRROR,
 };

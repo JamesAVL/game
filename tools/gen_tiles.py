@@ -179,6 +179,14 @@ PALETTES = {
     "yeti": (dict(floor=(78, 104, 66), floor2=(68, 94, 58), wall=(104, 88, 64), wall_hi=(140, 122, 92),
                   feat=(44, 96, 70), feat_hi=(82, 142, 104), trunk=(78, 56, 38), path=(150, 132, 100),
                   water=(70, 120, 140), water_hi=(120, 170, 185), accent=(228, 168, 88), deco=(60, 110, 78)), "tree"),
+    # The Eel Pit, Old London: gaslight green, coal black, smog grey, polo white
+    "eelpit": (dict(floor=(56, 60, 58), floor2=(48, 52, 50), wall=(38, 40, 44), wall_hi=(70, 76, 80),
+                    feat=(60, 86, 66), feat_hi=(110, 150, 110), glow=(150, 220, 150), path=(80, 84, 86),
+                    water=(28, 48, 40), water_hi=(80, 130, 100), accent=(190, 210, 190), deco=(66, 70, 70)), "spire"),
+    # Mirror World: silver, glass blue, chrome lilac — too clean by half
+    "mirror": (dict(floor=(168, 178, 196), floor2=(180, 190, 208), wall=(120, 130, 156), wall_hi=(190, 200, 224),
+                    feat=(140, 150, 180), feat_hi=(210, 220, 244), trunk=(110, 118, 140), path=(200, 208, 224),
+                    water=(120, 150, 200), water_hi=(190, 215, 250), accent=(226, 230, 250), deco=(150, 160, 190)), "tree"),
 }
 
 

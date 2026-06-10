@@ -11,4 +11,6 @@ export const MAP_NODES = {
   night: { x: 0.66, y: 0.18, label: "Nightosphere" },
   moon: { x: 0.86, y: 0.30, label: "The Moon" },
   temple: { x: 0.84, y: 0.48, label: "Temple" },
+  eelpit: { x: 0.30, y: 0.46, label: "Eel Pit" },
+  mirror: { x: 0.64, y: 0.34, label: "Mirror" },
 };
