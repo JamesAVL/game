@@ -168,6 +168,14 @@ export const MANIFEST = {
   model_naboo: "assets/models/naboo.glb",
   model_bollo: "assets/models/bollo.glb",
   model_fossil: "assets/models/fossil.glb",
+  model_props: "assets/models/props.glb",
+  model_tilekit_hub: "assets/models/tilekit_hub.glb",
+  model_tilekit_tundra: "assets/models/tilekit_tundra.glb",
+  model_tilekit_sea: "assets/models/tilekit_sea.glb",
+  model_tilekit_forest: "assets/models/tilekit_forest.glb",
+  model_tilekit_night: "assets/models/tilekit_night.glb",
+  model_tilekit_moon: "assets/models/tilekit_moon.glb",
+  model_tilekit_temple: "assets/models/tilekit_temple.glb",
 };
 
 const images = {};

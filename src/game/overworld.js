@@ -34,6 +34,7 @@ import { GEAR } from "../data/gear.js";
 import { ShopMenu } from "./shop.js";
 import { SHOPS } from "../data/shops.js";
 import { crimpPerks } from "./perks.js";
+import { WorldView3D } from "./world3d.js";
 
 // shrapnel paid per crimp grade (scaled by zone tier + perks; repeats pay 25%)
 const PAYOUT = { S: 60, A: 40, B: 25, C: 12, F: 0 };
@@ -137,6 +138,7 @@ export class Overworld {
     this.entities = z.entities;
     this.cam.setBounds(this.tilemap.pxW, this.tilemap.pxH);
     GS.data.zone = id;
+    GS.data.visited[id] = true;
     this.fadeT = 0.55;                 // fade in on arrival
     this.weather = z.def.weather || WEATHER[id] || "none";
     this.particles.length = 0;
@@ -145,6 +147,12 @@ export class Overworld {
     // higher so its feet land in that tile (not the tile below).
     this.party = new Party(sp.x * TILE, sp.y * TILE - 8 * ART, sp.dir || "down");
     this.cam.follow(this.party.centerX(), this.party.feetY());
+    // voxel-3D view for flagged zones; 2D render path is the automatic fallback
+    if (this.view3d) { this.view3d.dispose(); this.view3d = null; }
+    if (z.def.view === "3d") {
+      const v = new WorldView3D(this);
+      if (v.ok) this.view3d = v;
+    }
     this.toast(z.def.name);
     const mk = z.def.music;
     if (mk && mk !== this.musicKey && TRACKS[mk]) { playMusic(TRACKS[mk]); this.musicKey = mk; }
@@ -414,6 +422,7 @@ export class Overworld {
     this.entities = this.entities.filter((e) => !e._gone);
 
     this.cam.follow(this.party.centerX(), this.party.feetY());
+    if (this.view3d) this.view3d.sync(dt);
   }
 
   drawEntity(ctx, e) {
@@ -449,6 +458,9 @@ export class Overworld {
       ctx.globalAlpha = done ? 0.45 : 1;
       if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, idx, 0, dx, dy - 8 * ART);
       ctx.globalAlpha = 1;
+    } else if (e.type === "minigame") {
+      const im = img("props");
+      if (im) drawFrame(ctx, im, 16 * ART, 24 * ART, PROP_INDEX.urn, 0, dx, dy - 8 * ART);
     } else if (e.type === "switch") {
       const im = img("props");
       const on = GS.flag("sw_" + e.gate);
@@ -509,12 +521,24 @@ export class Overworld {
   }
 
   render(ctx) {
+    // ---- voxel-3D path: the world renders through the present bridge; only
+    // weather, HUD and fades stay on the 2D overlay ----
+    if (this.view3d && this.view3d.render(ctx)) {
+      this.renderWeather(ctx);
+      this.renderHud(ctx);
+      if (this.fadeT > 0) {
+        ctx.fillStyle = "rgba(8,6,16," + Math.min(1, this.fadeT / 0.55) + ")";
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      }
+      return;
+    }
+
     this.tilemap.renderGround(ctx, this.cam);
 
     // y-sorted drawables: entities + party
     const list = [];
     for (const e of this.entities) {
-      if (["npc", "boss", "item", "collectible", "portal", "search", "switch", "gate"].includes(e.type))
+      if (["npc", "boss", "item", "collectible", "portal", "search", "switch", "gate", "minigame"].includes(e.type))
         list.push({ y: e.py + 16 * ART, draw: (c) => this.drawEntity(c, e) });
     }
     for (const d of this.party.drawables()) list.push(d);

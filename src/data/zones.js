@@ -43,6 +43,7 @@ function hubMap() {
 
 const HUB = {
   id: "hub", name: "The Zooniverse", tileset: "tiles_hub", music: "hub",
+  view: "3d",
   spawn: { x: 16, y: 11, dir: "down" },
   map: hubMap(),
   entities: [
@@ -71,7 +72,7 @@ function nabootiqueMap() {
   const m = blank(14, 10, "#", ".");
   set(m, 11, 0, "D");                          // back-room door (dressing)
   rect(m, 2, 3, 4, 1, "X");                    // the counter
-  scatter(m, "O", [[1, 1], [12, 4], [1, 4]]);  // shelves of dodgy stock
+  scatter(m, "X", [[1, 1], [12, 4], [1, 4]]);  // shelving units of dodgy stock
   scatter(m, "\"", [[9, 2], [3, 7]]);          // rugs/incense
   set(m, 6, 9, "D"); set(m, 7, 9, "D");        // doorway back to the hub
   return m;
@@ -79,6 +80,7 @@ function nabootiqueMap() {
 
 const NABOOTIQUE = {
   id: "nabootique", name: "The Nabootique", tileset: "tiles_hub", music: "hub",
+  view: "3d",
   spawn: { x: 6, y: 7, dir: "up" },
   onEnter: "nabootique_enter",
   map: nabootiqueMap(),
