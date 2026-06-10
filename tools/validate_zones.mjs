@@ -14,9 +14,9 @@
 import { ZONES } from "../src/data/zones.js";
 
 const SOLID_CHARS = new Set(["#", "=", "O", "~", "X"]);
-const SOLID_TYPES = new Set(["npc", "boss", "sign", "portal", "search"]);
-const STAND_ON = new Set(["item", "switch"]);       // player stands on the tile
-const ADJACENT = new Set(["npc", "boss", "sign", "portal", "search", "gate"]); // interact from beside
+const SOLID_TYPES = new Set(["npc", "boss", "sign", "portal", "search", "minigame"]);
+const STAND_ON = new Set(["item", "switch", "collectible"]);  // player stands on the tile
+const ADJACENT = new Set(["npc", "boss", "sign", "portal", "search", "gate", "minigame", "shop"]); // interact from beside
 
 function buildGrid(def) {
   const rows = def.map;

@@ -48,20 +48,24 @@ export function buildZone(id) {
   }
   const tm = new Tilemap(img(def.tileset), grid, solids, null);
 
-  const entities = (def.entities || []).map((e) => ({
-    ...e,
-    px: e.x * TILE,
-    py: e.y * TILE,
-    w: (e.w || 1) * TILE,
-    h: (e.h || 1) * TILE,
-    facing: e.face || "down",
-    animT: Math.random() * 2,
-  }));
+  const entities = (def.entities || [])
+    // collected collectibles stay collected across visits
+    .filter((e) => !(e.type === "collectible" && GS.collHas(e.set, e.idx)))
+    .map((e) => ({
+      ...e,
+      px: e.x * TILE,
+      py: e.y * TILE,
+      w: (e.w || 1) * TILE,
+      h: (e.h || 1) * TILE,
+      facing: e.face || "down",
+      animT: Math.random() * 2,
+    }));
 
   // solid characters/obstacles block walking; warps/items/triggers/switches do not
   const inb = (e) => e.y >= 0 && e.y < h && e.x >= 0 && e.x < w;
   for (const e of entities) {
-    if (e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" || e.type === "search") {
+    if (e.type === "npc" || e.type === "boss" || e.type === "sign" || e.type === "portal" ||
+        e.type === "search" || e.type === "minigame") {
       if (inb(e)) solids[e.y][e.x] = true;
     }
     // gates block until their switch flag is set (re-applies on re-entry)

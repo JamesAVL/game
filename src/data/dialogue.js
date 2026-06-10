@@ -68,6 +68,77 @@ export const DIALOG = {
     F("LOOK just go and do your singing thing and make the place nice again. GO ON. SHOO."),
   ],
 
+  // ---- the Nabootique (shop interior) -------------------------------------
+  nabootique_enter: (api) => ({
+    pages: [
+      V("The Nabootique! Smells like incense and questionable decisions."),
+      N("Welcome in. Counter's there. Don't lick the stock."),
+      H("Why would we lick the— "),
+      N("Last customer licked the stock. Now he's a hatstand. Browse responsibly."),
+      N("Oh — and your wages. Till's broken, innit. Save up your own shrapnel."),
+    ],
+    onDone: () => api.quests.start("q_wages"),
+  }),
+
+  naboo_shop: (api) => {
+    const q = api.quests.state("q_radiators");
+    if (!q) {
+      let yes = false;
+      return {
+        pages: [
+          N("Alright. Listen. I had three celebrity radiators in stock. Very rare. Very warm."),
+          N("They've gone walkabout through the portals. Radiators do that. It's a known thing."),
+          { choice: "Track down Naboo's 3 celebrity radiators?",
+            options: [
+              { label: "We're on it, Naboo", act: () => { yes = true; } },
+              { label: "We're not radiator people" },
+            ] },
+        ],
+        onDone: () => { if (yes) api.quests.start("q_radiators"); },
+      };
+    }
+    if (q.state === "active" && q.stage === 1) {
+      return {
+        pages: [
+          N("All three radiators. Still warm. You've done the shop a service."),
+          N("Take this carpet thread. It remembers being a magic carpet. Useful, that."),
+        ],
+        onDone: () => api.setFlag("q_radiators_turnin"),
+      };
+    }
+    if (q.state === "done") return [N("Shop's never been warmer. Buy something or stop loitering.")];
+    return [N("Radiators. Three of them. Out there somewhere, radiating at strangers. It's not right.")];
+  },
+
+  bollo_decks: (api) => {
+    let practice = false;
+    return {
+      pages: [
+        B("Bollo runs the decks now. Naboo say Bollo has 'the touch'."),
+        B("Bollo mostly has the volume. Want to practice your crimp?"),
+        { choice: "Run a practice crimp with Bollo?",
+          options: [
+            { label: "Drop the beat, Bollo", act: () => { practice = true; } },
+            { label: "Later" },
+          ] },
+      ],
+      onDone: () => {
+        if (practice) api.startCrimp("tutorial", (win) => {
+          api.say([B(win ? "Harsh, but fair. Bollo approve." : "Bollo got a bad feeling about your timing.")]);
+        });
+      },
+    };
+  },
+
+  howard_crate: (api) => ({
+    pages: [
+      H("My record crate! Vince, someone's had it open. My jazz rares are GONE."),
+      V("Howard, nobody steals jazz. People pay to make jazz stop."),
+      H("Four originals, Vince. Scattered who-knows-where. This is a man's SOUL in vinyl form."),
+    ],
+    onDone: () => api.quests.start("q_jazzrares"),
+  }),
+
   // ---- world entry banter ------------------------------------------------
   tundra_enter: (api) => [
     V("Brrr! It's a proper winter wonderland. My hair's gone all static."),
@@ -141,7 +212,25 @@ export const DIALOG = {
     V("Lovely chap once you get past the... everything."),
   ],
   gregg_lose: (api) => [{ speaker: "Gregg", text: "You don't love me! Come back when ya feel the funk!" }],
-  gregg_after: (api) => [{ speaker: "Gregg", text: "You're me best mate now. Want to see me downstairs mix-up? No? Okay." }],
+  gregg_after: (api) => {
+    const q = api.quests.state("q_gregg_encore");
+    if (!q) {
+      let yes = false;
+      return {
+        pages: [
+          { speaker: "Gregg", text: "You're me best mate now. But best mates LOVE the album." },
+          { choice: "Gregg wants a PROPER performance. Grade A. Do you love him that much?",
+            options: [
+              { label: "Course we do, Gregg", act: () => { yes = true; } },
+              { label: "Easy now, fishman" },
+            ] },
+        ],
+        onDone: () => { if (yes) api.quests.start("q_gregg_encore"); },
+      };
+    }
+    if (q.state === "done") return [{ speaker: "Gregg", text: "Grade A love. I'm gonna frame it. Next to me watercolours." }];
+    return [{ speaker: "Gregg", text: "Still waiting on that grade A crimp, little man. Love Games never end." }];
+  },
 
   // ---- forest / Crack Fox ------------------------------------------------
   forest_naboo: (api) => [
@@ -165,7 +254,31 @@ export const DIALOG = {
     H("I need a wash. And a lie down. And possibly an exorcism."),
   ],
   crackfox_lose: (api) => [{ speaker: "CrackFox", text: "Too slow! The Crack Fox keeps his record! Wheeee!" }],
-  crackfox_after: (api) => [{ speaker: "CrackFox", text: "Hello shiny friends! Got any more shiny? No? Scuttle." }],
+  crackfox_after: (api) => {
+    const q = api.quests.state("q_fox_shinies");
+    if (!q) {
+      let yes = false;
+      return {
+        pages: [
+          { speaker: "CrackFox", text: "Hello shiny friends! The fox is going LEGITIMATE. A shiny shop! A shiny empire!" },
+          { choice: "He needs 4 Shiny Things for 'start-up capital'. Help the fox?",
+            options: [
+              { label: "Go on then, fox", act: () => { yes = true; } },
+              { label: "Absolutely not" },
+            ] },
+        ],
+        onDone: () => { if (yes) api.quests.start("q_fox_shinies"); },
+      };
+    }
+    if (q.state === "active" && q.stage === 1) {
+      return {
+        pages: [{ speaker: "CrackFox", text: "SHINY! Give 'em here! Wheee! The fox is a BUSINESSMAN now!" }],
+        onDone: () => api.setFlag("q_shinies_turnin"),
+      };
+    }
+    if (q.state === "done") return [{ speaker: "CrackFox", text: "Business is BOOMING. I ate the profits. Scuttle." }];
+    return [{ speaker: "CrackFox", text: "Four shinies! Shiny shiny! The bins provide, friends. The bins provide." }];
+  },
 
   // ---- nightosphere / Nanageddon -----------------------------------------
   night_naboo: (api) => [

@@ -6,6 +6,9 @@ import { drawText, textCentered, panel } from "../engine/gfx.js";
 import { Sfx } from "../engine/audio.js";
 import { GS } from "./state.js";
 import { ITEMS } from "../data/items.js";
+import { Quests } from "./quests.js";
+import { crimpPerks } from "./perks.js";
+import { GEAR, GEAR_SLOTS, SLOT_LABEL } from "../data/gear.js";
 
 export const FX_LABELS = { off: "Off", soft: "Soft", crt: "CRT" };
 export function cycleFx() {
@@ -18,8 +21,9 @@ export class PauseMenu {
   constructor(overworld) {
     this.ow = overworld;
     this.sel = 0;
-    this.items = ["Resume", "Party", "Items", "Difficulty", "Visual FX", "Save", "Quit to title"];
+    this.items = ["Resume", "Journal", "Party", "Items", "Wardrobe", "Difficulty", "Visual FX", "Save", "Quit to title"];
     this.view = "menu";
+    this.wSlot = 0;            // wardrobe slot cursor
     this.block = 0.12;
   }
 
@@ -34,6 +38,7 @@ export class PauseMenu {
 
   update(dt) {
     this.block = Math.max(0, this.block - dt);
+    if (this.view === "wardrobe") { this.updateWardrobe(); return; }
     if (this.view !== "menu") {
       if (Input.pressed("cancel") || Input.pressed("confirm") || Input.pressed("pause")) { Sfx.cancel(); this.view = "menu"; }
       return;
@@ -55,8 +60,10 @@ export class PauseMenu {
     if (Input.pressed("confirm") && this.block <= 0) {
       Sfx.confirm();
       if (choice === "Resume") Scenes.pop();
+      else if (choice === "Journal") this.view = "journal";
       else if (choice === "Party") this.view = "party";
       else if (choice === "Items") this.view = "items";
+      else if (choice === "Wardrobe") this.view = "wardrobe";
       else if (choice === "Difficulty") { const d = GS.cycleDifficulty(); this.ow.toast("Difficulty: " + d); }
       else if (choice === "Visual FX") { const p = cycleFx(); this.ow.toast("Visual FX: " + (FX_LABELS[p] || p)); }
       else if (choice === "Save") { GS.save(); this.ow.toast("Game saved."); Scenes.pop(); }
@@ -69,7 +76,74 @@ export class PauseMenu {
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     if (this.view === "menu") this.renderMenu(ctx);
     else if (this.view === "party") this.renderParty(ctx);
+    else if (this.view === "journal") this.renderJournal(ctx);
+    else if (this.view === "wardrobe") this.renderWardrobe(ctx);
     else this.renderItems(ctx);
+  }
+
+  // ---- Journal: active quests with current goals, done quests below -------
+  renderJournal(ctx) {
+    const w = 220 * ART, h = 134 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    panel(ctx, x, y, w, h);
+    textCentered(ctx, "JOURNAL", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
+    const act = Quests.active(GS), done = Quests.completed(GS);
+    let yy = y + 22 * ART;
+    if (!act.length && !done.length) {
+      drawText(ctx, "No quests yet. Talk to people. Nose about.", x + 12 * ART, yy, { color: "#cfcfe6" });
+    }
+    for (const { q, stage } of act.slice(0, 4)) {
+      drawText(ctx, q.name + "  (" + q.giver + ")", x + 12 * ART, yy, { color: "#ffd86a" });
+      yy += 10 * ART;
+      drawText(ctx, "> " + q.stages[Math.min(stage, q.stages.length - 1)].goal,
+        x + 18 * ART, yy, { color: "#fff", maxWidth: w - 32 * ART });
+      yy += 14 * ART;
+    }
+    if (done.length) {
+      drawText(ctx, "Done:", x + 12 * ART, yy, { color: "#7a7a96" });
+      yy += 10 * ART;
+      for (const { q } of done.slice(0, 3)) {
+        drawText(ctx, "* " + q.name, x + 18 * ART, yy, { color: "#8aff6a" });
+        yy += 10 * ART;
+      }
+    }
+    drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
+  }
+
+  // ---- Wardrobe: three slots, left/right cycles owned gear ----------------
+  updateWardrobe() {
+    if (Input.pressed("cancel") || Input.pressed("pause")) { Sfx.cancel(); this.view = "menu"; return; }
+    if (Input.pressed("up")) { this.wSlot = (this.wSlot + GEAR_SLOTS.length - 1) % GEAR_SLOTS.length; Sfx.move(); }
+    if (Input.pressed("down")) { this.wSlot = (this.wSlot + 1) % GEAR_SLOTS.length; Sfx.move(); }
+    const slot = GEAR_SLOTS[this.wSlot];
+    if (Input.pressed("left") || Input.pressed("right") || Input.pressed("confirm")) {
+      const owned = Object.keys(GEAR).filter((id) => GEAR[id].slot === slot && GS.hasGear(id));
+      if (!owned.length) { Sfx.cancel(); return; }
+      const opts = [null, ...owned];
+      const cur = opts.indexOf(GS.equipped(slot));
+      const dir = Input.pressed("left") ? -1 : 1;
+      const next = opts[(cur + dir + opts.length) % opts.length];
+      GS.equip(slot, next);
+      Sfx.confirm();
+    }
+  }
+
+  renderWardrobe(ctx) {
+    const w = 210 * ART, h = 120 * ART, x = (VIEW_W - w) / 2, y = (VIEW_H - h) / 2;
+    panel(ctx, x, y, w, h);
+    textCentered(ctx, "WARDROBE", VIEW_W / 2, y + 8 * ART, { color: "#ffd86a" });
+    GEAR_SLOTS.forEach((slot, i) => {
+      const yy = y + 24 * ART + i * 22 * ART;
+      const sel = i === this.wSlot;
+      if (sel) drawText(ctx, ">", x + 8 * ART, yy, { color: "#ffd86a" });
+      const g = GEAR[GS.equipped(slot)];
+      drawText(ctx, SLOT_LABEL[slot], x + 16 * ART, yy, { color: sel ? "#ffd86a" : "#9fd0ff" });
+      drawText(ctx, g ? g.name : "(nothing)", x + 70 * ART, yy, { color: g ? "#fff" : "#7a7a96" });
+      if (g) drawText(ctx, g.desc, x + 16 * ART, yy + 9 * ART, { color: "#8a8ab0", maxWidth: w - 30 * ART });
+    });
+    const p = crimpPerks(GS);
+    drawText(ctx, "Crimp: +" + Math.round(p.headStart) + " start  x" + p.gainMul.toFixed(2) +
+      " gain  " + p.comboShield + " shield", x + 12 * ART, y + h - 22 * ART, { color: "#8aff6a" });
+    drawText(ctx, "</> equip   (esc back)", x + w - 100 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 
   renderMenu(ctx) {
@@ -94,12 +168,12 @@ export class PauseMenu {
     drawText(ctx, "XP      " + s.xp + " / " + s.xpNext, x + 12 * ART, y + 62 * ART, { color: "#fff" });
     drawText(ctx, "Style   " + s.style, x + 12 * ART, y + 74 * ART, { color: "#ff9fd0" });
     drawText(ctx, "Jazz    " + s.jazz, x + 100 * ART, y + 74 * ART, { color: "#9fd0ff" });
-    // crimp boost earned from levelling (mirrors crimp.js perk caps)
-    const over = Math.max(0, s.level - 1);
-    const hs = Math.round(Math.min(15, over * 1.5));
-    const pw = Math.round(Math.min(35, over * 3.5));
-    drawText(ctx, "Crimp boost  +" + hs + " start  +" + pw + "% power", x + 12 * ART, y + 90 * ART, { color: "#8aff6a" });
+    // crimp boost from levels + equipped gear (single source: perks.js)
+    const p = crimpPerks(GS);
+    drawText(ctx, "Crimp boost  +" + Math.round(p.headStart) + " start  +" +
+      Math.round((p.gainMul - 1) * 100) + "% power", x + 12 * ART, y + 90 * ART, { color: "#8aff6a" });
     drawText(ctx, "Records " + GS.recordCount() + " / 6", x + 12 * ART, y + 104 * ART, { color: "#ffd86a" });
+    drawText(ctx, GS.shrapnel() + " shrapnel", x + 100 * ART, y + 104 * ART, { color: "#ffe9a0" });
     drawText(ctx, "(z/esc back)", x + w - 70 * ART, y + h - 11 * ART, { color: "#7a7a96" });
   }
 

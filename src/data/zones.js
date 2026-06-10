@@ -46,7 +46,10 @@ const HUB = {
   spawn: { x: 16, y: 11, dir: "down" },
   map: hubMap(),
   entities: [
-    { type: "npc", x: 6, y: 6, sprite: "naboo", dialog: "naboo" },
+    // the Nabootique door tiles lead inside (shop, wardrobe stock, potions)
+    { type: "warp", x: 6, y: 5, to: "nabootique", tox: 6, toy: 8, todir: "up" },
+    { type: "warp", x: 7, y: 5, to: "nabootique", tox: 7, toy: 8, todir: "up" },
+    { type: "npc", x: 4, y: 7, sprite: "naboo", dialog: "naboo" },
     { type: "npc", x: 9, y: 7, sprite: "bollo", dialog: "bollo" },
     { type: "npc", x: 20, y: 6, sprite: "fossil", dialog: "fossil" },
     { type: "search", x: 13, y: 8, prop: "crate", dialog: "hub_search1", xp: 3 },
@@ -57,6 +60,37 @@ const HUB = {
     { type: "portal", x: 20, y: 18, to: "night", color: "#c77aff", label: "Nightosphere" },
     { type: "portal", x: 25, y: 18, to: "moon", color: "#fff2a0", label: "The Moon" },
     { type: "portal", x: 29, y: 8, to: "temple", color: "#ff7ad8", label: "Temple" },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// THE NABOOTIQUE — Naboo's shop interior: counter (buy/sell), Howard's record
+// crate, and the potion back room. Always unlocked; entered via the hub doors.
+// ---------------------------------------------------------------------------
+function nabootiqueMap() {
+  const m = blank(14, 10, "#", ".");
+  set(m, 11, 0, "D");                          // back-room door (dressing)
+  rect(m, 2, 3, 4, 1, "X");                    // the counter
+  scatter(m, "O", [[1, 1], [12, 4], [1, 4]]);  // shelves of dodgy stock
+  scatter(m, "\"", [[9, 2], [3, 7]]);          // rugs/incense
+  set(m, 6, 9, "D"); set(m, 7, 9, "D");        // doorway back to the hub
+  return m;
+}
+
+const NABOOTIQUE = {
+  id: "nabootique", name: "The Nabootique", tileset: "tiles_hub", music: "hub",
+  spawn: { x: 6, y: 7, dir: "up" },
+  onEnter: "nabootique_enter",
+  map: nabootiqueMap(),
+  entities: [
+    { type: "shop", x: 3, y: 3, shop: "nabootique" },
+    { type: "shop", x: 4, y: 3, shop: "nabootique" },
+    { type: "npc", x: 6, y: 2, sprite: "naboo", dialog: "naboo_shop" },
+    { type: "npc", x: 9, y: 5, sprite: "bollo", dialog: "bollo_decks" },
+    { type: "search", x: 10, y: 6, prop: "crate", dialog: "howard_crate", flag: "howard_crate_seen" },
+    { type: "minigame", x: 11, y: 1, game: "potion", label: "Potion room" },
+    { type: "warp", x: 6, y: 9, to: "hub", tox: 6, toy: 6, todir: "down" },
+    { type: "warp", x: 7, y: 9, to: "hub", tox: 7, toy: 6, todir: "down" },
   ],
 };
 
@@ -100,6 +134,8 @@ function makeWorld(cfg) {
       { type: "switch", x: L.sw[0], y: L.sw[1], gate: cfg.id + "_g", toast: L.toast || "A gate grinds open somewhere..." },
       { type: "gate", x: pk.door[0], y: pk.door[1], gate: cfg.id + "_g" },
       cfg.boss,
+      // per-world extras: collectibles, side-quest props, secrets
+      ...(cfg.extra || []),
     ],
   };
 }
@@ -121,6 +157,10 @@ const TUNDRA = makeWorld({
     dialog: "jazz_pre", winDialog: "jazz_win", loseDialog: "jazz_lose", afterDialog: "jazz_after",
     winFlag: "beat_jazz", record: "rec_jazz", unlock: "sea", xp: 20,
   },
+  extra: [
+    { type: "collectible", set: "radiators", idx: 0, x: 8, y: 21 },
+    { type: "collectible", set: "jazzrecs", idx: 0, x: 22, y: 17 },
+  ],
 });
 
 const SEA = makeWorld({
@@ -140,6 +180,10 @@ const SEA = makeWorld({
     dialog: "gregg_pre", winDialog: "gregg_win", loseDialog: "gregg_lose", afterDialog: "gregg_after",
     winFlag: "beat_gregg", record: "rec_gregg", unlock: "forest", xp: 28,
   },
+  extra: [
+    { type: "collectible", set: "jazzrecs", idx: 1, x: 10, y: 19 },
+    { type: "collectible", set: "shinies", idx: 0, x: 20, y: 12 },
+  ],
 });
 
 const FOREST = makeWorld({
@@ -159,6 +203,10 @@ const FOREST = makeWorld({
     dialog: "crackfox_pre", winDialog: "crackfox_win", loseDialog: "crackfox_lose", afterDialog: "crackfox_after",
     winFlag: "beat_crackfox", record: "rec_crackfox", unlock: "night", xp: 36,
   },
+  extra: [
+    { type: "collectible", set: "radiators", idx: 1, x: 20, y: 15 },
+    { type: "collectible", set: "shinies", idx: 1, x: 7, y: 13 },
+  ],
 });
 
 const NIGHT = makeWorld({
@@ -178,6 +226,10 @@ const NIGHT = makeWorld({
     dialog: "nana_pre", winDialog: "nana_win", loseDialog: "nana_lose", afterDialog: "nana_after",
     winFlag: "beat_nana", record: "rec_nana", unlock: "moon", xp: 44,
   },
+  extra: [
+    { type: "collectible", set: "radiators", idx: 2, x: 18, y: 20 },
+    { type: "collectible", set: "shinies", idx: 2, x: 12, y: 18 },
+  ],
 });
 
 const MOON = makeWorld({
@@ -197,6 +249,10 @@ const MOON = makeWorld({
     dialog: "moon_pre", winDialog: "moon_win", loseDialog: "moon_lose", afterDialog: "moon_after",
     winFlag: "beat_moon", record: "rec_moon", unlock: "temple", xp: 52,
   },
+  extra: [
+    { type: "collectible", set: "jazzrecs", idx: 2, x: 8, y: 17 },
+    { type: "collectible", set: "shinies", idx: 3, x: 20, y: 11 },
+  ],
 });
 
 const TEMPLE = makeWorld({
@@ -216,6 +272,12 @@ const TEMPLE = makeWorld({
     dialog: "tony_pre", winDialog: "tony_win", loseDialog: "tony_lose", afterDialog: "tony_after",
     winFlag: "beat_tony", record: "rec_tony", xp: 80,
   },
+  extra: [
+    { type: "collectible", set: "jazzrecs", idx: 3, x: 18, y: 20 },
+  ],
 });
 
-export const ZONES = { hub: HUB, tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE };
+export const ZONES = {
+  hub: HUB, nabootique: NABOOTIQUE,
+  tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE,
+};

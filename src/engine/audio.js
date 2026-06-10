@@ -253,6 +253,12 @@ function hat(t, peak, dest = null) { noiseHit(t, 0.04, peak * 0.6, "highpass", 7
 // ---------------------------------------------------------------------------
 // SFX
 // ---------------------------------------------------------------------------
+// a single pitched note on demand (minigames: Simon tones, stingers)
+export function tone(freq, wave = "triangle", dur = 0.18, peak = 0.2) {
+  ensure();
+  voice(wave, freq, actx.currentTime, dur, peak);
+}
+
 export const Sfx = {
   blip() { ensure(); voice("square", 660, actx.currentTime, 0.03, 0.10, { a: 0.001, d: 0.02, s: 0.2, r: 0.02, uni: 1, vib: 0 }); },
   confirm() { ensure(); const t = actx.currentTime; voice("square", 523, t, 0.05, 0.18); voice("square", 784, t + 0.05, 0.09, 0.18); },

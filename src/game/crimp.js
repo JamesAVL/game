@@ -8,6 +8,7 @@ import { drawText, textCentered, panel, drawFrame } from "../engine/gfx.js";
 import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness, getReactive } from "../engine/audio.js";
 import { litSprite } from "../engine/normalmap.js";
 import { GS } from "./state.js";
+import { crimpPerks } from "./perks.js";
 
 // parse a "#rrggbb" lane colour to an [r,g,b] triple for particle bursts
 function hexRGB(h) {
@@ -47,18 +48,16 @@ export class Crimp {
     this.D = DIFF[GS.data.difficulty] || DIFF.normal;
     this.travel = this.D.travel;
 
-    // ---- level perks (stack on top of difficulty; all modestly capped) -----
-    // Vince's Style + Howard's Jazz grow as you level, making crimps kinder:
-    // a starting-meter head start, slightly wider hit windows, and a bigger
-    // payoff per landed note. Exploring/levelling before a boss actually helps.
-    const lvl = (GS.data.stats && GS.data.stats.level) || 1;
-    const over = Math.max(0, lvl - 1);
-    this.headStart = Math.min(15, over * 1.5);
-    this.gainMul = 1 + Math.min(0.35, over * 0.035);
-    this.perfWin = this.D.perfWin + Math.min(0.025, over * 0.0025);
-    this.goodWin = this.D.goodWin + Math.min(0.05, over * 0.005);
+    // ---- perks: levels + equipped gear, one source of truth (perks.js) -----
+    // Exploring, levelling and kitting out at the Nabootique all make crimps
+    // kinder: head start, wider windows, bigger payoff, combo shields.
+    this.perks = crimpPerks(GS);
+    this.gainMul = this.perks.gainMul;
+    this.perfWin = this.D.perfWin + this.perks.perfWinBonus;
+    this.goodWin = this.D.goodWin + this.perks.goodWinBonus;
+    this.shield = this.perks.comboShield;
 
-    this.you = Math.min(80, this.D.startYou + this.headStart); this.boss = 50;
+    this.you = Math.min(80, this.D.startYou + this.perks.headStart); this.boss = 50;
     this.combo = 0; this.maxCombo = 0;
     this.hits = 0; this.perfects = 0;
     this.judge = ""; this.judgeT = 0; this.judgeCol = "#fff";
@@ -106,10 +105,25 @@ export class Crimp {
     this.state = "play";
   }
 
+  // performance grade: S demands near-perfection with a sustained combo,
+  // A/B reward strong runs, C is any win, F is a loss. Drives payouts.
+  gradeFor(win) {
+    const acc = this.total ? Math.round((this.hits / this.total) * 100) : 0;
+    let grade = "F";
+    if (win) {
+      if (acc >= 95 && this.maxCombo >= Math.floor(this.total / 2)) grade = "S";
+      else if (acc >= 85) grade = "A";
+      else if (acc >= 70) grade = "B";
+      else grade = "C";
+    }
+    return { grade, acc, combo: this.maxCombo, perfects: this.perfects, tier: this.def.tier || 0 };
+  }
+
   finish(win) {
     this.state = "over";
     this.overT = 0;
     this.result = win;
+    this.perf = this.gradeFor(win);
     stopMusic();
     if (win) Sfx.win(); else Sfx.lose();
     // big finish: hit-stop + flash + a burst over the boss
@@ -124,6 +138,12 @@ export class Crimp {
     const D = this.D, g = this.gainMul;
     if (kind === "perfect") { this.you += 4.6 * g; this.boss -= 4.8 * g; this.perfects++; this.hits++; this.combo++; Sfx.perfect(); this.judge = "CRIMP!"; this.judgeCol = "#ffd86a"; }
     else if (kind === "good") { this.you += 3.2 * g; this.boss -= 3.4 * g; this.hits++; this.combo++; Sfx.hit(); this.judge = "GOOD"; this.judgeCol = "#8aff6a"; }
+    else if (this.shield > 0 && this.combo > 0) {
+      // a charm absorbs the fluff: meter dips but the combo survives
+      this.shield--;
+      this.you -= 1.2 * D.missYou; this.boss += 1.0 * D.missBoss;
+      Sfx.hit(); this.judge = "SAVED!"; this.judgeCol = "#c79aff";
+    }
     else { this.you -= 2.4 * D.missYou; this.boss += 2.0 * D.missBoss; this.combo = 0; Sfx.miss(); this.judge = "FLUFF!"; this.judgeCol = "#ff6a6a"; Juice.shake(4 * ART, 0.22); }
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     if (this.combo > 0 && this.combo % 10 === 0) { this.you += 2; this.boss -= 1; }
@@ -203,7 +223,7 @@ export class Crimp {
       if (this.overT > 1.0 && tapped) {
         const cb = this.def.onResult;
         Scenes.pop();
-        if (cb) cb(this.result);
+        if (cb) cb(this.result, this.perf); // old (win)-only callers still work
       }
     }
   }
@@ -308,10 +328,13 @@ export class Crimp {
     if (this.state === "over") {
       ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
       const win = this.result;
-      textCentered(ctx, win ? "CRIMP VICTORY!" : "OUT-CRIMPED...", VIEW_W / 2, 56 * ART, { color: win ? "#ffd86a" : "#ff7a7a", scale: 2, shadow: "#000" });
-      const acc = this.total ? Math.round((this.hits / this.total) * 100) : 0;
-      textCentered(ctx, "Accuracy " + acc + "%   Max combo " + this.maxCombo, VIEW_W / 2, 88 * ART, { color: "#fff" });
-      textCentered(ctx, win ? "You feel the funk flow through you." : "Shake it off and try again.", VIEW_W / 2, 102 * ART, { color: "#cfcfe6" });
+      textCentered(ctx, win ? "CRIMP VICTORY!" : "OUT-CRIMPED...", VIEW_W / 2, 48 * ART, { color: win ? "#ffd86a" : "#ff7a7a", scale: 2, shadow: "#000" });
+      // the grade, big — it drives the shrapnel payout
+      const p = this.perf || { grade: win ? "C" : "F", acc: 0 };
+      const gcol = { S: "#ffd86a", A: "#8aff6a", B: "#5ad6ff", C: "#cfcfe6", F: "#ff7a7a" }[p.grade];
+      textCentered(ctx, p.grade, VIEW_W / 2, 70 * ART, { color: gcol, scale: 4, shadow: "#000" });
+      textCentered(ctx, "Accuracy " + p.acc + "%   Max combo " + this.maxCombo, VIEW_W / 2, 100 * ART, { color: "#fff" });
+      textCentered(ctx, win ? "You feel the funk flow through you." : "Shake it off and try again.", VIEW_W / 2, 112 * ART, { color: "#cfcfe6" });
       if (this.overT > 1.0 && Math.floor(performance.now() / 400) % 2 === 0)
         textCentered(ctx, "press Z  /  tap a lane", VIEW_W / 2, 130 * ART, { color: "#9a7adf" });
     }

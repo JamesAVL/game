@@ -15,6 +15,8 @@ export const ITEM_INDEX = {
   cream: 9,
   // per-zone collectibles all share the "crimp note" icon (column 10)
   note_tundra: 10, note_sea: 10, note_forest: 10, note_night: 10, note_moon: 10, note_temple: 10,
+  // v2: currency / gear / collectible-set icons (columns 11-20, gen_items.py)
+  shrapnel: 11,
 };
 
 // columns in assets/sprites/props.png (16x24 frames)
