@@ -5,7 +5,7 @@
 // visit warms the cache, after which the game loads instantly and works fully
 // offline, while still refreshing files in the background when online.
 
-const CACHE = "boosh-v1";
+const CACHE = "boosh-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 
