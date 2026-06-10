@@ -232,7 +232,7 @@ export class WorldView3D {
     const cx = e.px / TILE + 0.5, cz = e.py / TILE + 1.0;
     g.position.set(cx, 0, cz);
 
-    if (e.type === "npc" && hasModel("model_" + e.sprite)) {
+    if ((e.type === "npc" || e.type === "boss") && hasModel("model_" + e.sprite)) {
       v.rig = instantiate("model_" + e.sprite);
       g.add(v.rig.group);
       v.yaw = e.facing || "down";

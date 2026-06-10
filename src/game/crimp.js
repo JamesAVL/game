@@ -9,6 +9,7 @@ import { Sfx, playMusic, stopMusic, audioTime, duckMusic, setMusicBrightness, ge
 import { litSprite } from "../engine/normalmap.js";
 import { GS } from "./state.js";
 import { crimpPerks } from "./perks.js";
+import { CrimpStage3D } from "./crimpstage.js";
 
 // parse a "#rrggbb" lane colour to an [r,g,b] triple for particle bursts
 function hexRGB(h) {
@@ -89,10 +90,13 @@ export class Crimp {
     this.lyrics = (def.lyrics || []).map(([beat, text]) => ({ t: beat * (60 / def.bpm), text }));
     this.lastT = this.notes.length ? this.notes[this.notes.length - 1].t : 4;
     this.danceT = 0;
+    // voxel boss on a 3D stage when a model exists; litSprite is the fallback
+    const stage = new CrimpStage3D(def);
+    this.stage = stage.ok ? stage : null;
   }
 
   enter() { Sfx.confirm(); Particles.clear(); Juice.clear(); }
-  exit() { stopMusic(); }
+  exit() { stopMusic(); if (this.stage) this.stage.dispose(); }
 
   now() { return audioTime() - this.startAudio; }
 
@@ -151,6 +155,7 @@ export class Crimp {
     // muffles it for a beat, so the music tracks how well you're crimping.
     if (kind === "miss") { duckMusic(0.5, 0.26); setMusicBrightness(0.5); }
     else setMusicBrightness(0.8 + Math.min(0.2, this.combo * 0.02));
+    if (this.stage && (kind === "perfect" || kind === "miss")) this.stage.hit(kind);
     this.you = clamp(this.you, 0, 100);
     this.boss = clamp(this.boss, 0, 100);
     this.judgeT = 0.5;
@@ -190,6 +195,7 @@ export class Crimp {
 
   update(dt) {
     this.danceT += dt;
+    if (this.stage) this.stage.sync(dt, this.danceT, getReactive().bass, this.combo);
     if (this.judgeT > 0) this.judgeT -= dt;
     for (let i = 0; i < this.laneCount; i++) if (this.flashLane[i] > 0) this.flashLane[i] -= dt;
 
@@ -236,17 +242,22 @@ export class Crimp {
   }
 
   render(ctx) {
-    // ---- backdrop ----
-    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
-    g.addColorStop(0, this.def.bg0 || "#1a1140");
-    g.addColorStop(1, this.def.bg1 || "#3a1a5a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    // ---- the 3D stage renders under the overlay; 2D gradient is the fallback
+    const staged = this.stage && this.stage.render();
+    if (staged) {
+      ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    } else {
+      const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+      g.addColorStop(0, this.def.bg0 || "#1a1140");
+      g.addColorStop(1, this.def.bg1 || "#3a1a5a");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
     ctx.save();
 
-    // ---- boss sprite, bobbing ----
+    // ---- boss sprite, bobbing (2D fallback only) ----
     // bossScale stays as-is: the PNG is baked ART× larger and the canvas is ART×
     // larger too, so the boss keeps the same on-screen fraction automatically.
-    const bim = img(this.def.face);
+    const bim = staged ? null : img(this.def.face);
     if (bim) {
       const scale = this.def.bossScale || 2;
       const bw = bim.width * scale, bh = bim.height * scale;
@@ -265,7 +276,8 @@ export class Crimp {
     const recR = 8 * ART;
     for (let i = 0; i < this.laneCount; i++) {
       const lx = this.laneX(i), cx = lx + LANE_W / 2;
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      // over the 3D stage the lane shading goes light-touch
+      ctx.fillStyle = staged ? "rgba(0,0,0,0.16)" : "rgba(0,0,0,0.35)";
       ctx.fillRect(lx, TOP_Y, LANE_W, HIT_Y - TOP_Y + 14 * ART);
       // receptor: a faint arrow outline, lit when struck
       const flash = this.flashLane[i] > 0;

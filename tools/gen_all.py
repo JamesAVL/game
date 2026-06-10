@@ -16,6 +16,7 @@ import gen_icon
 import gen_vox_characters
 import gen_vox_tilekits
 import gen_vox_props
+import gen_vox_bosses
 
 
 def main():
@@ -31,6 +32,7 @@ def main():
     print("== vox characters =="); gen_vox_characters.main()
     print("== vox tilekits ==");   gen_vox_tilekits.main()
     print("== vox props ==");      gen_vox_props.main()
+    print("== vox bosses ==");     gen_vox_bosses.main()
     print("\nAll assets generated.")
 
 
