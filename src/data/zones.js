@@ -81,6 +81,7 @@ const HUB = {
     { type: "portal", x: 25, y: 18, to: "moon", color: "#fff2a0", label: "The Moon" },
     { type: "portal", x: 29, y: 8, to: "temple", color: "#ff7ad8", label: "Temple" },
     { type: "portal", x: 29, y: 14, to: "yeti", color: "#9fffb0", label: "Yeti Woods" },
+    { type: "portal", x: 31, y: 11, to: "onion", color: "#ffb0e8", label: "Velvet Onion" },
   ],
 };
 
@@ -386,8 +387,47 @@ const MIRROR = {
   ],
 };
 
+// The Velvet Onion — the tournament venue. The stage up top, the green room
+// filling with beaten bosses as you win, Dennis running the format.
+function onionMap() {
+  const m = blank(24, 14, "#", ".");
+  rect(m, 4, 2, 16, 3, "_");                       // the stage
+  scatter(m, "X", [[2, 2], [21, 2], [2, 4], [21, 4]]); // PA stacks
+  rect(m, 3, 9, 18, 1, "\"");                      // the green-room carpet
+  scatter(m, "O", [[1, 7], [22, 7]]);
+  set(m, 11, 13, "D"); set(m, 12, 13, "D");        // doors to the street
+  return m;
+}
+
+const ONION = {
+  id: "onion", name: "The Velvet Onion", tileset: "tiles_night", music: "amb_onion",
+  view: "3d",
+  spawn: { x: 11, y: 11, dir: "up" },
+  onEnter: "onion_enter",
+  map: onionMap(),
+  entities: [
+    { type: "npc", x: 12, y: 6, sprite: "naboo", dialog: "dennis" },
+    // round two waits on the stage once round one is won
+    { type: "boss", x: 8, y: 3, sprite: "boss_saboo", crimp: "saboo", name: "Saboo & Kirk",
+      dialog: "saboo_pre", winDialog: "saboo_win", loseDialog: "saboo_lose", afterDialog: "saboo_after",
+      winFlag: "beat_saboo", xp: 80, when: { flag: "tourney_r1" } },
+    // and the final: your reflections, plugged into all six records
+    { type: "boss", x: 15, y: 3, sprite: "boss_zeus", crimp: "zeus_final", name: "Flighty Zeus Ultimate",
+      dialog: "zeusfinal_pre", winDialog: "ending", loseDialog: "zeusfinal_lose", afterDialog: "zeusfinal_after",
+      winFlag: "beat_zeus_final", xp: 120, when: { flag: "beat_saboo" } },
+    // the green room fills up as legends fall
+    { type: "npc", x: 4, y: 10, sprite: "boss_jazz", dialog: "greenroom_jazz", when: { flag: "beat_jazz" } },
+    { type: "npc", x: 7, y: 10, sprite: "boss_gregg", dialog: "greenroom_gregg", when: { flag: "beat_gregg" } },
+    { type: "npc", x: 16, y: 10, sprite: "boss_nana", dialog: "greenroom_nana", when: { flag: "beat_nana" } },
+    { type: "npc", x: 19, y: 10, sprite: "boss_tony", dialog: "greenroom_tony", when: { flag: "beat_tony" } },
+    { type: "search", x: 21, y: 11, prop: "crate", dialog: "onion_merch", shrapnel: 25, xp: 5 },
+    { type: "warp", x: 11, y: 13, to: "hub", tox: 31, toy: 12, todir: "down" },
+    { type: "warp", x: 12, y: 13, to: "hub", tox: 31, toy: 12, todir: "down" },
+  ],
+};
+
 export const ZONES = {
   hub: HUB, nabootique: NABOOTIQUE,
   tundra: TUNDRA, sea: SEA, forest: FOREST, night: NIGHT, moon: MOON, temple: TEMPLE,
-  yeti: YETI, eelpit: EELPIT, mirror: MIRROR,
+  yeti: YETI, eelpit: EELPIT, mirror: MIRROR, onion: ONION,
 };

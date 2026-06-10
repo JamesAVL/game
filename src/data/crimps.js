@@ -102,6 +102,27 @@ export const CRIMPS = {
       "the trees taught us this one", "bouncy bouncy", "fuzzy forever", "up the mountain", "good time, such a good time"],
   }),
 
+  saboo: crimp({
+    name: "Saboo & Kirk", face: "boss_saboo", trackKey: "crimp_saboo", bpm: 142,
+    bg0: "#160a24", bg1: "#2c1444", bossScale: 2,
+    intro: "You know NOTHING of the crunch.",
+    chart: { seed: 999, length: 230, base: 2, runChance: 0.18, doubleChance: 0.08 },
+    lyrics: ["behold the crunch", "you know nothing of the crunch", "I was robbed in oh-six", "the board remembers",
+      "Kirk, do the thing", "(Kirk does the thing)", "ouija up the tempo", "your funk is provisional",
+      "banished to the bin of sound", "the crunch! the crunch!"],
+  }),
+
+  zeus_final: crimp({
+    name: "Flighty Zeus Ultimate", face: "boss_zeus", trackKey: "crimp_zeus_final", bpm: 148,
+    bg0: "#241430", bg1: "#4a2a5a", bossScale: 2,
+    intro: "Six records deep. We are the ENCORE.",
+    chart: { seed: 1212, length: 260, base: 2, runChance: 0.20, doubleChance: 0.10 },
+    mirror: 130, holds: 0.22,
+    lyrics: ["the final reflection", "six records deep", "we are the encore", "you're the rehearsal",
+      "give us the funk, boys", "it fits us better", "you've nicked my trousers", "you've nicked my JAZZ",
+      "two worlds, one stage", "smash the glass", "crimp of legends", "no more mirrors"],
+  }),
+
   hitcher: crimp({
     name: "The Hitcher", face: "boss_hitcher", trackKey: "crimp_hitcher", bpm: 134,
     bg0: "#0c120c", bg1: "#1e2c1a", bossScale: 2,
@@ -178,3 +199,9 @@ export const CRIMPS = {
       "out-crimp the council", "this is a circus", "an OUTRAGE I say", "the crimp of legends"],
   }),
 };
+
+// tournament round 1: every beaten boss has a remix on the shelf (+8bpm,
+// denser, reseeded) — the champion picks their own gauntlet.
+for (const id of ["jazz", "gregg", "crackfox", "nana", "moon", "tony"]) {
+  CRIMPS[id + "_remix"] = makeVariant(id, 1);
+}

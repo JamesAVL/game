@@ -397,6 +397,32 @@ def zeus():
     save_boss("boss_zeus", glb_parts)
 
 
+def saboo():
+    # Saboo (robbed at Crimp-Off '06, never forgot) + Kirk (does the thing)
+    from voxlib import build_person
+    saboo_pal = {
+        "skin": (190, 150, 120), "skin_d": (160, 122, 96),
+        "hair": (40, 30, 60), "hair_hi": (90, 70, 130),
+        "top": (60, 40, 100), "top_hi": (100, 70, 160),
+        "bottom": (40, 28, 70), "shoe": (30, 20, 50),
+        "hair_style": "turban", "robe": True,
+    }
+    kirk_pal = {
+        "skin": (235, 225, 215), "skin_d": (205, 192, 180),
+        "hair": (235, 215, 150), "hair_hi": (250, 240, 190),
+        "top": (180, 60, 60), "top_hi": (220, 110, 100),
+        "bottom": (120, 40, 40), "shoe": (60, 30, 30),
+        "hair_style": "short",
+    }
+    glb_parts = []
+    for name, pal, ox, lift in (("armL", saboo_pal, -9, 0), ("armR", kirk_pal, 9, 0)):
+        merged = Vox()
+        for _, vox, _pivot in build_person(pal):
+            merged.merge(vox, dx=ox)
+        glb_parts.append((name, merged, (float(ox), float(lift), 0.5)))
+    save_boss("boss_saboo", glb_parts)
+
+
 def main():
     jazz()
     gregg()
@@ -407,6 +433,7 @@ def main():
     yeti()
     hitcher()
     zeus()
+    saboo()
 
 
 if __name__ == "__main__":

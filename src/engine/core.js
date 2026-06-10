@@ -147,6 +147,7 @@ export const MANIFEST = {
   boss_yeti: "assets/sprites/boss_yeti.png",
   boss_hitcher: "assets/sprites/boss_hitcher.png",
   boss_zeus: "assets/sprites/boss_zeus.png",
+  boss_saboo: "assets/sprites/boss_saboo.png",
   // companion normal maps for per-pixel boss lighting in the crimp
   boss_jazz_n: "assets/sprites/boss_jazz_n.png",
   boss_gregg_n: "assets/sprites/boss_gregg_n.png",
@@ -157,6 +158,7 @@ export const MANIFEST = {
   boss_yeti_n: "assets/sprites/boss_yeti_n.png",
   boss_hitcher_n: "assets/sprites/boss_hitcher_n.png",
   boss_zeus_n: "assets/sprites/boss_zeus_n.png",
+  boss_saboo_n: "assets/sprites/boss_saboo_n.png",
   tiles_hub: "assets/tiles/hub.png",
   tiles_tundra: "assets/tiles/tundra.png",
   tiles_sea: "assets/tiles/sea.png",
@@ -187,6 +189,7 @@ export const MANIFEST = {
   model_boss_yeti: "assets/models/boss_yeti.glb",
   model_boss_hitcher: "assets/models/boss_hitcher.glb",
   model_boss_zeus: "assets/models/boss_zeus.glb",
+  model_boss_saboo: "assets/models/boss_saboo.glb",
   model_tilekit_hub: "assets/models/tilekit_hub.glb",
   model_tilekit_tundra: "assets/models/tilekit_tundra.glb",
   model_tilekit_sea: "assets/models/tilekit_sea.glb",

@@ -134,6 +134,27 @@ export const TRACKS = {
     { wave: "noise", gain: 0.12, seq: D("k . h h k . h . k . h h k . h . k . h h k . h . k . h h k s h h") },
   ]),
 
+  // the velvet onion: glam swagger for the tournament floor
+  amb_onion: track(112, [
+    { wave: "square", gain: 0.09, env: E_LEAD, seq: S("A4 - C5 - E5 - D5 C5 - A4 - - G4 - A4 - F4 - A4 - C5 - B4 A4 - G4 - - E4 - G4 -") },
+    { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("A2 - A2 - E3 - - - F2 - F2 - C3 - - - G2 - G2 - D3 - - - E2 - B2 - E3 - - -") },
+    { wave: "noise", gain: 0.10, seq: D("k . h . s . h . k . h . s . h . k . h . s . h . k . h . s . h h") },
+  ]),
+  // saboo & kirk: dark electro; the middle-eight drops to Kirk's lone sine
+  crimp_saboo: track(142, [
+    { wave: "sawtooth", gain: 0.10, env: E_LEAD, seq: S("A4 A4 - C5 - A4 - G4 A4 - C5 D5 - C5 - A4 F4 F4 - A4 - F4 - E4 F4 - A4 C5 - A4 - F4") },
+    { wave: "square", gain: 0.12, env: E_BASS, seq: S("A2 - A2 A2 - A2 - A2 F2 - F2 F2 - F2 - F2 G2 - G2 G2 - G2 - G2 E2 - E2 E2 - E2 - E2") },
+    { wave: "sine", gain: 0.07, env: E_PAD, seq: S("- - - - - - - - - - - - - - - - - - - - - - - - A5 - - - E5 - - -") },
+    { wave: "noise", gain: 0.13, seq: D("k . h . k . h . k . h . k s h . k . h . k . h . k s k s k s h h") },
+  ]),
+  // zeus ultimate: four voices, the duet of duets
+  crimp_zeus_final: track(148, [
+    { wave: "square", gain: 0.10, env: E_LEAD, seq: S("A4 - C5 E5 - C5 A4 - E5 - C5 - A4 - E4 - F4 - A4 C5 - A4 F4 - C5 - A4 - F4 - C4 -") },
+    { wave: "sawtooth", gain: 0.08, env: E_LEAD, seq: S("- E5 - - C5 - - E5 - A4 - C5 - E5 - A5 - C5 - - A4 - - C5 - F4 - A4 - C5 - F5") },
+    { wave: "triangle", gain: 0.13, env: E_BASS, seq: S("A2 - E3 - A2 - E3 - F2 - C3 - F2 - C3 - D3 - A3 - D3 - A3 - E3 - B3 - E3 - B2 -") },
+    { wave: "noise", gain: 0.13, seq: D("k . h h s . h k k h . k s . h k k . h h s . h k k h k h s h s h") },
+  ]),
+
   // yeti crimp: a stomp-chant — saw bass on the ones, horn-ish unison lead
   crimp_yeti: track(100, [
     { wave: "triangle", gain: 0.12, env: E_LEAD, seq: S("E4 - - - G4 - E4 - B4 - - - A4 - G4 - E4 - - - G4 - A4 - B4 - A4 - G4 - E4 -") },

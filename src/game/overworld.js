@@ -125,6 +125,7 @@ export class Overworld {
     if (GS.flag("beat_zeus1")) {
       open("moon", "A pale light beckons: the Moon portal is open!");
       open("temple", "Xooberon Temple unseals. The Board of Shamen await.");
+      open("onion", "The Velvet Onion lights its marquee for the Grand Crimp-Off!");
     }
   }
 

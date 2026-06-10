@@ -278,6 +278,116 @@ export const DIALOG = {
     { speaker: "Harold", text: "We'll see you at the Onion, originals. The encore isn't over." },
   ],
 
+  // ---- ACT 3: the Velvet Onion + the Grand Crimp-Off --------------------------
+  onion_enter: (api) => [
+    V("The Velvet Onion! The actual stage, Howard. The boards that launched a thousand looks."),
+    H("Stay focused, Vince. Tonight we're not the support act. Tonight we're the MAIN EVENT."),
+  ],
+  onion_merch: (api) => [V("Tour merch! 'CRIMP OF LEGENDS - LIVE'. They printed it before the result. Confident.")],
+  dennis: (api) => {
+    const D = (text) => ({ speaker: "Dennis", text });
+    if (api.recordCount() < 6) {
+      return [
+        D("WE CONVENE. ...You appear to be " + (6 - api.recordCount()) + " record(s) short."),
+        D("The format is SACRED. Six records. The Moon has one. Tony Harrison hoards the other. Off you go."),
+      ];
+    }
+    if (!api.flag("tourney_r1")) {
+      let pick = null;
+      return {
+        pages: [
+          D("Six records. The funk is whole. The GRAND CRIMP-OFF begins."),
+          D("ROUND ONE: the Remix Gauntlet. Champion's choice — face a legend at plus-eight tempo."),
+          { choice: "Choose your round-one remix:",
+            options: [
+              { label: "Spirit of Jazz", act: () => { pick = "jazz_remix"; } },
+              { label: "Old Gregg", act: () => { pick = "gregg_remix"; } },
+              { label: "Tony Harrison", act: () => { pick = "tony_remix"; } },
+              { label: "Not ready yet" },
+            ] },
+        ],
+        onDone: () => {
+          if (!pick) return;
+          api.startCrimp(pick, (win) => {
+            if (win) {
+              api.setFlag("tourney_r1");
+              api.toast("ROUND ONE WON! Saboo & Kirk take the stage...");
+              api.say([D("Adequate. EXTREMELY adequate. Round two: Saboo. And Kirk. Gawp respectfully.")]);
+            } else {
+              api.say([D("The remix claims another. Compose yourself and try again.")]);
+            }
+          });
+        },
+      };
+    }
+    if (!api.flag("beat_saboo")) return [
+      D("Round two stands upon the stage: Saboo, acquainted with the crunch. And Kirk. Who is... Kirk."),
+    ];
+    if (!api.flag("beat_zeus_final")) return [
+      D("THE FINAL. Your reflections have plugged themselves into the house system. This is EXTREMELY shamanic."),
+      D("Win, and the Power of Crimp is yours in perpetuity. Lose, and we all dress like THEM forever."),
+    ];
+    return [
+      D("Champions of the Grand Crimp-Off. The Board is satisfied. I'm going back to my soak."),
+      D("The Onion's stage is yours whenever you fancy an encore. The format... remains sacred."),
+    ];
+  },
+
+  saboo_pre: (api) => [
+    { speaker: "Saboo", text: "Come to gawp? Good. Gawp at a man ACQUAINTED with the crunch." },
+    { speaker: "Saboo", text: "I was robbed at Crimp-Off oh-six. The board remembers. The CRUNCH remembers." },
+    H("The crunch is a myth, sir. There's only the funk and its consequences."),
+    { speaker: "Saboo", text: "...Kirk, do the thing." },
+    NAR("(Kirk does the thing. The tempo rises unnaturally.)"),
+  ],
+  saboo_win: (api) => [
+    { speaker: "Saboo", text: "...So that's the crunch. It was inside you two berks the whole time. TYPICAL." },
+    { speaker: "", text: "(Kirk applauds. Once. It is somehow deafening.)" },
+    V("Cheers Kirk. You're an enigma and I respect it."),
+  ],
+  saboo_lose: (api) => [{ speaker: "Saboo", text: "Banished to the bin of sound. NEXT." }],
+  saboo_after: (api) => [{ speaker: "Saboo", text: "The final awaits. Do not embarrass the format." }],
+
+  zeusfinal_pre: (api) => [
+    { speaker: "Lance", text: "The originals. How retro. We've gone PLATINUM since the mirror, boys." },
+    { speaker: "Harold", text: "Six records of YOUR funk, remastered into OUR catalogue. The encore begins." },
+    V("That's our whole act, our whole look, our whole LIFE you've laminated."),
+    H("One last crimp, Vince. Forwards, backwards, and everything we've got."),
+    { speaker: "Tony", text: "(from the judges' table) This is an OUTRAGE. ...But it's also quite good. FIGHT." },
+  ],
+  ending: (api) => ({
+    pages: [
+      NAR("The last note lands. The house lights blaze. For one long second: silence."),
+      NAR("Then the Velvet Onion ERUPTS. Naboo nods, which from Naboo is a standing ovation."),
+      { speaker: "Lance", text: "...They crimped it better, Harold. Forwards AND backwards. With FEELING." },
+      { speaker: "Harold", text: "Market verdict accepted. We'll see ourselves back through the glass." },
+      NAR("The reflections bow — genuinely, this once — and fold away into nothing."),
+      { speaker: "Dennis", text: "THE BOARD DECREES: the Power of Crimp resides, in perpetuity, with these two berks." },
+      { speaker: "", text: "(Bollo, on the decks, drops the beat. The whole Zooniverse - jazz spirits, demon nans, the actual Moon - does the final chant.)" },
+      V("We did it, Howard. Legends. ACTUAL legends. How's the jazz feeling?"),
+      H("The jazz, Vince... the jazz feels MIGHTY."),
+      NAR("THE MIGHTY BOOSH: CRIMP OF LEGENDS"),
+      NAR("(The Onion stays open. The worlds stay weird. The crimping never stops.)"),
+    ],
+    onDone: () => {
+      api.setFlag("tourney_champion");
+      api.addShrapnel(300);
+      api.toast("CHAMPIONS OF THE GRAND CRIMP-OFF!  +300 shrapnel");
+    },
+  }),
+  zeusfinal_lose: (api) => [
+    { speaker: "Lance", text: "Lovely effort. Very authentic. Very... opening act." },
+    { speaker: "Harold", text: "Rehearse. Return. We do enjoy an encore." },
+  ],
+  zeusfinal_after: (api) => [
+    { speaker: "", text: "The stage hums quietly. Somewhere beyond the glass, two plastic boys are rehearsing humility." },
+  ],
+
+  greenroom_jazz: (api) => [{ speaker: "Jazz", text: "Daddy-o, the green room tea is WEAK. Good crimpin' out there tonight." }],
+  greenroom_gregg: (api) => [{ speaker: "Gregg", text: "I brought me watercolours. Painted the crowd. They're all you, mostly." }],
+  greenroom_nana: (api) => [{ speaker: "Nana", text: "I've done a crossword and cursed two roadies. Lovely venue." }],
+  greenroom_tony: (api) => [{ speaker: "Tony", text: "I'm JUDGING tonight. The tassels are regulation. NOTHING is an outrage so far. Unsettling." }],
+
   // ---- world entry banter ------------------------------------------------
   tundra_enter: (api) => [
     V("Brrr! It's a proper winter wonderland. My hair's gone all static."),

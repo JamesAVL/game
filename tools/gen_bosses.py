@@ -413,6 +413,32 @@ def main():
     yeti()
     hitcher()
     zeus()
+    saboo()
+
+
+def saboo():
+    cv = Canvas(72, 84, cs=CS)
+    robe = (60, 40, 100); robehi = (100, 70, 160); turban = (40, 30, 60); skin = (190, 150, 120)
+    cx = 24
+    # Saboo: tall, robed, unimpressed
+    cv.fill_poly([(cx - 12, 82), (cx - 9, 38), (cx + 9, 38), (cx + 12, 82)], robe)
+    cv.rect(cx - 9, 38, 5, 44, robehi)
+    cv.ellipse(cx, 26, 10, 10, skin)
+    cv.rect(cx - 11, 14, 22, 9, turban)
+    cv.rect(cx - 11, 20, 22, 3, (90, 70, 130))
+    cv.set(cx + 6, 17, (220, 200, 255))
+    cv.hline(cx - 6, 24, 5, (30, 22, 44)); cv.hline(cx + 2, 24, 5, (30, 22, 44))  # heavy brows
+    cv.line(cx - 4, 32, cx + 4, 32, (90, 60, 50))                                  # flat unamused mouth
+    # Kirk: small, pale, vacant, vaguely glowing
+    kx = 52
+    cv.rect(kx - 7, 56, 14, 26, (180, 60, 60))
+    cv.rect(kx - 7, 56, 4, 26, (220, 110, 100))
+    cv.ellipse(kx, 46, 9, 9, (235, 225, 215))
+    cv.rect(kx - 8, 38, 16, 5, (235, 215, 150))         # bowl cut
+    cv.ellipse(kx - 3, 45, 2, 2, (30, 30, 40)); cv.ellipse(kx + 3, 45, 2, 2, (30, 30, 40))
+    cv.ellipse(kx, 50, 2, 1, (140, 100, 90))            # tiny o mouth
+    cv.ellipse(kx, 46, 12, 12, (255, 255, 220, 36))     # the faint Kirk aura
+    save_with_outline(cv, "boss_saboo")
 
 
 if __name__ == "__main__":
